@@ -29,6 +29,7 @@ export default async function Page() {
         lastName: dbUser.lastName,
         username: dbUser.username,
         designation: dbUser.designation,
+        avatarUrl: dbUser.avatarUrl,
         role: {
           name: dbUser.role.name,
           label: dbUser.role.label

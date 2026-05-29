@@ -64,18 +64,7 @@ export function SettingsWorkspaceHeader({
   const Icon = info.icon;
 
   return (
-    <div className="px-6 py-4 border-b border-border/20 bg-[#161619] flex items-center gap-3.5 shrink-0 text-left">
-      {onToggleSidebar && (
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onToggleSidebar}
-          className="hidden lg:flex h-8 w-8 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground shrink-0 -ml-2 mr-0.5"
-          aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          <Menu className="h-4 w-4" />
-        </Button>
-      )}
+    <div className="px-6 py-5 border-b border-border/10 bg-transparent flex items-center gap-3.5 shrink-0 text-left">
       <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#8B5CF6]/10 border border-[#8B5CF6]/20 shrink-0">
         <Icon className="h-4 w-4 text-[#8B5CF6]" />
       </div>

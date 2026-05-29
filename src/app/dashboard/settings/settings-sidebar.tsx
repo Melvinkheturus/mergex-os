@@ -9,10 +9,14 @@ import {
   Settings2, 
   Sliders, 
   ArrowLeft,
-  Bell
+  Bell,
+  PanelLeftClose,
+  PanelLeftOpen,
+  LogOut
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useClerk } from "@clerk/nextjs";
 import {
   Tooltip,
   TooltipContent,
@@ -41,9 +45,11 @@ const NAV: NavItem[] = [
 interface SettingsSidebarProps {
   roleName?: string;
   collapsed?: boolean;
+  onCollapse?: (val: boolean) => void;
 }
 
-export function SettingsSidebar({ roleName, collapsed = false }: SettingsSidebarProps) {
+export function SettingsSidebar({ roleName, collapsed = false, onCollapse }: SettingsSidebarProps) {
+  const { signOut } = useClerk();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const activeTab = searchParams.get("tab") || "profile";
@@ -70,24 +76,51 @@ export function SettingsSidebar({ roleName, collapsed = false }: SettingsSidebar
         {/* Desktop Header */}
         <div className={cn(
           "h-16 flex items-center border-b border-transparent px-4 gap-2.5",
-          collapsed ? "justify-center" : ""
+          collapsed ? "justify-center" : "justify-between"
         )}>
-          <Button
-            variant="ghost"
-            size="icon"
-            asChild
-            className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted/50 shrink-0"
-          >
-            <Link href="/dashboard">
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
-          {!collapsed && (
-            <div className="min-w-0">
-              <h2 className="font-bold text-[13px] tracking-tight text-foreground truncate">Settings</h2>
-              <p className="text-[10px] text-muted-foreground/60 leading-none mt-0.5 truncate">
-                {roleName ? roleName.replace("_", " ").toUpperCase() : "MEMBER"}
-              </p>
+          {collapsed ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => onCollapse?.(false)}
+                  aria-label="Expand sidebar"
+                  className="group/logo relative flex items-center justify-center w-8 h-8 rounded-md hover:bg-black/5 dark:hover:bg-white/5 transition-colors mx-auto"
+                >
+                  <ArrowLeft className="h-4 w-4 text-muted-foreground absolute transition-opacity duration-150 group-hover/logo:opacity-0" />
+                  <PanelLeftOpen
+                    className="h-4 w-4 text-muted-foreground absolute opacity-0 transition-opacity duration-150 group-hover/logo:opacity-100"
+                    strokeWidth={1.6}
+                  />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right" sideOffset={12} className="text-[10px] font-medium">
+                Expand sidebar
+              </TooltipContent>
+            </Tooltip>
+          ) : (
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  asChild
+                  className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted/50 shrink-0"
+                >
+                  <Link href="/dashboard">
+                    <ArrowLeft className="h-4 w-4" />
+                  </Link>
+                </Button>
+                <div className="min-w-0">
+                  <h2 className="font-bold text-base tracking-tight text-foreground truncate">Settings</h2>
+                </div>
+              </div>
+              <button
+                onClick={() => onCollapse?.(true)}
+                aria-label="Collapse sidebar"
+                className="h-6 w-6 ml-2 shrink-0 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+              >
+                <PanelLeftClose className="h-3.5 w-3.5" strokeWidth={1.6} />
+              </button>
             </div>
           )}
         </div>
@@ -147,6 +180,33 @@ export function SettingsSidebar({ roleName, collapsed = false }: SettingsSidebar
             return link;
           })}
         </nav>
+
+        {/* Desktop Logout Button */}
+        <div className="border-t border-border/10 p-3 mt-auto">
+          {collapsed ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => signOut()}
+                  className="flex items-center justify-center h-9 w-9 mx-auto rounded-md text-red-500 hover:text-red-600 hover:bg-red-500/10 cursor-pointer transition-colors"
+                >
+                  <LogOut className="h-[16px] w-[16px] shrink-0" strokeWidth={1.6} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right" sideOffset={12} className="text-[10px] font-semibold text-red-500 bg-red-500/5 border border-red-500/10">
+                Log Out
+              </TooltipContent>
+            </Tooltip>
+          ) : (
+            <button
+              onClick={() => signOut()}
+              className="flex items-center gap-3 w-full px-3 py-2 rounded-md text-xs font-semibold text-red-500 hover:text-red-600 hover:bg-red-500/10 cursor-pointer transition-colors text-left"
+            >
+              <LogOut className="h-4 w-4 shrink-0" strokeWidth={1.6} />
+              <span>Log Out</span>
+            </button>
+          )}
+        </div>
       </aside>
 
       {/* Mobile View: Horizontal scrolling tabs list at the top */}

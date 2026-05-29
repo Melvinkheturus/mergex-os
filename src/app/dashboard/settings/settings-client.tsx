@@ -140,7 +140,7 @@ function ProfileSection({ user, brands }: { user: SettingsPageProps["user"]; bra
   return (
     <div className="space-y-6">
       {/* Account Info card */}
-      <Card className="shadow-xs border-border/30 bg-card">
+      <Card className="glass-frost-card rounded-[20px] shadow-sm border-transparent hover:shadow-[0_12px_40px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_16px_48px_rgba(0,0,0,0.4)] transition-all">
         <CardHeader className="pb-3 text-left">
           <CardTitle className="text-sm font-bold text-foreground">Account Information</CardTitle>
           <CardDescription className="text-xs text-muted-foreground">
@@ -187,7 +187,7 @@ function ProfileSection({ user, brands }: { user: SettingsPageProps["user"]; bra
       </Card>
 
       {/* Security credentials card */}
-      <Card className="shadow-xs border-border/30 bg-card">
+      <Card className="glass-frost-card rounded-[20px] shadow-sm border-transparent hover:shadow-[0_12px_40px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_16px_48px_rgba(0,0,0,0.4)] transition-all">
         <CardHeader className="pb-3 text-left">
           <CardTitle className="text-sm font-bold text-foreground">Security</CardTitle>
           <CardDescription className="text-xs text-muted-foreground">
@@ -222,7 +222,7 @@ function ProfileSection({ user, brands }: { user: SettingsPageProps["user"]; bra
       </Card>
       
       {/* Workspace preferences */}
-      <Card className="shadow-xs border-border/30 bg-card">
+      <Card className="glass-frost-card rounded-[20px] shadow-sm border-transparent hover:shadow-[0_12px_40px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_16px_48px_rgba(0,0,0,0.4)] transition-all">
         <CardHeader className="pb-3 text-left">
           <CardTitle className="text-sm font-bold text-foreground">Preferences</CardTitle>
           <CardDescription className="text-xs text-muted-foreground">
@@ -322,7 +322,7 @@ function WorkspaceSection({ brands }: { brands: Brand[] }) {
   return (
     <div className="space-y-6">
       {/* Brand Divisions management */}
-      <Card className="shadow-xs border-border/30 bg-card">
+      <Card className="glass-frost-card rounded-[20px] shadow-sm border-transparent hover:shadow-[0_12px_40px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_16px_48px_rgba(0,0,0,0.4)] transition-all">
         <CardHeader className="pb-3 text-left">
           <CardTitle className="text-sm font-bold text-foreground">Brand Management</CardTitle>
           <CardDescription className="text-xs text-muted-foreground">
@@ -370,7 +370,7 @@ function WorkspaceSection({ brands }: { brands: Brand[] }) {
       </Card>
 
       {/* Global preferences defaults */}
-      <Card className="shadow-xs border-border/30 bg-card">
+      <Card className="glass-frost-card rounded-[20px] shadow-sm border-transparent hover:shadow-[0_12px_40px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_16px_48px_rgba(0,0,0,0.4)] transition-all">
         <CardHeader className="pb-3 text-left">
           <CardTitle className="text-sm font-bold text-foreground">Brand Defaults</CardTitle>
           <CardDescription className="text-xs text-muted-foreground">
@@ -442,7 +442,7 @@ function TeamSection({ teammates }: { teammates: Teammate[] }) {
   return (
     <div className="space-y-6">
       {/* Invite Member form */}
-      <Card className="shadow-xs border-border/30 bg-card">
+      <Card className="glass-frost-card rounded-[20px] shadow-sm border-transparent hover:shadow-[0_12px_40px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_16px_48px_rgba(0,0,0,0.4)] transition-all">
         <CardHeader className="pb-3 text-left">
           <CardTitle className="text-sm font-bold text-foreground">Invite Users</CardTitle>
           <CardDescription className="text-xs text-muted-foreground">
@@ -477,7 +477,7 @@ function TeamSection({ teammates }: { teammates: Teammate[] }) {
       </Card>
 
       {/* User Directory */}
-      <Card className="shadow-xs border-border/30 bg-card">
+      <Card className="glass-frost-card rounded-[20px] shadow-sm border-transparent hover:shadow-[0_12px_40px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_16px_48px_rgba(0,0,0,0.4)] transition-all">
         <CardHeader className="pb-3 text-left">
           <CardTitle className="text-sm font-bold text-foreground">User Management</CardTitle>
           <CardDescription className="text-xs text-muted-foreground">
@@ -522,7 +522,7 @@ function TeamSection({ teammates }: { teammates: Teammate[] }) {
       </Card>
 
       {/* Permissions Matrix display */}
-      <Card className="shadow-xs border-border/30 bg-card">
+      <Card className="glass-frost-card rounded-[20px] shadow-sm border-transparent hover:shadow-[0_12px_40px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_16px_48px_rgba(0,0,0,0.4)] transition-all">
         <CardHeader className="pb-3 text-left">
           <CardTitle className="text-sm font-bold text-foreground">Roles & Permissions</CardTitle>
           <CardDescription className="text-xs text-muted-foreground">
@@ -565,7 +565,7 @@ function ConfigSection() {
   return (
     <div className="space-y-6">
       {/* Pipeline setup */}
-      <Card className="shadow-xs border-border/30 bg-card">
+      <Card className="glass-frost-card rounded-[20px] shadow-sm border-transparent hover:shadow-[0_12px_40px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_16px_48px_rgba(0,0,0,0.4)] transition-all">
         <CardHeader className="pb-3 text-left">
           <CardTitle className="text-sm font-bold text-foreground">CRM Pipeline Stages</CardTitle>
           <CardDescription className="text-xs text-muted-foreground">
@@ -589,7 +589,7 @@ function ConfigSection() {
       </Card>
 
       {/* Client Lifecycle */}
-      <Card className="shadow-xs border-border/30 bg-card">
+      <Card className="glass-frost-card rounded-[20px] shadow-sm border-transparent hover:shadow-[0_12px_40px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_16px_48px_rgba(0,0,0,0.4)] transition-all">
         <CardHeader className="pb-3 text-left">
           <CardTitle className="text-sm font-bold text-foreground">Client Status Settings</CardTitle>
           <CardDescription className="text-xs text-muted-foreground">
@@ -637,7 +637,7 @@ function SystemSection() {
   return (
     <div className="space-y-6">
       {/* File settings */}
-      <Card className="shadow-xs border-border/30 bg-card">
+      <Card className="glass-frost-card rounded-[20px] shadow-sm border-transparent hover:shadow-[0_12px_40px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_16px_48px_rgba(0,0,0,0.4)] transition-all">
         <CardHeader className="pb-3 text-left">
           <CardTitle className="text-sm font-bold text-foreground">File Upload Settings</CardTitle>
           <CardDescription className="text-xs text-muted-foreground">
@@ -657,7 +657,7 @@ function SystemSection() {
       </Card>
 
       {/* Security logs */}
-      <Card className="shadow-xs border-border/30 bg-card">
+      <Card className="glass-frost-card rounded-[20px] shadow-sm border-transparent hover:shadow-[0_12px_40px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_16px_48px_rgba(0,0,0,0.4)] transition-all">
         <CardHeader className="pb-3 text-left">
           <CardTitle className="text-sm font-bold text-foreground">Audit Logs</CardTitle>
           <CardDescription className="text-xs text-muted-foreground">
@@ -675,7 +675,7 @@ function SystemSection() {
       </Card>
 
       {/* System Alert rule */}
-      <Card className="shadow-xs border-border/30 bg-card">
+      <Card className="glass-frost-card rounded-[20px] shadow-sm border-transparent hover:shadow-[0_12px_40px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_16px_48px_rgba(0,0,0,0.4)] transition-all">
         <CardHeader className="pb-3 text-left">
           <CardTitle className="text-sm font-bold text-foreground">Alert Rules</CardTitle>
           <CardDescription className="text-xs text-muted-foreground">

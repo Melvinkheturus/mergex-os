@@ -145,7 +145,7 @@ export default function NotificationSettingsPage() {
   return (
     <div className="max-w-2xl">
       {/* ── In-App Notifications ─────────────────────────────────── */}
-      <div className="rounded-xl border border-border/30 bg-card shadow-xs p-5 mb-4">
+      <div className="glass-frost-card rounded-[20px] shadow-sm border-transparent p-5 mb-6 hover:shadow-[0_12px_40px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_16px_48px_rgba(0,0,0,0.4)] transition-all">
         <SectionHeader
           icon={Bell}
           title="In-App Notifications"
@@ -190,7 +190,7 @@ export default function NotificationSettingsPage() {
       </div>
 
       {/* ── Email Notifications ───────────────────────────────────── */}
-      <div className="rounded-xl border border-border/30 bg-card shadow-xs p-5 mb-4">
+      <div className="glass-frost-card rounded-[20px] shadow-sm border-transparent p-5 mb-6 hover:shadow-[0_12px_40px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_16px_48px_rgba(0,0,0,0.4)] transition-all">
         <SectionHeader
           icon={Mail}
           title="Email Notifications"
@@ -249,7 +249,7 @@ export default function NotificationSettingsPage() {
       </div>
 
       {/* ── Quiet Hours ───────────────────────────────────────────── */}
-      <div className="rounded-xl border border-border/30 bg-card shadow-xs p-5">
+      <div className="glass-frost-card rounded-[20px] shadow-sm border-transparent p-5 mb-6 hover:shadow-[0_12px_40px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_16px_48px_rgba(0,0,0,0.4)] transition-all">
         <SectionHeader
           icon={Clock}
           title="Quiet Hours"
@@ -293,7 +293,7 @@ export default function NotificationSettingsPage() {
       </div>
 
       {/* Save button and Info note */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-6 p-4 rounded-xl border border-primary/20 bg-primary/[0.04]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-8 p-5 rounded-[20px] border border-[#8B5CF6]/20 bg-[#8B5CF6]/5 glass-frost-card shadow-sm">
         <div className="flex items-start gap-2 max-w-md">
           <Zap className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
           <p className="text-xs text-muted-foreground leading-relaxed text-left">
