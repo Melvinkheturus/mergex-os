@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { toast } from "sonner";
 import { NumberCounter } from "@/components/ui/number-counter";
 import { 
@@ -19,7 +18,6 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { 
   DropdownMenu, 
@@ -144,12 +142,8 @@ export function DashboardClient({ user, teammates, brands }: DashboardClientProp
     "cx-workload"
   ]);
 
-  // Interactive local Action Center list
-  const [actions, setActions] = useState([
-    { id: "action-1", text: "Follow up with Menswear Brand proposal signature", urgency: "High", done: false },
-    { id: "action-2", text: "Schedule review meeting with OVRN Studios", urgency: "Medium", done: false },
-    { id: "action-3", text: "Invite new team members to default brand", urgency: "Low", done: false },
-  ]);
+  // Interactive local Action Center list (starts empty for clean onboarding state)
+  const [actions, setActions] = useState<{ id: string; text: string; urgency: string; done: boolean }[]>([]);
 
   // Load customizations on mount
   useEffect(() => {
@@ -177,22 +171,42 @@ export function DashboardClient({ user, teammates, brands }: DashboardClientProp
     }
   }, []);
 
-  // Update KPI slot
+  // Update KPI slot — swaps automatically if already selected to prevent duplicates
   const handleSelectKpi = (slotIndex: number, kpiKey: KpiType) => {
     const updated = [...kpis];
-    updated[slotIndex] = kpiKey;
-    setKpis(updated);
-    localStorage.setItem("mergex_dashboard_kpis", JSON.stringify(updated));
-    toast.success(`KPI Card #${slotIndex + 1} updated to ${KPI_POOL[kpiKey].label}`);
+    const existingIndex = updated.indexOf(kpiKey);
+    if (existingIndex !== -1 && existingIndex !== slotIndex) {
+      const temp = updated[slotIndex];
+      updated[slotIndex] = kpiKey;
+      updated[existingIndex] = temp;
+      setKpis(updated);
+      localStorage.setItem("mergex_dashboard_kpis", JSON.stringify(updated));
+      toast.success(`Swapped KPI Cards: Slot #${slotIndex + 1} is now ${KPI_POOL[kpiKey].label}, Slot #${existingIndex + 1} is ${KPI_POOL[temp].label}`);
+    } else {
+      updated[slotIndex] = kpiKey;
+      setKpis(updated);
+      localStorage.setItem("mergex_dashboard_kpis", JSON.stringify(updated));
+      toast.success(`KPI Card #${slotIndex + 1} updated to ${KPI_POOL[kpiKey].label}`);
+    }
   };
 
-  // Update Widget slot
+  // Update Widget slot — swaps automatically if already selected to prevent duplicates
   const handleSelectWidget = (slotIndex: number, widgetKey: WidgetType) => {
     const updated = [...widgets];
-    updated[slotIndex] = widgetKey;
-    setWidgets(updated);
-    localStorage.setItem("mergex_dashboard_widgets", JSON.stringify(updated));
-    toast.success(`Panel #${slotIndex + 1} updated to ${WIDGET_POOL[widgetKey].label}`);
+    const existingIndex = updated.indexOf(widgetKey);
+    if (existingIndex !== -1 && existingIndex !== slotIndex) {
+      const temp = updated[slotIndex];
+      updated[slotIndex] = widgetKey;
+      updated[existingIndex] = temp;
+      setWidgets(updated);
+      localStorage.setItem("mergex_dashboard_widgets", JSON.stringify(updated));
+      toast.success(`Swapped Panels: Slot #${slotIndex + 1} is now ${WIDGET_POOL[widgetKey].label}, Slot #${existingIndex + 1} is ${WIDGET_POOL[temp].label}`);
+    } else {
+      updated[slotIndex] = widgetKey;
+      setWidgets(updated);
+      localStorage.setItem("mergex_dashboard_widgets", JSON.stringify(updated));
+      toast.success(`Panel #${slotIndex + 1} updated to ${WIDGET_POOL[widgetKey].label}`);
+    }
   };
 
   // Action Center completed toggle
@@ -384,76 +398,43 @@ export function DashboardClient({ user, teammates, brands }: DashboardClientProp
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-60 bg-white dark:bg-[#111114] border border-border/20 rounded-xl p-1 shadow-md max-h-80 overflow-y-auto">
                     
-                    {/* CRM Section */}
-                    <DropdownMenuLabel className="text-[9px] uppercase font-bold text-muted-foreground/60 px-2 py-1">
-                      CRM Analytics
-                    </DropdownMenuLabel>
-                    {(Object.keys(WIDGET_POOL) as WidgetType[])
-                       .filter(k => WIDGET_POOL[k].category === "CRM")
-                       .map(k => (
-                        <DropdownMenuItem 
-                          key={k} 
-                          onClick={() => handleSelectWidget(slotIndex, k)}
-                          className="text-xs px-2 py-1.5 cursor-pointer hover:bg-muted/50 rounded-md"
-                        >
-                          {WIDGET_POOL[k].label}
-                        </DropdownMenuItem>
-                      ))}
-                    
-                    <DropdownMenuSeparator className="bg-border/10 my-1" />
-                    
-                    {/* Client Section */}
-                    <DropdownMenuLabel className="text-[9px] uppercase font-bold text-muted-foreground/60 px-2 py-1">
-                      Client Analytics
-                    </DropdownMenuLabel>
-                    {(Object.keys(WIDGET_POOL) as WidgetType[])
-                       .filter(k => WIDGET_POOL[k].category === "Clients")
-                       .map(k => (
-                        <DropdownMenuItem 
-                          key={k} 
-                          onClick={() => handleSelectWidget(slotIndex, k)}
-                          className="text-xs px-2 py-1.5 cursor-pointer hover:bg-muted/50 rounded-md"
-                        >
-                          {WIDGET_POOL[k].label}
-                        </DropdownMenuItem>
-                      ))}
-                    
-                    <DropdownMenuSeparator className="bg-border/10 my-1" />
-                    
-                    {/* Team Section */}
-                    <DropdownMenuLabel className="text-[9px] uppercase font-bold text-muted-foreground/60 px-2 py-1">
-                      Team Analytics
-                    </DropdownMenuLabel>
-                    {(Object.keys(WIDGET_POOL) as WidgetType[])
-                       .filter(k => WIDGET_POOL[k].category === "Team")
-                       .map(k => (
-                        <DropdownMenuItem 
-                          key={k} 
-                          onClick={() => handleSelectWidget(slotIndex, k)}
-                          className="text-xs px-2 py-1.5 cursor-pointer hover:bg-muted/50 rounded-md"
-                        >
-                          {WIDGET_POOL[k].label}
-                        </DropdownMenuItem>
-                      ))}
-
-                    <DropdownMenuSeparator className="bg-border/10 my-1" />
-                    
-                    {/* Documents Section */}
-                    <DropdownMenuLabel className="text-[9px] uppercase font-bold text-muted-foreground/60 px-2 py-1">
-                      Document Analytics
-                    </DropdownMenuLabel>
-                    {(Object.keys(WIDGET_POOL) as WidgetType[])
-                       .filter(k => WIDGET_POOL[k].category === "Documents")
-                       .map(k => (
-                        <DropdownMenuItem 
-                          key={k} 
-                          onClick={() => handleSelectWidget(slotIndex, k)}
-                          className="text-xs px-2 py-1.5 cursor-pointer hover:bg-muted/50 rounded-md"
-                        >
-                          {WIDGET_POOL[k].label}
-                        </DropdownMenuItem>
-                      ))}
-
+                    {/* Helper to render widget items with active state indicators */}
+                    {(["CRM", "Clients", "Team", "Documents"] as const).map((category, catIdx) => (
+                      <div key={category}>
+                        {catIdx > 0 && <DropdownMenuSeparator className="bg-border/10 my-1" />}
+                        <DropdownMenuLabel className="text-[9px] uppercase font-bold text-muted-foreground/60 px-2 py-1">
+                          {category === "CRM" ? "CRM Analytics" : category === "Clients" ? "Client Analytics" : category === "Team" ? "Team Analytics" : "Document Analytics"}
+                        </DropdownMenuLabel>
+                        {(Object.keys(WIDGET_POOL) as WidgetType[])
+                          .filter(k => WIDGET_POOL[k].category === category)
+                          .map(k => {
+                            const isCurrentSlot = widgets[slotIndex] === k;
+                            const isUsedElsewhere = !isCurrentSlot && widgets.includes(k);
+                            return (
+                              <DropdownMenuItem
+                                key={k}
+                                onClick={() => handleSelectWidget(slotIndex, k)}
+                                className={cn(
+                                  "text-xs px-2 py-1.5 cursor-pointer rounded-md flex items-center justify-between gap-2",
+                                  isCurrentSlot
+                                    ? "bg-[#8B5CF6]/5 text-[#8B5CF6] font-semibold"
+                                    : isUsedElsewhere
+                                    ? "text-muted-foreground/60 hover:bg-muted/50"
+                                    : "hover:bg-muted/50"
+                                )}
+                              >
+                                <span>{WIDGET_POOL[k].label}</span>
+                                {isCurrentSlot && (
+                                  <CheckCircle2 className="h-3 w-3 text-[#8B5CF6] shrink-0" />
+                                )}
+                                {isUsedElsewhere && (
+                                  <span className="text-[8px] bg-muted/60 px-1 py-0.5 rounded font-medium shrink-0">↔ Swap</span>
+                                )}
+                              </DropdownMenuItem>
+                            );
+                          })}
+                      </div>
+                    ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </CardHeader>
@@ -469,8 +450,8 @@ export function DashboardClient({ user, teammates, brands }: DashboardClientProp
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Left: Operational Feed (2/3 width) */}
-        <Card className="lg:col-span-2">
-          <CardHeader className="pb-3 p-6">
+        <Card className="lg:col-span-2 flex flex-col min-h-[220px]">
+          <CardHeader className="pb-3 p-6 shrink-0">
             <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
               <Activity className="w-4 h-4 text-[#8B5CF6]" />
               Operational Activity Feed
@@ -479,57 +460,21 @@ export function DashboardClient({ user, teammates, brands }: DashboardClientProp
               Real-time events happening across divisions
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4 p-6 pt-0">
-            {/* Timeline feed: operationally meaningful events only */}
-            <div className="space-y-5">
-              <div className="flex gap-3 text-xs leading-none">
-                <div className="h-7 w-7 rounded-lg bg-emerald-500/5 border border-emerald-500/10 flex items-center justify-center shrink-0 text-emerald-500">
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                </div>
-                <div className="space-y-1 text-left">
-                  <p className="font-semibold text-foreground">
-                    Proposal approved by {activeBrandName}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground/60">
-                    3 hours ago · Active workflow
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-3 text-xs leading-none">
-                <div className="h-7 w-7 rounded-lg bg-blue-500/5 border border-blue-500/10 flex items-center justify-center shrink-0 text-blue-500">
-                  <Users className="h-3.5 w-3.5" />
-                </div>
-                <div className="space-y-1 text-left">
-                  <p className="font-semibold text-foreground">
-                    Client OVRN Studios moved to onboarding stage
-                  </p>
-                  <p className="text-[10px] text-muted-foreground/60">
-                    5 hours ago · Engagement coordinator
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-3 text-xs leading-none">
-                <div className="h-7 w-7 rounded-lg bg-emerald-500/5 border border-emerald-500/10 flex items-center justify-center shrink-0 text-emerald-500">
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                </div>
-                <div className="space-y-1 text-left">
-                  <p className="font-semibold text-foreground">
-                    Invoice #1204 paid by OVRN Studios ($5,000)
-                  </p>
-                  <p className="text-[10px] text-muted-foreground/60">
-                    1 day ago · Billing system
-                  </p>
-                </div>
-              </div>
+          <CardContent className="p-6 pt-0 flex-grow flex items-center justify-center">
+            {/* Empty state for Activity Feed */}
+            <div className="flex flex-col items-center justify-center py-6 text-center text-xs text-muted-foreground">
+              <Activity className="h-8 w-8 text-muted-foreground/30 mb-2 animate-pulse" />
+              <p className="font-semibold text-foreground">No recent activity</p>
+              <p className="text-[10px] text-muted-foreground/50 mt-0.5 max-w-[280px]">
+                As sales workflows scale, real-time trigger notifications and pipeline transitions will stream here.
+              </p>
             </div>
           </CardContent>
         </Card>
 
         {/* Right: Upcoming Action Center (1/3 width) */}
-        <Card>
-          <CardHeader className="pb-3 p-6">
+        <Card className="flex flex-col min-h-[220px]">
+          <CardHeader className="pb-3 p-6 shrink-0">
             <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
               <Clock className="w-4 h-4 text-[#8B5CF6]" />
               Action Center
@@ -538,38 +483,50 @@ export function DashboardClient({ user, teammates, brands }: DashboardClientProp
               Immediate tasks requiring attention
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3 p-6 pt-0">
-            {actions.map((act) => (
-              <div 
-                key={act.id} 
-                className={cn(
-                  "flex items-start gap-3 p-3 rounded-xl border border-border/10 text-xs transition-all",
-                  act.done ? "opacity-45 bg-muted/20 border-muted" : "bg-muted/30 hover:bg-muted/50 cursor-pointer"
-                )}
-                onClick={() => !act.done && handleActionClick(act.id, act.text)}
-              >
-                <div className="mt-0.5 shrink-0">
-                  {act.done ? (
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                  ) : (
-                    <div className="h-4 w-4 rounded border border-muted-foreground/30 hover:border-[#8B5CF6] transition-colors" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0 text-left">
-                  <p className={cn("font-semibold text-foreground leading-tight truncate", act.done && "line-through")}>
-                    {act.text}
-                  </p>
-                  <span className={cn(
-                    "text-[8px] uppercase tracking-wide font-extrabold px-1 rounded-sm mt-1 inline-block",
-                    act.urgency === "High" ? "bg-red-500/10 text-red-500" :
-                    act.urgency === "Medium" ? "bg-amber-500/10 text-amber-500" :
-                    "bg-blue-500/10 text-blue-500"
-                  )}>
-                    {act.urgency} Priority
-                  </span>
-                </div>
+          <CardContent className="p-6 pt-0 flex-grow flex items-center justify-center">
+            {actions.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-6 text-center text-xs text-muted-foreground">
+                <CheckCircle2 className="h-8 w-8 text-emerald-500/30 mb-2" />
+                <p className="font-semibold text-foreground">All caught up!</p>
+                <p className="text-[10px] text-muted-foreground/50 mt-0.5 max-w-[200px]">
+                  No urgent action items or approval requests require your attention today.
+                </p>
               </div>
-            ))}
+            ) : (
+              <div className="w-full space-y-3">
+                {actions.map((act) => (
+                  <div 
+                    key={act.id} 
+                    className={cn(
+                      "flex items-start gap-3 p-3 rounded-xl border border-border/10 text-xs transition-all",
+                      act.done ? "opacity-45 bg-muted/20 border-muted" : "bg-muted/30 hover:bg-muted/50 cursor-pointer"
+                    )}
+                    onClick={() => !act.done && handleActionClick(act.id, act.text)}
+                  >
+                    <div className="mt-0.5 shrink-0">
+                      {act.done ? (
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                      ) : (
+                        <div className="h-4 w-4 rounded border border-muted-foreground/30 hover:border-[#8B5CF6] transition-colors" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0 text-left">
+                      <p className={cn("font-semibold text-foreground leading-tight truncate", act.done && "line-through")}>
+                        {act.text}
+                      </p>
+                      <span className={cn(
+                        "text-[8px] uppercase tracking-wide font-extrabold px-1 rounded-sm mt-1 inline-block",
+                        act.urgency === "High" ? "bg-red-500/10 text-red-500" :
+                        act.urgency === "Medium" ? "bg-amber-500/10 text-amber-500" :
+                        "bg-blue-500/10 text-blue-500"
+                      )}>
+                        {act.urgency} Priority
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
