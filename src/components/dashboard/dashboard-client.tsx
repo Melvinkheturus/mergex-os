@@ -251,7 +251,7 @@ export function DashboardClient({ user, teammates, brands }: DashboardClientProp
         {kpis.map((kpiKey, slotIndex) => {
           const kpi = KPI_POOL[kpiKey];
           return (
-            <div key={slotIndex} className="relative group/kpi glass-frost-card rounded-[32px] p-6 transition-all flex flex-col justify-between h-[120px] text-left hover:shadow-[0_12px_40px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_16px_48px_rgba(0,0,0,0.4)]">
+            <div key={slotIndex} className="relative group/kpi glass-frost-card rounded-[20px] p-6 transition-all flex flex-col justify-between h-[120px] text-left hover:shadow-[0_12px_40px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_16px_48px_rgba(0,0,0,0.4)]">
               <div className="flex justify-between items-start w-full">
                 <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">
                   {kpi.label}
