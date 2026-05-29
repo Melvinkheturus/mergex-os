@@ -150,7 +150,7 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
               const dynamicHref = getDynamicHref(item.href);
               const isActive =
                 item.href === "/dashboard"
-                  ? pathname === dynamicHref
+                  ? pathname === dynamicHref || pathname === `${dynamicHref}/dashboard`
                   : pathname.startsWith(dynamicHref);
               const isFrozen = !!item.isComingSoon;
               const subItems = SUB_ITEMS[item.title];
@@ -167,10 +167,10 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
                     "flex items-center gap-3 px-2 py-[7px] rounded-md transition-colors duration-100",
                     collapsed ? "justify-center" : "",
                     isActive
-                      ? "text-foreground"
+                      ? "text-[#8B5CF6] dark:text-[#A78BFA] bg-[#8B5CF6]/5 dark:bg-[#8B5CF6]/10 font-bold"
                       : isFrozen
-                      ? "text-muted-foreground/40 pointer-events-none"
-                      : "text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5"
+                      ? "text-neutral-400/30 dark:text-neutral-600/30 pointer-events-none"
+                      : "text-neutral-800 dark:text-neutral-200 hover:text-neutral-950 dark:hover:text-neutral-50 hover:bg-black/5 dark:hover:bg-white/5"
                   )}
                 >
                   <Icon
@@ -178,10 +178,10 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
                       "shrink-0 transition-colors",
                       collapsed ? "h-[18px] w-[18px]" : "h-[16px] w-[16px]",
                       isActive
-                        ? "text-foreground"
+                        ? "text-[#8B5CF6] dark:text-[#A78BFA]"
                         : isFrozen
-                        ? "text-muted-foreground/40"
-                        : "text-muted-foreground"
+                        ? "text-neutral-400/30 dark:text-neutral-600/30"
+                        : "text-neutral-500 dark:text-neutral-400"
                     )}
                     strokeWidth={isActive ? 2 : 1.5}
                   />
@@ -190,9 +190,7 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
                       <span
                         className={cn(
                           "flex-1 text-[13px] truncate",
-                          /* Active: font-medium — visually distinct without being heavy */
-                          /* Inactive: font-normal — lowest weight, clean and minimal */
-                          isActive ? "font-medium" : "font-normal"
+                          isActive ? "font-bold text-[#8B5CF6] dark:text-[#A78BFA]" : "font-semibold text-neutral-800 dark:text-neutral-200"
                         )}
                       >
                         {item.title}
@@ -200,7 +198,7 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
                       {subItems && (
                         <ChevronDown
                           className={cn(
-                            "h-3 w-3 shrink-0 text-muted-foreground/40 transition-transform duration-200",
+                            "h-3 w-3 shrink-0 text-neutral-500/40 dark:text-neutral-400/40 transition-transform duration-200",
                             isAccordionOpen && "rotate-180"
                           )}
                         />
@@ -245,16 +243,15 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
                               }}
                               className={cn(
                                 "flex items-center gap-1.5 py-1.5 text-[12px] transition-colors",
-                                /* Sub-item active: font-medium / inactive: font-normal */
                                 isSubActive
-                                  ? "text-foreground font-medium"
-                                  : "text-muted-foreground/65 hover:text-foreground font-normal"
+                                  ? "text-[#8B5CF6] dark:text-[#A78BFA] font-bold"
+                                  : "text-neutral-700 dark:text-neutral-300 hover:text-neutral-950 dark:hover:text-neutral-50 font-semibold"
                               )}
                             >
                               <span
                                 className={cn(
                                   "w-[3px] h-[3px] rounded-full shrink-0",
-                                  isSubActive ? "bg-foreground" : "bg-muted-foreground/30"
+                                  isSubActive ? "bg-[#8B5CF6] dark:bg-[#A78BFA]" : "bg-neutral-400 dark:bg-neutral-600"
                                 )}
                               />
                               {sub.title}
@@ -278,14 +275,19 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
                 <Link
                   href={`/workspaces/${slug}/settings`}
                   className={cn(
-                    "flex items-center justify-center h-9 w-9 mx-auto rounded-full transition-colors",
+                    "flex items-center justify-center h-9 w-9 mx-auto rounded-md transition-colors",
                     pathname.startsWith(`/workspaces/${slug}/settings`)
-                      ? "bg-[#4C1D95] hover:bg-[#3B0764] text-white shadow-xs"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                      ? "bg-[#8B5CF6]/10 dark:bg-[#8B5CF6]/20 text-[#8B5CF6] dark:text-[#A78BFA] shadow-xs"
+                      : "text-neutral-700 dark:text-neutral-300 hover:text-neutral-950 dark:hover:text-neutral-50 hover:bg-black/5 dark:hover:bg-white/5"
                   )}
                 >
                   <Settings
-                    className="h-[16px] w-[16px] shrink-0"
+                    className={cn(
+                      "h-[16px] w-[16px] shrink-0",
+                      pathname.startsWith(`/workspaces/${slug}/settings`)
+                        ? "text-[#8B5CF6] dark:text-[#A78BFA]"
+                        : "text-neutral-500 dark:text-neutral-400"
+                    )}
                     strokeWidth={pathname.startsWith(`/workspaces/${slug}/settings`) ? 2 : 1.5}
                   />
                 </Link>
@@ -299,18 +301,17 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
               href={`/workspaces/${slug}/settings`}
               className={cn(
                 "flex items-center gap-3 px-2 py-[7px] rounded-md text-[13px] transition-colors",
-                /* Settings active: font-medium / inactive: font-normal */
                 pathname.startsWith(`/workspaces/${slug}/settings`)
-                  ? "text-foreground font-medium"
-                  : "text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 font-normal"
+                  ? "text-[#8B5CF6] dark:text-[#A78BFA] bg-[#8B5CF6]/5 dark:bg-[#8B5CF6]/10 font-bold"
+                  : "text-neutral-800 dark:text-neutral-200 hover:text-neutral-950 dark:hover:text-neutral-50 hover:bg-black/5 dark:hover:bg-white/5 font-semibold"
               )}
             >
               <Settings
                 className={cn(
                   "h-[16px] w-[16px] shrink-0",
                   pathname.startsWith(`/workspaces/${slug}/settings`)
-                    ? "text-foreground"
-                    : "text-muted-foreground"
+                    ? "text-[#8B5CF6] dark:text-[#A78BFA]"
+                    : "text-neutral-500 dark:text-neutral-400"
                 )}
                 strokeWidth={pathname.startsWith(`/workspaces/${slug}/settings`) ? 2 : 1.5}
               />

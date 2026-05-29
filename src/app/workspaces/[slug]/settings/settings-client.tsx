@@ -52,6 +52,8 @@ interface Brand {
   id: string;
   name: string;
   slug: string;
+  description?: string | null;
+  logoUrl?: string | null;
 }
 
 interface SettingsPageProps {
@@ -416,8 +418,8 @@ function NotificationsSection() {
 
 function BrandSettingsSection({ brands }: { brands: Brand[] }) {
   const [brandName,  setBrandName]  = useState(brands[0]?.name  ?? "");
-  const [brandDesc,  setBrandDesc]  = useState("");
-  const [logoUrl,    setLogoUrl]    = useState<string>("");
+  const [brandDesc,  setBrandDesc]  = useState(brands[0]?.description ?? "");
+  const [logoUrl,    setLogoUrl]    = useState<string>(brands[0]?.logoUrl ?? "");
   const [uploading,  setUploading]  = useState(false);
   const [saving,     setSaving]     = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);

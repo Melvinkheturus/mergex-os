@@ -9,6 +9,7 @@ export interface BrandOption {
   id: string;
   name: string;
   slug: string;
+  logoUrl?: string | null;
 }
 
 // ── Brand avatar color palette ─────────────────────────────────────────────
@@ -82,15 +83,22 @@ export function BrandSwitcher({ brands }: { brands: BrandOption[] }) {
       >
         {activeBrand ? (
           <>
-            {/* Colored avatar */}
-            <div
-              className={cn(
-                "w-4 h-4 rounded shrink-0 flex items-center justify-center text-white text-[8px] font-bold",
-                getBrandAvatarColor(activeBrandIndex)
-              )}
-            >
-              {getBrandInitials(activeBrand.name)}
-            </div>
+            {activeBrand.logoUrl ? (
+              <img
+                src={activeBrand.logoUrl}
+                alt={activeBrand.name}
+                className="w-4 h-4 rounded object-cover shrink-0"
+              />
+            ) : (
+              <div
+                className={cn(
+                  "w-4 h-4 rounded shrink-0 flex items-center justify-center text-white text-[8px] font-bold",
+                  getBrandAvatarColor(activeBrandIndex)
+                )}
+              >
+                {getBrandInitials(activeBrand.name)}
+              </div>
+            )}
             <span className="max-w-[96px] truncate">{activeBrand.name}</span>
           </>
         ) : (
@@ -125,17 +133,24 @@ export function BrandSwitcher({ brands }: { brands: BrandOption[] }) {
               className="w-full flex items-center justify-between gap-3 px-3 py-2 text-xs hover:bg-muted/50 transition-colors text-left"
             >
               <div className="flex items-center gap-2.5">
-                <div
-                  className={cn(
-                    "w-5 h-5 rounded shrink-0 flex items-center justify-center text-white text-[8px] font-bold",
-                    getBrandAvatarColor(i)
-                  )}
-                >
-                  {getBrandInitials(brand.name)}
-                </div>
+                {brand.logoUrl ? (
+                  <img
+                    src={brand.logoUrl}
+                    alt={brand.name}
+                    className="w-5 h-5 rounded object-cover shrink-0"
+                  />
+                ) : (
+                  <div
+                    className={cn(
+                      "w-5 h-5 rounded shrink-0 flex items-center justify-center text-white text-[8px] font-bold",
+                      getBrandAvatarColor(i)
+                    )}
+                  >
+                    {getBrandInitials(brand.name)}
+                  </div>
+                )}
                 <div>
                   <p className="font-medium text-foreground leading-none">{brand.name}</p>
-                  <p className="text-[10px] text-muted-foreground font-mono mt-0.5">{brand.slug}</p>
                 </div>
               </div>
               {activeBrand?.id === brand.id && <Check className="w-3 h-3 text-[#8B5CF6] shrink-0" />}

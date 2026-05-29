@@ -4,7 +4,12 @@ import { SettingsPage } from "./settings-client";
 
 export const metadata = { title: "Settings | MergeX Sales OS" };
 
-export default async function Page() {
+interface PageProps {
+  params: Promise<{ slug: string }>;
+}
+
+export default async function Page({ params }: PageProps) {
+  const { slug } = await params;
   const user = await getCurrentUser();
   const dbUser = user ? await db.user.findUnique({
     where: { id: user.id },
@@ -19,6 +24,14 @@ export default async function Page() {
     include: { role: true },
     orderBy: { createdAt: "desc" }
   });
+
+  // Sort active brand matching the route slug to the first position
+  const activeBrandIndex = brands.findIndex(b => b.slug === slug);
+  const sortedBrands = [...brands];
+  if (activeBrandIndex > 0) {
+    const [active] = sortedBrands.splice(activeBrandIndex, 1);
+    sortedBrands.unshift(active);
+  }
 
   return (
     <SettingsPage 
@@ -35,10 +48,12 @@ export default async function Page() {
           label: dbUser.role.label
         }
       } : null}
-      brands={brands.map(b => ({
+      brands={sortedBrands.map(b => ({
         id: b.id,
         name: b.name,
-        slug: b.slug
+        slug: b.slug,
+        description: b.description ?? null,
+        logoUrl: b.logoUrl ?? null
       }))}
       teammates={teammates.map(t => ({
         id: t.id,
