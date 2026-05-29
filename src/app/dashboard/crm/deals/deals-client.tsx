@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import {
-  Handshake, Plus, Search, DollarSign, MoreHorizontal,
+  Handshake, Plus, Search, IndianRupee, MoreHorizontal,
   Calendar, TrendingUp, Target, ChevronRight,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -67,7 +67,7 @@ function DealCard({ deal }: { deal: Deal }) {
       </div>
 
       <div className="flex items-center gap-1.5">
-        <DollarSign className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+        <IndianRupee className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
         <span className="text-sm font-bold">{formatCurrency(deal.value, deal.currency)}</span>
         <span className="text-[10px] text-muted-foreground ml-auto">{deal.probability}% close</span>
       </div>

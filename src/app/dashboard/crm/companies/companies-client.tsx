@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import {
-  Building2, Plus, Search, Globe, MoreHorizontal, Users, DollarSign, Layers,
+  Building2, Plus, Search, Globe, MoreHorizontal, Users, IndianRupee, Layers,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -78,7 +78,7 @@ function CompanyCard({ company }: { company: Company }) {
           )}
           {company.revenue != null && (
             <Badge variant="outline" className="text-[10px] px-2 py-0.5">
-              <DollarSign className="h-2.5 w-2.5 mr-1" />
+              <IndianRupee className="h-2.5 w-2.5 mr-1" />
               ₹{(company.revenue / 1e7).toFixed(1)}Cr
             </Badge>
           )}

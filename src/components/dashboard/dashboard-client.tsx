@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { NumberCounter } from "@/components/ui/number-counter";
 import { 
   Briefcase, 
   Users, 
@@ -29,6 +30,40 @@ import {
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 import { AnalyticsWidget } from "@/components/dashboard/analytics-widgets";
+
+// Helper to parse metric values like "124", "68.2%", "$48K", "3", "₹48K"
+const parseKpiValue = (valStr: string) => {
+  let prefix = "";
+  let suffix = "";
+  let cleanStr = valStr.trim();
+
+  if (cleanStr.startsWith("$")) {
+    prefix = "$";
+    cleanStr = cleanStr.substring(1);
+  } else if (cleanStr.startsWith("₹")) {
+    prefix = "₹";
+    cleanStr = cleanStr.substring(1);
+  }
+
+  if (cleanStr.endsWith("K")) {
+    suffix = "K";
+    cleanStr = cleanStr.slice(0, -1);
+  } else if (cleanStr.endsWith("%")) {
+    suffix = "%";
+    cleanStr = cleanStr.slice(0, -1);
+  }
+
+  const parsed = parseFloat(cleanStr);
+  const decimals = cleanStr.includes(".") ? cleanStr.split(".")[1].length : 0;
+
+  return {
+    value: isNaN(parsed) ? 0 : parsed,
+    prefix,
+    suffix,
+    decimals,
+    original: valStr
+  };
+};
 
 interface Teammate {
   id: string;
@@ -64,8 +99,8 @@ const KPI_POOL = {
   "meetings-week": { label: "Meetings This Week", value: "8", trend: "+4", trendUp: true, desc: "vs last week" },
   "proposal-conversion": { label: "Proposal Conversion", value: "68.2%", trend: "↑ 2.4%", trendUp: true, desc: "vs last month" },
   "active-clients": { label: "Active Clients", value: "16", trend: "↑ 1", trendUp: true, desc: "this month" },
-  "payments-collected": { label: "Payments Collected", value: "$48K", trend: "↑ 14%", trendUp: true, desc: "vs last month" },
-  "unpaid-invoices": { label: "Unpaid Invoices", value: "$12K", trend: "↓ 5%", trendUp: false, desc: "outstanding balance" },
+  "payments-collected": { label: "Payments Collected", value: "₹48K", trend: "↑ 14%", trendUp: true, desc: "vs last month" },
+  "unpaid-invoices": { label: "Unpaid Invoices", value: "₹12K", trend: "↓ 5%", trendUp: false, desc: "outstanding balance" },
   "overdue-actions": { label: "Overdue Actions", value: "3", trend: "Urgent", trendUp: false, desc: "high priority items" },
   "completed-tasks": { label: "Completed Tasks", value: "56", trend: "+8", trendUp: true, desc: "this week" },
 };
@@ -288,7 +323,20 @@ export function DashboardClient({ user, teammates, brands }: DashboardClientProp
               
               <div>
                 <h3 className="text-3xl font-bold tracking-tight text-foreground font-mono leading-none mt-1">
-                  {kpi.value}
+                  {(() => {
+                    const parsed = parseKpiValue(kpi.value);
+                    return (
+                      <NumberCounter
+                        key={`${kpiKey}-${kpi.value}`}
+                        value={parsed.value}
+                        prefix={parsed.prefix}
+                        suffix={parsed.suffix}
+                        decimals={parsed.decimals}
+                        duration={1.5}
+                        easing="easeOut"
+                      />
+                    );
+                  })()}
                 </h3>
                 <p className="text-[10px] text-muted-foreground/50 mt-1.5 flex items-center gap-1.5">
                   <span className={kpi.trendUp ? "text-emerald-500 font-bold" : "text-muted-foreground/70 font-semibold"}>
@@ -297,6 +345,7 @@ export function DashboardClient({ user, teammates, brands }: DashboardClientProp
                   <span>{kpi.desc}</span>
                 </p>
               </div>
+
             </div>
           );
         })}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { NumberCounter } from "@/components/ui/number-counter";
 import { 
   AlertCircle, 
   HelpCircle,
@@ -142,12 +143,14 @@ function PipelineFunnel() {
                 </div>
                 <div className="text-right flex items-center gap-4 shrink-0">
                   <div className="space-y-0.5">
-                    <p className="font-mono font-bold text-foreground leading-snug">{stage.leads}</p>
+                    <p className="font-mono font-bold text-foreground leading-snug">
+                      <NumberCounter value={stage.leads} duration={1.2} />
+                    </p>
                     <p className="text-[9px] text-muted-foreground/60 leading-none">leads</p>
                   </div>
                   <div className="w-12 text-left">
                     <span className="text-[9px] font-bold font-mono px-1.5 py-0.5 rounded bg-emerald-500/5 text-emerald-500 border border-emerald-500/10">
-                      {stage.conv}
+                      <NumberCounter value={parseInt(stage.conv, 10)} suffix="%" duration={1.2} />
                     </span>
                   </div>
                 </div>
@@ -199,7 +202,12 @@ function LeadSources() {
             <div className="flex-grow space-y-1">
               <div className="flex justify-between items-center text-[11px] font-semibold text-foreground/80 leading-snug">
                 <span>{item.name}</span>
-                <span className="font-mono text-muted-foreground font-bold">{item.count} <span className="text-[9px] opacity-50 font-normal">({item.percentage}%)</span></span>
+                <span className="font-mono text-muted-foreground font-bold">
+                  <NumberCounter value={item.count} duration={1.2} />{" "}
+                  <span className="text-[9px] opacity-50 font-normal">
+                    (<NumberCounter value={item.percentage} suffix="%" duration={1.2} />)
+                  </span>
+                </span>
               </div>
               <div className="h-2 w-full bg-muted/40 rounded-full overflow-hidden">
                 <div 
@@ -259,7 +267,9 @@ function ProposalWinRate() {
       <div className="flex-1 space-y-2">
         <div className="p-3 border border-border/10 bg-muted/20 rounded-xl text-left mb-1 shrink-0">
           <span className="text-[9px] uppercase font-bold text-muted-foreground/50 tracking-wider">Overall Win Rate</span>
-          <h4 className="text-xl font-bold text-foreground font-mono leading-none mt-1">60.0%</h4>
+          <h4 className="text-xl font-bold text-foreground font-mono leading-none mt-1">
+            <NumberCounter value={60} suffix="%" decimals={1} duration={1.2} />
+          </h4>
         </div>
         <div className="space-y-1.5">
           {data.map((item) => (
@@ -268,7 +278,9 @@ function ProposalWinRate() {
                 <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
                 <span>{item.name}</span>
               </div>
-              <span className="font-mono text-foreground font-bold">{item.value}</span>
+              <span className="font-mono text-foreground font-bold">
+                <NumberCounter value={item.value} duration={1.2} />
+              </span>
             </div>
           ))}
         </div>
@@ -297,7 +309,7 @@ function ClientHealth() {
               {m.label}
             </span>
             <span className="text-xl font-bold font-mono text-foreground mt-2 leading-none">
-              {m.count}
+              <NumberCounter value={m.count} duration={1.2} />
             </span>
           </div>
         ))}
@@ -417,7 +429,7 @@ function CXWorkload({ teammates }: { teammates: Teammate[] }) {
                 </span>
               </div>
               <span className="font-mono text-muted-foreground font-semibold shrink-0">
-                {leadsCount} leads
+                <NumberCounter value={leadsCount} duration={1.2} /> leads
               </span>
             </div>
             <div className="h-1.5 w-full bg-muted/40 rounded-full overflow-hidden">
@@ -485,7 +497,7 @@ function InvoiceStatus() {
             <YAxis 
               tickLine={false} 
               axisLine={false}
-              tickFormatter={(v) => `$${v / 1000}k`}
+              tickFormatter={(v) => `₹${v / 1000}k`}
               tick={{ fill: "currentColor", fontSize: 9, opacity: 0.5 }}
             />
             <Tooltip
@@ -518,11 +530,11 @@ function InvoiceStatus() {
       <div className="flex justify-between items-center text-[10px] text-muted-foreground/60 border-t border-border/10 pt-2 px-1 shrink-0 font-medium mt-1">
         <div className="flex items-center gap-1">
           <span className="h-1.5 w-1.5 rounded-full bg-[#8B5CF6]" />
-          <span>Collected: $48k (80%)</span>
+          <span>Collected: ₹48k (80%)</span>
         </div>
         <div className="flex items-center gap-1">
           <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
-          <span>Unpaid: $12k (20%)</span>
+          <span>Unpaid: ₹12k (20%)</span>
         </div>
       </div>
     </div>
