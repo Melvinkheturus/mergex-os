@@ -129,9 +129,9 @@ function PipelineFunnel() {
   return (
     <EmptyState
       icon={TrendingUp}
-      title="No Pipeline Data Yet"
-      description="Your CRM pipeline stages will appear here once leads are added and qualified."
-      hint="Go to CRM → Add your first lead to get started"
+      title="No Pipeline Data"
+      description="CRM funnel stages will show here once leads are added."
+      hint="Go to CRM → Add your first lead"
     />
   );
 }
@@ -140,9 +140,9 @@ function LeadSources() {
   return (
     <EmptyState
       icon={BarChart2}
-      title="No Lead Sources Tracked"
-      description="Once leads are added to your CRM with a source tag, their distribution will appear here."
-      hint="Tag your leads with a source in the CRM module"
+      title="No Lead Sources"
+      description="Source distributions will show here once leads are tagged."
+      hint="Tag your leads with a source in CRM"
     />
   );
 }
@@ -151,9 +151,9 @@ function ProposalWinRate() {
   return (
     <EmptyState
       icon={PieChartIcon}
-      title="No Proposals Yet"
-      description="Your proposal win rate, accepted, pending, and declined counts will populate here as you send proposals."
-      hint="Create your first proposal in the Documents module"
+      title="No Proposals"
+      description="Win rate statistics will display once proposals are sent."
+      hint="Create a proposal in Documents"
     />
   );
 }
@@ -167,7 +167,7 @@ function ClientHealth() {
     <EmptyState
       icon={Users}
       title="No Clients Onboarded"
-      description="Client health scores — Healthy, Needs Attention, At Risk — will display here once clients are added."
+      description="Operational health scores will show here once clients are added."
       hint="Go to Clients → Add your first client"
     />
   );
@@ -178,8 +178,8 @@ function ProjectsByStatus() {
     <EmptyState
       icon={BarChart2}
       title="No Projects Yet"
-      description="Project breakdown by status (Setup, Active, Review, Done) will appear here once projects are created."
-      hint="Projects are created inside a Client record"
+      description="Project status breakdowns will show here once created."
+      hint="Create a project inside any Client record"
     />
   );
 }
@@ -193,8 +193,8 @@ function CXWorkload({ teammates }: { teammates: Teammate[] }) {
     return (
       <EmptyState
         icon={Users}
-        title="No Team Members Yet"
-        description="Invite teammates to your workspace and their lead workload will appear here."
+        title="No Team Members"
+        description="Invite teammates to see lead workloads."
         hint="Go to Settings → Team → Invite Members"
       />
     );
@@ -249,7 +249,7 @@ function PendingAgreements({ brands }: { brands: Brand[] }) {
     <EmptyState
       icon={FileText}
       title="No Pending Agreements"
-      description="Contracts and agreements awaiting signatures or approval will appear here once documents are created."
+      description="Contracts awaiting signatures will appear here."
       hint="Go to Documents → Create Agreement"
     />
   );
@@ -260,7 +260,7 @@ function InvoiceStatus() {
     <EmptyState
       icon={AlertCircle}
       title="No Invoice Data"
-      description="Collected vs. unpaid invoice trends will display here once invoices are generated and sent."
+      description="Collected vs unpaid invoice trends will show here."
       hint="Go to Documents → Create Invoice"
     />
   );

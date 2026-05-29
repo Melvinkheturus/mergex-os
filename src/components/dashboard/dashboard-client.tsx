@@ -93,14 +93,14 @@ interface DashboardClientProps {
 
 // Pool of 8 customizable KPIs
 const KPI_POOL = {
-  "active-leads": { label: "Active Leads", value: "124", trend: "↑ 12%", trendUp: true, desc: "vs last week" },
-  "meetings-week": { label: "Meetings This Week", value: "8", trend: "+4", trendUp: true, desc: "vs last week" },
-  "proposal-conversion": { label: "Proposal Conversion", value: "68.2%", trend: "↑ 2.4%", trendUp: true, desc: "vs last month" },
-  "active-clients": { label: "Active Clients", value: "16", trend: "↑ 1", trendUp: true, desc: "this month" },
-  "payments-collected": { label: "Payments Collected", value: "₹48K", trend: "↑ 14%", trendUp: true, desc: "vs last month" },
-  "unpaid-invoices": { label: "Unpaid Invoices", value: "₹12K", trend: "↓ 5%", trendUp: false, desc: "outstanding balance" },
-  "overdue-actions": { label: "Overdue Actions", value: "3", trend: "Urgent", trendUp: false, desc: "high priority items" },
-  "completed-tasks": { label: "Completed Tasks", value: "56", trend: "+8", trendUp: true, desc: "this week" },
+  "active-leads": { label: "Active Leads", value: "0", trend: "0%", trendUp: false, desc: "vs last week" },
+  "meetings-week": { label: "Meetings This Week", value: "0", trend: "0", trendUp: false, desc: "vs last week" },
+  "proposal-conversion": { label: "Proposal Conversion", value: "0.0%", trend: "0%", trendUp: false, desc: "vs last month" },
+  "active-clients": { label: "Active Clients", value: "0", trend: "0", trendUp: false, desc: "this month" },
+  "payments-collected": { label: "Payments Collected", value: "₹0K", trend: "0%", trendUp: false, desc: "vs last month" },
+  "unpaid-invoices": { label: "Unpaid Invoices", value: "₹0K", trend: "0%", trendUp: false, desc: "outstanding balance" },
+  "overdue-actions": { label: "Overdue Actions", value: "0", trend: "None", trendUp: false, desc: "high priority items" },
+  "completed-tasks": { label: "Completed Tasks", value: "0", trend: "0", trendUp: false, desc: "this week" },
 };
 
 type KpiType = keyof typeof KPI_POOL;
