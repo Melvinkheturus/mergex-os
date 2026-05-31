@@ -232,15 +232,17 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
                     <ul className="ml-[30px] mt-0.5 mb-1 space-y-0.5 border-l border-border/20 pl-3">
                       {subItems.map((sub) => {
                         const subHref = getDynamicHref(sub.href);
-                        const isSubActive = pathname === subHref;
+                        const isSubActive = pathname.startsWith(subHref);
+                        // CRM sub-routes are live; others are still coming soon
+                        const isLive = sub.href.startsWith("/dashboard/crm");
                         return (
                           <li key={sub.title}>
                             <Link
                               href={subHref}
-                              onClick={(e) => {
+                              onClick={!isLive ? (e) => {
                                 e.preventDefault();
-                                toast.info(`${sub.title} details are under Phase 1 construction.`);
-                              }}
+                                toast.info(`${sub.title} is coming soon.`);
+                              } : undefined}
                               className={cn(
                                 "flex items-center gap-1.5 py-1.5 text-[12px] transition-colors",
                                 isSubActive
