@@ -115,8 +115,9 @@ export function SelectContent({
 }: SelectContentProps) {
   return (
     <HeroSelect.Popover
+      style={{ minWidth: "var(--trigger-width)" }}
       className={cn(
-        "z-50 min-w-36 rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-md outline-none data-[entering]:animate-in data-[exiting]:animate-out data-[entering]:fade-in-0 data-[exiting]:fade-out-0 data-[entering]:zoom-in-95 data-[exiting]:zoom-out-95",
+        "z-50 rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-md outline-none data-[entering]:animate-in data-[exiting]:animate-out data-[entering]:fade-in-0 data-[exiting]:fade-out-0 data-[entering]:zoom-in-95 data-[exiting]:zoom-out-95",
         className
       )}
       {...props}
@@ -163,7 +164,7 @@ export function SelectItem({
       {...props}
     >
       {children}
-      <HeroListBoxItemIndicator className="absolute right-2 flex size-4 items-center justify-center text-foreground">
+      <HeroListBoxItemIndicator className="absolute right-2 hidden size-4 items-center justify-center text-foreground group-data-[selected]/select-item:flex">
         <CheckIcon className="h-3.5 w-3.5" />
       </HeroListBoxItemIndicator>
     </HeroListBoxItem>
