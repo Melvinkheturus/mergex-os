@@ -171,7 +171,7 @@ export default function SignUpPage() {
       if (verifyErr) { setError(verifyErr.message); setOtp(""); return; }
       if (signUp.status === "complete") {
         setStep("success");
-        // Session is already active after complete — redirect to dashboard
+        // Session is already active after complete - redirect to dashboard
         setTimeout(() => router.push("/dashboard"), 1200);
       }
     } catch { setError("Invalid code. Please try again."); setOtp(""); }

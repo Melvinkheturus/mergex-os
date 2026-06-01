@@ -100,10 +100,12 @@ export async function POST(req: Request) {
     const {
       companyName,
       contactPerson,
+      designation,
       email,
       phone,
       website,
       industry,
+      location,
       sourceId,
       stageId,
       ownerId,
@@ -112,6 +114,7 @@ export async function POST(req: Request) {
       expectedValue,
       priority,
       services,
+      initialNotes,
       brandId: customBrandId,
     } = body;
 
@@ -149,10 +152,12 @@ export async function POST(req: Request) {
         brandId,
         companyName,
         contactPerson,
+        designation: designation || null,
         email: email || null,
         phone: phone || null,
         website: website || null,
         industry: industry || null,
+        location: location || null,
         sourceId: sourceId || null,
         stageId: finalStageId,
         ownerId: ownerId || user.id,
@@ -187,6 +192,18 @@ export async function POST(req: Request) {
         },
       },
     });
+
+    if (initialNotes && typeof initialNotes === "string" && initialNotes.trim()) {
+      await db.note.create({
+        data: {
+          leadId: lead.id,
+          brandId,
+          content: initialNotes.trim(),
+          createdBy: user.id,
+          visibility: "TEAM",
+        },
+      });
+    }
 
     return NextResponse.json(lead);
   } catch (error) {

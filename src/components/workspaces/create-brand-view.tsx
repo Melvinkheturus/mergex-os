@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Check, X, ImageIcon, Loader2, AlertCircle } from "lucide-react";
+import Image from "next/image";
+import { Check, X, ImageIcon, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -52,7 +53,6 @@ export function CreateBrandView({ onBack, onCreated }: CreateBrandViewProps) {
   const [description, setDescription] = useState("");
 
   // Logo Upload State
-  const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -62,6 +62,42 @@ export function CreateBrandView({ onBack, onCreated }: CreateBrandViewProps) {
   // Saving State
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [isDraftLoaded, setIsDraftLoaded] = useState(false);
+
+  // Load draft on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("draft_create_brand_workspace");
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          setTimeout(() => {
+            if (parsed.name) setName(parsed.name);
+            if (parsed.description) setDescription(parsed.description);
+            if (parsed.logoUrl) {
+              setLogoUrl(parsed.logoUrl);
+              setLogoPreview(parsed.logoUrl);
+            }
+          }, 0);
+        } catch (e) {
+          console.error("Failed to load workspace draft:", e);
+        }
+      }
+      setTimeout(() => {
+        setIsDraftLoaded(true);
+      }, 0);
+    }
+  }, []);
+
+  // Save draft on change
+  useEffect(() => {
+    if (!isDraftLoaded) return;
+    if (typeof window !== "undefined") {
+      const draft = { name, description, logoUrl };
+      localStorage.setItem("draft_create_brand_workspace", JSON.stringify(draft));
+    }
+  }, [name, description, logoUrl, isDraftLoaded]);
 
   // ── Logo Upload Handler ───────────────────────────────────────────────────
   const handleFileSelect = useCallback(async (file: File) => {
@@ -76,7 +112,6 @@ export function CreateBrandView({ onBack, onCreated }: CreateBrandViewProps) {
     }
 
     setUploadError(null);
-    setLogoFile(file);
     setLogoUrl(null);
 
     // Show local preview immediately
@@ -102,7 +137,6 @@ export function CreateBrandView({ onBack, onCreated }: CreateBrandViewProps) {
 
       if (!res.ok) {
         setUploadError(data.error ?? "Upload failed.");
-        setLogoFile(null);
         setLogoPreview(null);
         return;
       }
@@ -111,7 +145,6 @@ export function CreateBrandView({ onBack, onCreated }: CreateBrandViewProps) {
       setUploadProgress(100);
     } catch {
       setUploadError("Upload failed. Please try again.");
-      setLogoFile(null);
       setLogoPreview(null);
     } finally {
       setIsUploading(false);
@@ -129,7 +162,6 @@ export function CreateBrandView({ onBack, onCreated }: CreateBrandViewProps) {
   );
 
   const removeLogo = () => {
-    setLogoFile(null);
     setLogoPreview(null);
     setLogoUrl(null);
     setUploadError(null);
@@ -164,6 +196,10 @@ export function CreateBrandView({ onBack, onCreated }: CreateBrandViewProps) {
         return;
       }
 
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("draft_create_brand_workspace");
+      }
+
       const brand = {
         id: data.id,
         name: data.name,
@@ -177,7 +213,7 @@ export function CreateBrandView({ onBack, onCreated }: CreateBrandViewProps) {
       setCreatedBrand(brand);
       setViewState("success");
     } catch {
-      setError("Network error — please try again.");
+      setError("Network error - please try again.");
     } finally {
       setSaving(false);
     }
@@ -186,146 +222,149 @@ export function CreateBrandView({ onBack, onCreated }: CreateBrandViewProps) {
   // ── Render Form View ──────────────────────────────────────────────────────
   if (viewState === "form") {
     return (
-      <div className="space-y-6 animate-fade-in max-w-xl mx-auto py-2">
-        {/* Header */}
-        <div className="flex items-center gap-4 text-left">
-          <button
-            onClick={onBack}
-            className="h-8 w-8 rounded-lg border border-neutral-200 dark:border-white/5 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-neutral-300 dark:hover:border-white/10 transition-all cursor-pointer shrink-0"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </button>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-foreground font-sans">
-              Create Brand Workspace
-            </h1>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Create a new brand workspace for managing leads, clients, documents, and operations.
-            </p>
-          </div>
-        </div>
-
-        {/* Form Box */}
-        <div className="space-y-5 bg-card dark:bg-[#0E0E12] border border-neutral-200 dark:border-white/5 rounded-xl p-6 shadow-xs text-left">
-          
-          {/* Brand Name */}
-          <div className="space-y-1.5">
-            <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-              Brand Name <span className="text-rose-500">*</span>
-            </Label>
-            <Input
-              placeholder="e.g. MergeX Academy"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && name.trim()) handleCreate();
-              }}
-              className="h-10 text-sm bg-white dark:bg-[#050507] border-neutral-200 dark:border-white/6 focus-visible:ring-purple-500/30"
-              autoFocus
-            />
-            <p className="text-[10px] text-muted-foreground">The display name of the workspace.</p>
+      <div className="max-w-2xl mx-auto py-4">
+        <div className="bg-card border border-border/80 rounded-md shadow-xs overflow-hidden text-left">
+          {/* Card Header inside the card */}
+          <div className="flex items-center gap-3.5 p-6 border-b border-border/40 bg-muted/5">
+            <div className="h-10 w-10 rounded-md border border-border bg-card flex items-center justify-center text-foreground/80 shrink-0 shadow-2xs">
+              <ImageIcon className="h-5 w-5 text-[#8B5CF6]" />
+            </div>
+            <div>
+              <h1 className="text-base font-bold text-foreground">Create Brand Workspace</h1>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Create a new brand workspace for managing leads, clients, documents, and operations.
+              </p>
+            </div>
           </div>
 
-          {/* Brand Description */}
-          <div className="space-y-1.5">
-            <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-              Brand Description
-            </Label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="e.g. Online learning and training division"
-              rows={3}
-              className="w-full px-3 py-2.5 rounded-lg bg-white dark:bg-[#050507] border border-neutral-200 dark:border-white/6 text-sm text-foreground placeholder-neutral-400 focus:outline-none focus:ring-1 focus:ring-purple-500/30 focus:border-purple-500/40 transition-all resize-none font-sans"
-            />
-            <p className="text-[10px] text-muted-foreground">Optional short description for internal reference.</p>
-          </div>
-
-          {/* Brand Logo Upload */}
-          <div className="space-y-2">
-            <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-              Brand Logo
-            </Label>
-            <div
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={handleFileDrop}
-              onClick={() => fileInputRef.current?.click()}
-              className={cn(
-                "h-28 border border-dashed rounded-xl flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-all duration-200",
-                logoPreview
-                  ? "border-[#8B5CF6]/40 bg-[#8B5CF6]/3"
-                  : "border-neutral-200 dark:border-white/6 hover:border-[#8B5CF6]/50 hover:bg-neutral-50 dark:hover:bg-white/2"
-              )}
-            >
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleFileSelect(file);
+          <div className="p-6 space-y-6">
+            {/* Brand Name */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-foreground">
+                Brand Name <span className="text-rose-500">*</span>
+              </Label>
+              <Input
+                placeholder="e.g. MergeX Academy"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && name.trim()) handleCreate();
                 }}
-                accept="image/jpeg,image/png,image/svg+xml,image/webp"
-                className="hidden"
+                className="h-10 text-sm focus-visible:ring-1 focus-visible:ring-purple-500/30 rounded-md border-border/80"
+                autoFocus
               />
+              <p className="text-[10px] text-muted-foreground">The display name of the workspace.</p>
+            </div>
 
-              {logoPreview ? (
-                <div className="relative w-full h-full flex items-center justify-center p-3">
-                  <img
-                    src={logoPreview}
-                    alt="Logo Preview"
-                    className="max-h-20 object-contain rounded"
-                  />
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeLogo();
-                    }}
-                    className="absolute top-2 right-2 p-1.5 rounded-lg bg-neutral-100 hover:bg-neutral-200 dark:bg-white/5 dark:hover:bg-white/10 text-muted-foreground hover:text-foreground transition-all"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                  {isUploading && (
-                    <div className="absolute inset-0 bg-black/40 rounded-xl flex items-center justify-center gap-2">
-                      <Loader2 className="w-4 h-4 text-white animate-spin" />
-                      <span className="text-[11px] text-white font-medium">{uploadProgress}%</span>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <>
-                  <div className="w-8 h-8 rounded-lg bg-neutral-100 dark:bg-white/4 flex items-center justify-center border border-neutral-200 dark:border-white/5 text-neutral-500">
-                    <ImageIcon className="w-4 h-4" />
+            {/* Brand Description */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-foreground">
+                Brand Description
+              </Label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="e.g. Online learning and training division"
+                rows={3}
+                className="w-full px-3.5 py-2.5 rounded-md bg-white dark:bg-[#050507] border border-border/80 text-sm text-foreground placeholder-neutral-400 focus:outline-none focus:ring-1 focus:ring-purple-500/30 focus:border-purple-500/40 transition-all resize-none font-sans"
+              />
+              <p className="text-[10px] text-muted-foreground">Optional short description for internal reference.</p>
+            </div>
+
+            {/* Brand Logo Upload */}
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold text-foreground">
+                Brand Logo
+              </Label>
+              <div
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={handleFileDrop}
+                onClick={() => fileInputRef.current?.click()}
+                className={cn(
+                  "h-28 border border-dashed rounded-md flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-all duration-200",
+                  logoPreview
+                    ? "border-[#8B5CF6]/40 bg-[#8B5CF6]/3"
+                    : "border-border/80 hover:border-[#8B5CF6]/50 hover:bg-neutral-50 dark:hover:bg-white/2"
+                )}
+              >
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleFileSelect(file);
+                  }}
+                  accept="image/jpeg,image/png,image/svg+xml,image/webp"
+                  className="hidden"
+                />
+
+                {logoPreview ? (
+                  <div className="relative w-full h-full flex items-center justify-center p-3">
+                    <Image
+                      src={logoPreview}
+                      alt="Logo Preview"
+                      width={80}
+                      height={80}
+                      className="max-h-20 object-contain rounded"
+                      unoptimized
+                    />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeLogo();
+                      }}
+                      className="absolute top-2 right-2 p-1.5 rounded-md bg-neutral-100 hover:bg-neutral-200 dark:bg-white/5 dark:hover:bg-white/10 text-muted-foreground hover:text-foreground transition-all border border-border/60"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                    {isUploading && (
+                      <div className="absolute inset-0 bg-black/40 rounded-md flex items-center justify-center gap-2">
+                        <Loader2 className="w-4 h-4 text-white animate-spin" />
+                        <span className="text-[11px] text-white font-medium">{uploadProgress}%</span>
+                      </div>
+                    )}
                   </div>
-                  <p className="text-xs font-semibold text-foreground">Upload Logo</p>
-                  <p className="text-[10px] text-muted-foreground">Drag & drop or click to browse</p>
-                </>
+                ) : (
+                  <>
+                    <div className="w-8 h-8 rounded-md bg-neutral-100 dark:bg-white/4 flex items-center justify-center border border-border/80 text-neutral-500">
+                      <ImageIcon className="w-4 h-4" />
+                    </div>
+                    <p className="text-xs font-semibold text-foreground">Upload Logo</p>
+                    <p className="text-[10px] text-muted-foreground">Drag & drop or click to browse</p>
+                  </>
+                )}
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                Optional. If no logo is uploaded, the workspace initials will be used automatically. (e.g. MergeX → M, OVRN Studios → OS, MergeX Academy → MA)
+              </p>
+
+              {uploadError && (
+                <p className="text-xs text-rose-500 font-medium bg-rose-500/5 border border-rose-500/20 px-3 py-2 rounded-md flex items-center gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  {uploadError}
+                </p>
               )}
             </div>
-            <p className="text-[10px] text-muted-foreground">
-              Optional. If no logo is uploaded, the workspace initials will be used automatically. (e.g. MergeX → M, OVRN Studios → OS, MergeX Academy → MA)
-            </p>
 
-            {uploadError && (
-              <p className="text-xs text-rose-500 font-medium bg-rose-500/5 border border-rose-500/20 px-3 py-2 rounded-lg flex items-center gap-1.5">
-                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                {uploadError}
+            {/* Form Error */}
+            {error && (
+              <p className="text-xs text-rose-500 font-medium bg-rose-500/5 border border-rose-500/20 px-3 py-2 rounded-md">
+                {error}
               </p>
             )}
           </div>
 
-          {/* Form Error */}
-          {error && (
-            <p className="text-xs text-rose-500 font-medium bg-rose-500/5 border border-rose-500/20 px-3 py-2 rounded-lg">
-              {error}
-            </p>
-          )}
-
           {/* Actions */}
-          <div className="flex items-center gap-3 pt-4 border-t border-neutral-200 dark:border-white/5">
+          <div className="flex items-center gap-3 p-6 border-t border-border/40 bg-muted/5">
             <Button
-              variant="outline"
-              onClick={onBack}
+              variant="ghost"
+              onClick={() => {
+                if (typeof window !== "undefined") {
+                  localStorage.removeItem("draft_create_brand_workspace");
+                }
+                onBack();
+              }}
               className="text-xs text-muted-foreground hover:text-foreground h-9 px-4 cursor-pointer"
             >
               Cancel
@@ -333,7 +372,7 @@ export function CreateBrandView({ onBack, onCreated }: CreateBrandViewProps) {
             <Button
               onClick={handleCreate}
               disabled={saving || isUploading || !name.trim()}
-              className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white text-xs font-bold px-5 h-9 rounded-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all ml-auto"
+              className="bg-[#0F172A] hover:bg-[#1E293B] dark:bg-slate-100 dark:hover:bg-slate-200 text-white dark:text-black text-xs font-semibold px-5 h-9 rounded-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all ml-auto shadow-sm"
             >
               {saving ? (
                 <span className="flex items-center gap-1.5">

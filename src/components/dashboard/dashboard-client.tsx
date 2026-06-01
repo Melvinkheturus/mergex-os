@@ -172,7 +172,7 @@ export function DashboardClient({ user, teammates, brands, brandName }: Dashboar
     }
   }, []);
 
-  // Update KPI slot — swaps automatically if already selected to prevent duplicates
+  // Update KPI slot - swaps automatically if already selected to prevent duplicates
   const handleSelectKpi = (slotIndex: number, kpiKey: KpiType) => {
     const updated = [...kpis];
     const existingIndex = updated.indexOf(kpiKey);
@@ -191,7 +191,7 @@ export function DashboardClient({ user, teammates, brands, brandName }: Dashboar
     }
   };
 
-  // Update Widget slot — swaps automatically if already selected to prevent duplicates
+  // Update Widget slot - swaps automatically if already selected to prevent duplicates
   const handleSelectWidget = (slotIndex: number, widgetKey: WidgetType) => {
     const updated = [...widgets];
     const existingIndex = updated.indexOf(widgetKey);

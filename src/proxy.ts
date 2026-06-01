@@ -2,15 +2,15 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
-// Public routes — accessible without authentication
+// Public routes - accessible without authentication
 const isPublicRoute = createRouteMatcher([
   "/",               // landing page
   "/sign-in(.*)",    // Clerk sign-in
   "/sign-up(.*)",    // Clerk sign-up (invite flow)
-  "/api/auth/webhook(.*)", // Clerk webhook — must be public
+  "/api/auth/webhook(.*)", // Clerk webhook - must be public
 ]);
 
-// Onboarding routes — blocked from normal app access
+// Onboarding routes - blocked from normal app access
 const isOnboardingRoute = createRouteMatcher([
   "/onboarding(.*)",
 ]);
@@ -31,7 +31,7 @@ export default clerkMiddleware(async (auth, request) => {
     if (onboardingState === "PROFILE_SETUP") {
       return NextResponse.redirect(new URL("/onboarding/profile", request.url));
     }
-    // COMPLETE — redirect directly to active brand workspace or hub
+    // COMPLETE - redirect directly to active brand workspace or hub
     return NextResponse.redirect(await resolvePostLoginRedirect(userId, request.url));
   }
 
@@ -90,7 +90,7 @@ async function resolvePostLoginRedirect(clerkUserId: string, requestUrl: string)
       }
     }
   } catch {
-    // DB unreachable during cold start — fall through to hub
+    // DB unreachable during cold start - fall through to hub
   }
   return new URL("/workspaces", requestUrl);
 }

@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-// Internal enterprise tool — block all crawlers
+// Internal enterprise tool - block all crawlers
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: [

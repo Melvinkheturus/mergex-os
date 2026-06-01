@@ -11,7 +11,7 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    // Prisma v7: use DIRECT_URL (non-pooler) for migrate — bypasses Neon's pgBouncer
+    // Prisma v7: use DIRECT_URL (non-pooler) for migrate - bypasses Neon's pgBouncer
     url: process.env["DIRECT_URL"] ?? process.env["DATABASE_URL"]!,
   },
 });

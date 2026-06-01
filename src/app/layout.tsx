@@ -18,7 +18,7 @@ const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   display: "swap",
-  preload: false, // decorative only — non-critical
+  preload: false, // decorative only - non-critical
 });
 
 // ── App URL ───────────────────────────────────────────────────────────────
@@ -29,12 +29,12 @@ export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),
 
   title: {
-    default: "MergeX Sales OS — Sales Execution Platform",
+    default: "MergeX Sales OS - Sales Execution Platform",
     template: "%s | MergeX Sales OS",
   },
 
   description:
-    "MergeX Sales OS is an enterprise-grade sales operations platform — CRM, pipeline management, ICP scoring, discovery meetings, proposal handoff, analytics, and team RBAC in one unified workspace.",
+    "MergeX Sales OS is an enterprise-grade sales operations platform - CRM, pipeline management, ICP scoring, discovery meetings, proposal handoff, analytics, and team RBAC in one unified workspace.",
 
   keywords: [
     "Sales OS",
@@ -56,7 +56,7 @@ export const metadata: Metadata = {
   creator: "MergeX",
   publisher: "MergeX",
 
-  // Internal tool — block search engines
+  // Internal tool - block search engines
   robots: {
     index: false,
     follow: false,
@@ -71,9 +71,9 @@ export const metadata: Metadata = {
     type: "website",
     url: APP_URL,
     siteName: "MergeX Sales OS",
-    title: "MergeX Sales OS — Sales Execution Platform",
+    title: "MergeX Sales OS - Sales Execution Platform",
     description:
-      "Enterprise-grade sales operating system. Pipeline intelligence, ICP scoring, discovery meetings, and proposal handoff — all in one place.",
+      "Enterprise-grade sales operating system. Pipeline intelligence, ICP scoring, discovery meetings, and proposal handoff - all in one place.",
     images: [
       {
         url: "/logo/mergex-logo.png",
@@ -88,7 +88,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "MergeX Sales OS",
-    description: "Enterprise sales operating framework — beyond a CRM.",
+    description: "Enterprise sales operating framework - beyond a CRM.",
     images: ["/logo/mergex-logo.png"],
     creator: "@mergex",
   },
@@ -133,7 +133,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         {/*
-          Fontshare (Clash Display) — preconnect + preload the stylesheet
+          Fontshare (Clash Display) - preconnect + preload the stylesheet
           so the browser fetches it in parallel with page HTML (non-blocking).
           rel="preload" as="style" + onload trick is avoided here because
           Next.js handles critical CSS; we just need the connection early.
@@ -155,9 +155,9 @@ export default function RootLayout({
       >
         {/*
           Provider order (outer → inner):
-          1. ClerkProvider  — auth context available to everything
-          2. AppProvider    — ThemeProvider + TooltipProvider + Toaster
-          3. {children}     — page content streams in
+          1. ClerkProvider  - auth context available to everything
+          2. AppProvider    - ThemeProvider + TooltipProvider + Toaster
+          3. {children}     - page content streams in
         */}
         <ClerkProvider>
           <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>

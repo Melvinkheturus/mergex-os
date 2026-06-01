@@ -10,26 +10,13 @@ async function verifyLeadAccess(leadId: string) {
     where: { id: leadId },
     include: {
       owner: {
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          avatarUrl: true,
-        },
+        select: { id: true, firstName: true, lastName: true, avatarUrl: true },
       },
       stage: {
-        select: {
-          id: true,
-          name: true,
-          label: true,
-          color: true,
-        },
+        select: { id: true, name: true, label: true, color: true },
       },
       source: {
-        select: {
-          id: true,
-          name: true,
-        },
+        select: { id: true, name: true },
       },
     },
   });
@@ -59,7 +46,6 @@ export async function GET(
   if (!lead || !user) {
     return NextResponse.json({ error: result.error || "Not Found" }, { status: result.status || 404 });
   }
-
   return NextResponse.json(lead);
 }
 
@@ -79,10 +65,12 @@ export async function PUT(
     const {
       companyName,
       contactPerson,
+      designation,
       email,
       phone,
       website,
       industry,
+      location,
       sourceId,
       stageId,
       ownerId,
@@ -91,93 +79,155 @@ export async function PUT(
       expectedValue,
       priority,
       services,
-      // Sprint 2: Business Review
+      leadCategory,
+      nextAction,
+      nextActionDate,
+      lastContactAt,
+      nextFollowUpAt,
+      // Legacy inline Business Review fields
       currentSituation,
       painPoints,
       opportunityNotes,
-      // Sprint 2: BANT
+      // BANT (kept on Lead)
       bantBudget,
       bantAuthority,
       bantNeed,
       bantTimeline,
-      // Sprint 6: Win/Loss
+      // Win/Loss
       winLossStatus,
       winLossReason,
       winLossNotes,
     } = body;
 
     // Calculate BANT score if any slider changes
-    let finalBantScore = undefined;
+    let finalBantScore: number | undefined = undefined;
     if (
       bantBudget !== undefined ||
       bantAuthority !== undefined ||
       bantNeed !== undefined ||
       bantTimeline !== undefined
     ) {
-      const b = bantBudget !== undefined ? bantBudget : result.lead.bantBudget;
-      const a = bantAuthority !== undefined ? bantAuthority : result.lead.bantAuthority;
-      const n = bantNeed !== undefined ? bantNeed : result.lead.bantNeed;
-      const t = bantTimeline !== undefined ? bantTimeline : result.lead.bantTimeline;
+      const b = bantBudget !== undefined ? bantBudget : lead.bantBudget;
+      const a = bantAuthority !== undefined ? bantAuthority : lead.bantAuthority;
+      const n = bantNeed !== undefined ? bantNeed : lead.bantNeed;
+      const t = bantTimeline !== undefined ? bantTimeline : lead.bantTimeline;
       finalBantScore = Math.round((b + a + n + t) / 4);
+    }
+
+    // Detect auditable changes
+    const auditEntries: { action: string; oldValue: string | null; newValue: string | null }[] = [];
+    if (stageId !== undefined && stageId !== lead.stageId) {
+      auditEntries.push({
+        action: "STAGE_CHANGED",
+        oldValue: lead.stage?.label ?? lead.stageId ?? null,
+        newValue: stageId ?? null,
+      });
+    }
+    if (ownerId !== undefined && ownerId !== lead.ownerId) {
+      auditEntries.push({
+        action: "OWNER_CHANGED",
+        oldValue: lead.ownerId ?? null,
+        newValue: ownerId ?? null,
+      });
+    }
+    if (winLossStatus !== undefined && winLossStatus !== lead.winLossStatus) {
+      auditEntries.push({
+        action: "STATUS_CHANGED",
+        oldValue: lead.winLossStatus ?? null,
+        newValue: winLossStatus ?? null,
+      });
     }
 
     const updatedLead = await db.lead.update({
       where: { id },
       data: {
-        companyName: companyName !== undefined ? companyName : result.lead.companyName,
-        contactPerson: contactPerson !== undefined ? contactPerson : result.lead.contactPerson,
-        email: email !== undefined ? (email || null) : result.lead.email,
-        phone: phone !== undefined ? (phone || null) : result.lead.phone,
-        website: website !== undefined ? (website || null) : result.lead.website,
-        industry: industry !== undefined ? (industry || null) : result.lead.industry,
-        sourceId: sourceId !== undefined ? (sourceId || null) : result.lead.sourceId,
-        stageId: stageId !== undefined ? (stageId || null) : result.lead.stageId,
-        ownerId: ownerId !== undefined ? (ownerId || null) : result.lead.ownerId,
-        icpScore: icpScore !== undefined ? icpScore : result.lead.icpScore,
-        temperature: temperature !== undefined ? temperature : result.lead.temperature,
-        expectedValue: expectedValue !== undefined ? (expectedValue ? parseFloat(expectedValue) : null) : result.lead.expectedValue,
-        priority: priority !== undefined ? priority : result.lead.priority,
-        services: services !== undefined ? services : result.lead.services,
-        // Business Review
-        currentSituation: currentSituation !== undefined ? currentSituation : result.lead.currentSituation,
-        painPoints: painPoints !== undefined ? painPoints : result.lead.painPoints,
-        opportunityNotes: opportunityNotes !== undefined ? opportunityNotes : result.lead.opportunityNotes,
+        companyName: companyName !== undefined ? companyName : lead.companyName,
+        contactPerson: contactPerson !== undefined ? contactPerson : lead.contactPerson,
+        designation: designation !== undefined ? (designation || null) : lead.designation,
+        email: email !== undefined ? (email || null) : lead.email,
+        phone: phone !== undefined ? (phone || null) : lead.phone,
+        website: website !== undefined ? (website || null) : lead.website,
+        industry: industry !== undefined ? (industry || null) : lead.industry,
+        location: location !== undefined ? (location || null) : lead.location,
+        sourceId: sourceId !== undefined ? (sourceId || null) : lead.sourceId,
+        stageId: stageId !== undefined ? (stageId || null) : lead.stageId,
+        ownerId: ownerId !== undefined ? (ownerId || null) : lead.ownerId,
+        icpScore: icpScore !== undefined ? icpScore : lead.icpScore,
+        temperature: temperature !== undefined ? temperature : lead.temperature,
+        expectedValue:
+          expectedValue !== undefined
+            ? expectedValue
+              ? parseFloat(expectedValue)
+              : null
+            : lead.expectedValue,
+        priority: priority !== undefined ? priority : lead.priority,
+        services: services !== undefined ? services : lead.services,
+        leadCategory: leadCategory !== undefined ? (leadCategory || null) : lead.leadCategory,
+        nextAction: nextAction !== undefined ? (nextAction || null) : lead.nextAction,
+        nextActionDate:
+          nextActionDate !== undefined
+            ? nextActionDate
+              ? new Date(nextActionDate)
+              : null
+            : lead.nextActionDate,
+        lastContactAt:
+          lastContactAt !== undefined
+            ? lastContactAt
+              ? new Date(lastContactAt)
+              : null
+            : lead.lastContactAt,
+        nextFollowUpAt:
+          nextFollowUpAt !== undefined
+            ? nextFollowUpAt
+              ? new Date(nextFollowUpAt)
+              : null
+            : lead.nextFollowUpAt,
+        // Legacy inline
+        currentSituation: currentSituation !== undefined ? currentSituation : lead.currentSituation,
+        painPoints: painPoints !== undefined ? painPoints : lead.painPoints,
+        opportunityNotes: opportunityNotes !== undefined ? opportunityNotes : lead.opportunityNotes,
         // BANT
-        bantBudget: bantBudget !== undefined ? bantBudget : result.lead.bantBudget,
-        bantAuthority: bantAuthority !== undefined ? bantAuthority : result.lead.bantAuthority,
-        bantNeed: bantNeed !== undefined ? bantNeed : result.lead.bantNeed,
-        bantTimeline: bantTimeline !== undefined ? bantTimeline : result.lead.bantTimeline,
-        bantScore: finalBantScore !== undefined ? finalBantScore : result.lead.bantScore,
+        bantBudget: bantBudget !== undefined ? bantBudget : lead.bantBudget,
+        bantAuthority: bantAuthority !== undefined ? bantAuthority : lead.bantAuthority,
+        bantNeed: bantNeed !== undefined ? bantNeed : lead.bantNeed,
+        bantTimeline: bantTimeline !== undefined ? bantTimeline : lead.bantTimeline,
+        bantScore: finalBantScore !== undefined ? finalBantScore : lead.bantScore,
         // Win/Loss
-        winLossStatus: winLossStatus !== undefined ? winLossStatus : result.lead.winLossStatus,
-        winLossReason: winLossReason !== undefined ? winLossReason : result.lead.winLossReason,
-        winLossNotes: winLossNotes !== undefined ? winLossNotes : result.lead.winLossNotes,
+        winLossStatus: winLossStatus !== undefined ? winLossStatus : lead.winLossStatus,
+        winLossReason: winLossReason !== undefined ? winLossReason : lead.winLossReason,
+        winLossNotes: winLossNotes !== undefined ? winLossNotes : lead.winLossNotes,
+        // Always bump lastActivityAt
+        lastActivityAt: new Date(),
       },
       include: {
         owner: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            avatarUrl: true,
-          },
+          select: { id: true, firstName: true, lastName: true, avatarUrl: true },
         },
         stage: {
-          select: {
-            id: true,
-            name: true,
-            label: true,
-            color: true,
-          },
+          select: { id: true, name: true, label: true, color: true },
         },
         source: {
-          select: {
-            id: true,
-            name: true,
-          },
+          select: { id: true, name: true },
         },
       },
     });
+
+    // Write audit log entries for tracked changes
+    if (auditEntries.length > 0) {
+      const now = new Date();
+      await db.auditLog.createMany({
+        data: auditEntries.map((entry) => ({
+          id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          leadId: id,
+          brandId: lead.brandId,
+          action: entry.action,
+          oldValue: entry.oldValue,
+          newValue: entry.newValue,
+          changedBy: user.id,
+          changedAt: now,
+        })),
+      });
+    }
 
     return NextResponse.json(updatedLead);
   } catch (error) {

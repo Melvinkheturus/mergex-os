@@ -118,10 +118,10 @@ export default function SignInPage() {
       }
 
       if (signIn.status === "complete") {
-        // Clerk sets the active session automatically — redirect
+        // Clerk sets the active session automatically - redirect
         router.push("/dashboard");
       } else {
-        // Unexpected incomplete state (e.g. MFA — not enabled, but handle gracefully)
+        // Unexpected incomplete state (e.g. MFA - not enabled, but handle gracefully)
         setError("Sign-in could not be completed. Please contact your admin.");
       }
     } catch (err: unknown) {
@@ -159,7 +159,7 @@ export default function SignInPage() {
                 Sign in to your workspace
               </h1>
               <p className="text-xs text-muted-foreground mt-1">
-                cx.mergex.in — internal operations platform
+                cx.mergex.in - internal operations platform
               </p>
             </div>
           </div>

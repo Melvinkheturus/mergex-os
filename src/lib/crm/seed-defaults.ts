@@ -25,6 +25,9 @@ export async function seedBrandDefaults(brandId: string) {
   );
 
   // 2. Seed Lead Stages
+  // ── Phase A: Lead Operations (stages 0–5) ───────────────────────────
+  // ── Phase B: Sales Conversion (stages 6–9) ──────────────────────────
+  // ── Terminal States (10–12, not shown in progress bar) ──────────────
   const stages = [
     {
       name: "LEAD_INTAKE",
@@ -82,10 +85,11 @@ export async function seedBrandDefaults(brandId: string) {
     },
     {
       name: "ENGAGEMENT_MANAGER_ASSIGNED",
-      label: "EM Assigned",
+      label: "Engagement Manager", // Full label - terminal phase of CRM workflow
       order: 9,
       color: "text-fuchsia-500 bg-fuchsia-500/10 border-fuchsia-500/20",
     },
+    // ── Terminal outcome states - not part of the workflow progress bar ──
     {
       name: "WON",
       label: "Won",

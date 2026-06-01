@@ -75,7 +75,7 @@ export function WorkspacesSettingsClient({ brands }: Props) {
       setNewBrandName("");
       toast.success("Workspace brand division created successfully.");
     } catch (err) {
-      toast.error("Network error — please try again.");
+      toast.error("Network error - please try again.");
     } finally {
       setSavingBrand(false);
     }
@@ -95,7 +95,7 @@ export function WorkspacesSettingsClient({ brands }: Props) {
         description: `"${name}" has been removed from selection.`,
       });
     } catch (err) {
-      toast.error("Network error — please try again.");
+      toast.error("Network error - please try again.");
     } finally {
       setDeletingBrandId(null);
     }
@@ -266,9 +266,9 @@ export function WorkspacesSettingsClient({ brands }: Props) {
                   }}
                   className="w-full h-10 px-3 pr-8 rounded-lg bg-neutral-50 dark:bg-[#0E0E12]/80 border border-neutral-200 dark:border-white/6 text-xs text-foreground dark:text-white focus:outline-none focus:border-[#8B5CF6]/50 transition-all font-sans cursor-pointer appearance-none"
                 >
-                  <option value="INR">₹ INR — Rupee</option>
-                  <option value="USD">$ USD — Dollar</option>
-                  <option value="EUR">€ EUR — Euro</option>
+                  <option value="INR">₹ INR - Rupee</option>
+                  <option value="USD">$ USD - Dollar</option>
+                  <option value="EUR">€ EUR - Euro</option>
                 </select>
                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
               </div>

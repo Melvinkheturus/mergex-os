@@ -48,8 +48,8 @@ enum NotificationType {
 }
 
 enum OnboardingState {
-  PLATFORM_SETUP  // first super_admin — must complete platform setup
-  PROFILE_SETUP   // all users — must complete personal profile
+  PLATFORM_SETUP  // first super_admin - must complete platform setup
+  PROFILE_SETUP   // all users - must complete personal profile
   COMPLETE        // onboarding done, normal access
 }
 
@@ -136,7 +136,9 @@ model User {
   leadsOwned    Lead[]                  @relation("LeadOwner")
   activities    Activity[]
   meetings      Meeting[]               @relation("MeetingOrganizer")
-  clientsManaged Client[]               @relation("EngagementManager")
+  clientsManaged Client[]              @relation("EngagementManager")
+  notesCreated  Note[]                 @relation("NoteCreator")
+  auditActions  AuditLog[]             @relation("AuditActor")
 
   @@index([clerkId])
   @@index([roleId])
@@ -227,12 +229,15 @@ model NotificationPreference {
 model Lead {
   id               String            @id @default(cuid())
   brandId          String
+  leadNumber       String?           // e.g. "L-001"
   companyName      String
   contactPerson    String
+  designation      String?           // contact's job title
   email            String?
   phone            String?
   website          String?
   industry         String?
+  location         String?           // company city/region
   sourceId         String?
   stageId          String?
   ownerId          String?
@@ -241,15 +246,25 @@ model Lead {
   expectedValue    Decimal?
   priority         String            @default("MEDIUM")
   services         String[]
+  leadCategory     String?           // "Enterprise" | "Mid-Market" | "SMB" | "Startup"
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 
-  // Business Review fields
+  // Tracking dates
+  lastActivityAt   DateTime?
+  lastContactAt    DateTime?
+  nextFollowUpAt   DateTime?
+
+  // Next action (what does the CX exec need to do next?)
+  nextAction       String?           // "CALL_CLIENT" | "FOLLOW_UP" | "SEND_PROPOSAL" | "SCHEDULE_MEETING" | "WAITING_RESPONSE"
+  nextActionDate   DateTime?
+
+  // Business Review (legacy inline fields - kept for backward compat)
   currentSituation String?
   painPoints       String[]
   opportunityNotes String?
 
-  // BANT fields
+  // Qualification fields (kept on Lead - always loaded/edited together)
   bantBudget       Int               @default(0)
   bantAuthority    Int               @default(0)
   bantNeed         Int               @default(0)
@@ -268,10 +283,14 @@ model Lead {
   activities       Activity[]
   meetings         Meeting[]
   proposals        Proposal[]
+  businessReview   BusinessReview?
+  notes            Note[]
+  auditLogs        AuditLog[]
 
   @@index([brandId])
   @@index([stageId])
   @@index([ownerId])
+  @@index([nextFollowUpAt])
 }
 
 model LeadSource {
@@ -376,4 +395,69 @@ model Client {
   engagementManager   User?    @relation("EngagementManager", fields: [engagementManagerId], references: [id], onDelete: SetNull)
 
   @@index([brandId])
+}
+
+// ── 11. Business Review (1:1 with Lead) ─────────────────────
+model BusinessReview {
+  id                  String   @id @default(cuid())
+  leadId              String   @unique
+  brandId             String
+  businessModel       String?
+  targetMarket        String?
+  currentChannels     String?
+  currentChallenges   String?
+  currentStrengths    String?
+  currentWeaknesses   String?
+  painPoints          String[]
+  opportunities       String[]
+  recommendedServices String[]
+  reviewNotes         String?
+  reviewedBy          String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  lead    Lead  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+  @@index([brandId])
+}
+
+// ── 12. Notes ────────────────────────────────────────────────
+model Note {
+  id         String    @id @default(cuid())
+  leadId     String
+  brandId    String
+  title      String?
+  content    String
+  visibility String    @default("TEAM") // "PRIVATE" | "TEAM"
+  createdBy  String
+  isActive   Boolean   @default(true)
+  deletedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  lead    Lead  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  creator User  @relation("NoteCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+  @@index([brandId])
+}
+
+// ── 13. Audit Log ────────────────────────────────────────────
+model AuditLog {
+  id        String   @id @default(cuid())
+  leadId    String
+  brandId   String
+  action    String   // "STAGE_CHANGED" | "OWNER_CHANGED" | "PROPOSAL_CREATED" | "MEETING_SCHEDULED" | "STATUS_CHANGED"
+  oldValue  String?
+  newValue  String?
+  changedBy String
+  changedAt DateTime @default(now())
+
+  lead  Lead  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  actor User  @relation("AuditActor", fields: [changedBy], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+  @@index([brandId])
+  @@index([changedAt])
 }

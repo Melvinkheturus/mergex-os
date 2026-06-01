@@ -1,5 +1,5 @@
 /**
- * MergeX Sales OS — Permission Engine
+ * MergeX Sales OS - Permission Engine
  * All permissions are structured as "module.action"
  */
 

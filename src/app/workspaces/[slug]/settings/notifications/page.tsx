@@ -194,7 +194,7 @@ export default function NotificationSettingsPage() {
         <SectionHeader
           icon={Mail}
           title="Email Notifications"
-          subtitle="Operational emails sent via Resend — only for what matters"
+          subtitle="Operational emails sent via Resend - only for what matters"
         />
         <div className="divide-y divide-border/50">
           <SettingRow

@@ -22,14 +22,32 @@ export interface OptionSource {
   name: string;
 }
 
+export type NextActionType =
+  | "CALL_CLIENT"
+  | "FOLLOW_UP"
+  | "SEND_PROPOSAL"
+  | "SCHEDULE_MEETING"
+  | "WAITING_RESPONSE";
+
+export const NEXT_ACTION_LABELS: Record<NextActionType, string> = {
+  CALL_CLIENT: "Call Client",
+  FOLLOW_UP: "Follow Up",
+  SEND_PROPOSAL: "Send Proposal",
+  SCHEDULE_MEETING: "Schedule Meeting",
+  WAITING_RESPONSE: "Waiting Response",
+};
+
 export interface Lead {
   id: string;
+  leadNumber: string | null;
   companyName: string;
   contactPerson: string;
+  designation: string | null;
   email: string | null;
   phone: string | null;
   website: string | null;
   industry: string | null;
+  location: string | null;
   stageId: string | null;
   sourceId: string | null;
   ownerId: string | null;
@@ -38,15 +56,23 @@ export interface Lead {
   expectedValue: string | null;
   priority: string;
   services: string[];
+  leadCategory: string | null;
   createdAt: string;
+  // Tracking dates
+  lastActivityAt: string | null;
+  lastContactAt: string | null;
+  nextFollowUpAt: string | null;
+  // Next Action
+  nextAction: NextActionType | null;
+  nextActionDate: string | null;
   owner?: OptionUser;
   stage?: OptionStage;
   source?: OptionSource;
-  // Business Review
+  // Legacy inline Business Review fields
   currentSituation: string | null;
   painPoints: string[];
   opportunityNotes: string | null;
-  // BANT
+  // BANT (kept on Lead)
   bantBudget: number;
   bantAuthority: number;
   bantNeed: number;
@@ -56,6 +82,56 @@ export interface Lead {
   winLossStatus: string | null;
   winLossReason: string | null;
   winLossNotes: string | null;
+}
+
+export interface BusinessReview {
+  id: string;
+  leadId: string;
+  businessModel: string | null;
+  targetMarket: string | null;
+  currentChannels: string | null;
+  currentChallenges: string | null;
+  currentStrengths: string | null;
+  currentWeaknesses: string | null;
+  painPoints: string[];
+  opportunities: string[];
+  recommendedServices: string[];
+  reviewNotes: string | null;
+  reviewedBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Note {
+  id: string;
+  leadId: string;
+  title: string | null;
+  content: string;
+  visibility: string;
+  createdBy: string;
+  createdAt: string;
+  creator: {
+    id: string;
+    firstName: string | null;
+    lastName: string | null;
+    avatarUrl: string | null;
+  } | null;
+}
+
+export interface AuditLogEntry {
+  id: string;
+  leadId: string;
+  action: string;
+  oldValue: string | null;
+  newValue: string | null;
+  changedBy: string;
+  changedAt: string;
+  actor: {
+    id: string;
+    firstName: string | null;
+    lastName: string | null;
+    avatarUrl: string | null;
+  } | null;
 }
 
 export interface Activity {
@@ -95,34 +171,37 @@ export interface Proposal {
 export const leadFormSchema = z.object({
   companyName: z.string().min(2, "Company name is required"),
   contactPerson: z.string().min(2, "Contact person is required"),
+  phone: z.string().min(5, "Phone number is required"),
   email: z.string().email("Invalid email").optional().or(z.literal("")),
-  phone: z.string().optional(),
-  website: z.string().optional(),
-  industry: z.string().optional(),
-  sourceId: z.string().optional(),
-  stageId: z.string().optional(),
-  ownerId: z.string().optional(),
-  icpScore: z.coerce.number().min(0).max(100).default(0),
-  temperature: z.enum(["HOT", "WARM", "COLD"]).default("COLD"),
-  expectedValue: z.string().optional(),
-  priority: z.enum(["HIGH", "MEDIUM", "LOW"]).default("MEDIUM"),
-  services: z.string().optional(),
+  website: z.string().optional().or(z.literal("")),
+  industry: z.string().optional().or(z.literal("")),
+  location: z.string().optional().or(z.literal("")),
+  designation: z.string().optional().or(z.literal("")),
+  sourceId: z.string().min(1, "Source is required"),
+  ownerId: z.string().optional().or(z.literal("")),
+  initialNotes: z.string().optional().or(z.literal("")),
 });
 export type LeadFormValues = z.infer<typeof leadFormSchema>;
 
 export const overviewSchema = z.object({
   companyName: z.string().min(2, "Company name is required"),
   contactPerson: z.string().min(2, "Contact person is required"),
+  designation: z.string().optional().or(z.literal("")),
   email: z.string().email("Invalid email").optional().or(z.literal("")),
   phone: z.string().optional().or(z.literal("")),
   website: z.string().optional().or(z.literal("")),
   industry: z.string().optional().or(z.literal("")),
+  location: z.string().optional().or(z.literal("")),
   sourceId: z.string().optional().or(z.literal("")),
   ownerId: z.string().optional().or(z.literal("")),
   priority: z.enum(["HIGH", "MEDIUM", "LOW"]).default("MEDIUM"),
   temperature: z.enum(["HOT", "WARM", "COLD"]).default("COLD"),
   expectedValue: z.string().optional().or(z.literal("")),
   services: z.string().optional().or(z.literal("")),
+  leadCategory: z.string().optional().or(z.literal("")),
+  nextAction: z.string().optional().or(z.literal("")),
+  nextActionDate: z.string().optional().or(z.literal("")),
+  nextFollowUpAt: z.string().optional().or(z.literal("")),
 });
 export type OverviewFormValues = z.infer<typeof overviewSchema>;
 

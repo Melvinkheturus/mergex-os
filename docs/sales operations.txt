@@ -16,7 +16,7 @@ Each layer has:
 
 ---
 
-# PHASE A — LEAD OPERATIONS
+# PHASE A - LEAD OPERATIONS
 
 # (Pre-Sales Layer)
 
@@ -272,7 +272,7 @@ Discovery Meeting becomes unlocked.
 
 ---
 
-# PHASE B — SALES CONVERSION
+# PHASE B - SALES CONVERSION
 
 # (Conversion Layer)
 
@@ -459,7 +459,7 @@ Execution team officially takes ownership.
 
 ---
 
-# PHASE C — CLIENT EXECUTION
+# PHASE C - CLIENT EXECUTION
 
 # (Post-Sales Layer)
 
@@ -575,7 +575,7 @@ Increase:
 
 # FINAL MERGEX OPERATIONAL LIFECYCLE
 
-# PHASE A — LEAD OPERATIONS
+# PHASE A - LEAD OPERATIONS
 
 (Pre-Sales Layer)
 
@@ -591,7 +591,7 @@ Meeting Readiness Check
 
 ---
 
-# PHASE B — SALES CONVERSION
+# PHASE B - SALES CONVERSION
 
 (Conversion Layer)
 
@@ -603,7 +603,7 @@ Meeting Readiness Check
 
 ---
 
-# PHASE C — CLIENT EXECUTION
+# PHASE C - CLIENT EXECUTION
 
 (Post-Sales Layer)
 
@@ -639,7 +639,7 @@ This is the finalized operational mapping for the MergeX Sales OS.
 
 ---
 
-# PHASE A — LEAD OPERATIONS
+# PHASE A - LEAD OPERATIONS
 
 # (Pre-Sales Layer)
 
@@ -777,7 +777,7 @@ One of the most operationally active stages.
 
 ---
 
-# PHASE B — SALES CONVERSION
+# PHASE B - SALES CONVERSION
 
 # (Conversion Layer)
 
@@ -917,7 +917,7 @@ Bad handoffs destroy delivery quality.
 
 ---
 
-# PHASE C — CLIENT EXECUTION
+# PHASE C - CLIENT EXECUTION
 
 # (Post-Sales Layer)
 
@@ -1110,7 +1110,7 @@ The complete document system is divided into:
 
 ---
 
-# PHASE B — SALES CONVERSION
+# PHASE B - SALES CONVERSION
 
 # (Pre-Execution Document Layer)
 
@@ -1494,7 +1494,7 @@ Internal only
 
 ---
 
-# PHASE C — CLIENT EXECUTION
+# PHASE C - CLIENT EXECUTION
 
 # (Post-Sales Operational Document Layer)
 
@@ -1516,7 +1516,7 @@ but internally split into:
 
 ---
 
-# SECTION A — Client Information
+# SECTION A - Client Information
 
 (Client-Level Data)
 
@@ -1547,7 +1547,7 @@ Future projects should reuse this data.
 
 ---
 
-# SECTION B — Project Intake
+# SECTION B - Project Intake
 
 (Project-Level Data)
 
@@ -1578,7 +1578,7 @@ This repeats:
 
 ---
 
-# SECTION C — Assets & Access Collection
+# SECTION C - Assets & Access Collection
 
 ## Purpose
 
@@ -1781,7 +1781,7 @@ Client-facing
 
 # FINAL DOCUMENT FLOW
 
-# PHASE B — SALES CONVERSION
+# PHASE B - SALES CONVERSION
 
 ---
 
@@ -1815,7 +1815,7 @@ Client-facing
 
 ---
 
-# PHASE C — CLIENT EXECUTION
+# PHASE C - CLIENT EXECUTION
 
 ---
 

@@ -14,7 +14,7 @@ Layer 5 → Reporting & Analytics
 
 ---
 
-# PHASE 1 — CRM FOUNDATION
+# PHASE 1 - CRM FOUNDATION
 
 Build the data structure first.
 
@@ -137,7 +137,7 @@ Nothing more.
 
 ---
 
-# PHASE 2 — LEAD OPERATIONS
+# PHASE 2 - LEAD OPERATIONS
 
 Now build the first operational layer.
 
@@ -223,7 +223,7 @@ Activity Timeline
 
 ---
 
-# PHASE 3 — BUSINESS REVIEW
+# PHASE 3 - BUSINESS REVIEW
 
 This is your "Lead Enrichment + Sales Audit".
 
@@ -277,7 +277,7 @@ Now your sales team has context before pitching.
 
 ---
 
-# PHASE 4 — LEAD QUALIFICATION
+# PHASE 4 - LEAD QUALIFICATION
 
 Create qualification score.
 
@@ -314,7 +314,7 @@ This decides whether lead moves forward.
 
 ---
 
-# PHASE 5 — LEAD CLASSIFICATION
+# PHASE 5 - LEAD CLASSIFICATION
 
 Classify lead.
 
@@ -353,7 +353,7 @@ Expected Deal Value
 
 ---
 
-# PHASE 6 — LEAD NURTURING
+# PHASE 6 - LEAD NURTURING
 
 Communication tracking.
 
@@ -386,7 +386,7 @@ Follow-up Scheduled
 
 ---
 
-# PHASE 7 — MEETING MODULE
+# PHASE 7 - MEETING MODULE
 
 Now build:
 
@@ -426,7 +426,7 @@ Next Action
 
 ---
 
-# PHASE 8 — PROPOSAL MODULE
+# PHASE 8 - PROPOSAL MODULE
 
 Proposal tracking only.
 
@@ -459,7 +459,7 @@ Rejected
 
 ---
 
-# PHASE 9 — DOCUMENTATION
+# PHASE 9 - DOCUMENTATION
 
 Track:
 
@@ -478,7 +478,7 @@ Actual DMS comes later.
 
 ---
 
-# PHASE 10 — ENGAGEMENT MANAGER HANDOVER
+# PHASE 10 - ENGAGEMENT MANAGER HANDOVER
 
 When sale closes:
 
@@ -510,7 +510,7 @@ Conversion happens.
 
 ---
 
-# PHASE 11 — CRM DASHBOARD
+# PHASE 11 - CRM DASHBOARD
 
 Only now build analytics.
 

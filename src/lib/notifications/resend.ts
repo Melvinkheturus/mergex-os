@@ -91,7 +91,7 @@ export async function sendMomOverdueEmail(to: string, leadName: string, meetingI
   return resend.emails.send({
     from: FROM_EMAIL,
     to,
-    subject: `⚠️ MOM Submission Overdue — ${leadName}`,
+    subject: `⚠️ MOM Submission Overdue - ${leadName}`,
     html: buildEmailHtml({
       title: "MOM Submission Overdue",
       preheader: `Your Minutes of Meeting for ${leadName} is overdue.`,
@@ -114,7 +114,7 @@ export async function sendLeadAssignedEmail(
   return resend.emails.send({
     from: FROM_EMAIL,
     to,
-    subject: `🎯 New Lead Assigned — ${leadName} @ ${company}`,
+    subject: `🎯 New Lead Assigned - ${leadName} @ ${company}`,
     html: buildEmailHtml({
       title: `Lead Assigned: ${leadName}`,
       preheader: `${leadName} from ${company} has been assigned to you.`,
@@ -142,7 +142,7 @@ export async function sendMeetingReminderEmail(
   return resend.emails.send({
     from: FROM_EMAIL,
     to,
-    subject: `📅 Meeting Reminder — ${meetingTitle}`,
+    subject: `📅 Meeting Reminder - ${meetingTitle}`,
     html: buildEmailHtml({
       title: "Meeting Reminder",
       preheader: `Your meeting "${meetingTitle}" is coming up.`,
@@ -175,7 +175,7 @@ export async function sendProposalStatusEmail(
   return resend.emails.send({
     from: FROM_EMAIL,
     to,
-    subject: `📄 Proposal Update — ${proposalTitle}`,
+    subject: `📄 Proposal Update - ${proposalTitle}`,
     html: buildEmailHtml({
       title: `Proposal ${statusLabel}`,
       preheader: `Status update for proposal: ${proposalTitle}.`,
@@ -198,7 +198,7 @@ export async function sendQualificationBlockedEmail(
   return resend.emails.send({
     from: FROM_EMAIL,
     to,
-    subject: `🚪 Qualification Blocked — ${leadName}`,
+    subject: `🚪 Qualification Blocked - ${leadName}`,
     html: buildEmailHtml({
       title: "Qualification Gate Blocked",
       preheader: `Action required before ${leadName} can advance.`,
@@ -220,7 +220,7 @@ export async function sendFollowUpOverdueEmail(
   return resend.emails.send({
     from: FROM_EMAIL,
     to,
-    subject: `⏰ Follow-up Overdue — ${leadName}`,
+    subject: `⏰ Follow-up Overdue - ${leadName}`,
     html: buildEmailHtml({
       title: "Follow-up Overdue",
       preheader: `A follow-up for ${leadName} is past due.`,

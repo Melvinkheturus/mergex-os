@@ -25,7 +25,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { LiquidMetalButton } from "@/components/ui/liquid-metal-button";
 
 export const metadata = {
-  title: "MergeX Sales OS — Internal Operational Workspace",
+  title: "MergeX Sales OS - Internal Operational Workspace",
   description: "Confidential operations platform for customer experience, sales, and client execution.",
 };
 
@@ -164,7 +164,7 @@ export default async function LandingPage() {
             MergeX Sales OS is a highly confidential, custom-tailored command center engineered to orchestrate B2B sales development, customer experience, and client delivery.
           </p>
           <p className="text-sm">
-            Moving beyond traditional disjointed CRM pipelines, Sales OS unifies your entire pipeline lifecycle. From automated ICP lead qualification and client onboarding states, to secure workspace delegation and client contract vaulting—your sales velocity is accelerated and protected under rigid enterprise single sign-on.
+            Moving beyond traditional disjointed CRM pipelines, Sales OS unifies your entire pipeline lifecycle. From automated ICP lead qualification and client onboarding states, to secure workspace delegation and client contract vaulting-your sales velocity is accelerated and protected under rigid enterprise single sign-on.
           </p>
         </div>
       </section>

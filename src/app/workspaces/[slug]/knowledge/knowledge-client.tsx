@@ -67,7 +67,7 @@ const KB_CATEGORIES = [
   { id: "ann",   name: "Announcements",    icon: "📢", count: 0 },
 ];
 
-// Starter documents — seed content that shows the knowledge structure
+// Starter documents - seed content that shows the knowledge structure
 const STARTER_DOCS: Document[] = [
   {
     id: "s1",

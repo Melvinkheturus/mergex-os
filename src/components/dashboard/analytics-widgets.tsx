@@ -200,7 +200,7 @@ function CXWorkload({ teammates }: { teammates: Teammate[] }) {
     );
   }
 
-  // Teammates exist but no real lead data yet — show team list with zero state
+  // Teammates exist but no real lead data yet - show team list with zero state
   return (
     <div className="space-y-4 py-1 max-h-[280px] overflow-y-auto pr-1">
       {teammates.map((mate) => {

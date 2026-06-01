@@ -42,7 +42,7 @@ export function BrandSwitcher({ brands }: { brands: BrandOption[] }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  // Active brand derived from URL slug — URL is the canonical source of truth
+  // Active brand derived from URL slug - URL is the canonical source of truth
   const activeBrand = brands.find((b) => b.slug === slug) ?? null;
   const activeBrandIndex = brands.findIndex((b) => b.slug === slug);
 

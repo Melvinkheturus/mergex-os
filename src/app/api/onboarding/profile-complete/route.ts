@@ -43,7 +43,7 @@ export async function POST(req: Request) {
       username: profile.username,
     });
 
-    // 2. Update DB user — complete onboarding
+    // 2. Update DB user - complete onboarding
     const dbUser = await db.user.findUnique({ where: { clerkId: userId } });
     if (dbUser) {
       await db.user.update({
@@ -71,7 +71,7 @@ export async function POST(req: Request) {
       });
     }
 
-    // 3. Update Clerk publicMetadata — onboarding COMPLETE
+    // 3. Update Clerk publicMetadata - onboarding COMPLETE
     await client.users.updateUserMetadata(userId, {
       publicMetadata: {
         onboardingState: "COMPLETE",

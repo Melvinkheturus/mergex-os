@@ -1,6 +1,6 @@
 {
   "name": "mergex-sales-os",
-  "description": "MergeX Sales OS — All-in-one sales operations platform",
+  "description": "MergeX Sales OS - All-in-one sales operations platform",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -14,6 +14,7 @@
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
+    "@heroui/react": "^3.1.0",
     "@hookform/resolvers": "^5.4.0",
     "@neondatabase/serverless": "^1.1.0",
     "@paper-design/shaders": "^0.0.76",

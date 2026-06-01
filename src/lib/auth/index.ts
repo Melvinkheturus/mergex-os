@@ -222,7 +222,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
   };
 }
 
-// ── Require auth — redirects if not authenticated ─────────
+// ── Require auth - redirects if not authenticated ─────────
 
 export async function requireUser(): Promise<AuthUser> {
   const user = await getCurrentUser();
@@ -247,7 +247,7 @@ export function hasRole(user: AuthUser, ...roleNames: string[]): boolean {
   return roleNames.includes(user.role.name);
 }
 
-// ── Require permission — redirects if unauthorized ────────
+// ── Require permission - redirects if unauthorized ────────
 
 export async function requirePermission(key: PermissionKey): Promise<AuthUser> {
   const user = await requireUser();

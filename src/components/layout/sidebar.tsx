@@ -28,7 +28,6 @@ const SUB_ITEMS: Record<string, { title: string; href: string }[]> = {
     { title: "Leads", href: "/dashboard/crm/leads" },
     { title: "Meetings", href: "/dashboard/crm/meetings" },
     { title: "Proposals", href: "/dashboard/crm/proposals" },
-    { title: "Pipeline", href: "/dashboard/crm/pipeline" },
   ],
   Clients: [
     { title: "Projects", href: "/dashboard/clients/projects" },
@@ -99,13 +98,13 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
                   aria-label="Expand sidebar"
                   className="group/logo relative flex items-center justify-center w-8 h-8 rounded-md hover:bg-black/5 dark:hover:bg-white/5 transition-colors mx-auto"
                 >
-                  {/* Logo — fades out on hover */}
+                  {/* Logo - fades out on hover */}
                   <img
                     src="/logo/mergex-logo.png"
                     alt="MergeX Logo"
                     className="w-6 h-6 object-contain absolute transition-opacity duration-150 group-hover/logo:opacity-0"
                   />
-                  {/* Expand icon — fades in on hover */}
+                  {/* Expand icon - fades in on hover */}
                   <PanelLeftOpen
                     className="h-4 w-4 text-muted-foreground absolute opacity-0 transition-opacity duration-150 group-hover/logo:opacity-100"
                     strokeWidth={1.6}
@@ -215,7 +214,7 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
                     <TooltipContent
                       side="right"
                       sideOffset={12}
-                      /* Tooltip: font-medium — small text needs a little weight to read clearly */
+                      /* Tooltip: font-medium - small text needs a little weight to read clearly */
                       className="text-[10px] font-medium"
                     >
                       {item.title}
@@ -233,7 +232,7 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
                       {subItems.map((sub) => {
                         const subHref = getDynamicHref(sub.href);
                         const isSubActive = pathname.startsWith(subHref);
-                        // CRM sub-routes are live; others are still coming soon
+                        // CRM sub-routes are all live; others are still coming soon
                         const isLive = sub.href.startsWith("/dashboard/crm");
                         return (
                           <li key={sub.title}>

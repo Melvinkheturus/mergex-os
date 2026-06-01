@@ -180,7 +180,7 @@ export function CommandCenter({ open, onOpenChange }: CommandCenterProps) {
               <p className="text-xs text-muted-foreground/60 mt-2">Try a different search term</p>
             </Command.Empty>
 
-            {/* Recent History — shown when no query */}
+            {/* Recent History - shown when no query */}
             {!query && history.length > 0 && (
               <Command.Group>
                 <div className="flex items-center justify-between px-2 py-1.5">

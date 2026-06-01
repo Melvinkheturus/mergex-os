@@ -197,7 +197,7 @@ function ProfileSection({ user, brands }: { user: SettingsPageProps["user"]; bra
       toast.success("Profile information updated successfully.");
       window.dispatchEvent(new CustomEvent("mergex:profile-updated", { detail: { avatarUrl } }));
     } catch {
-      toast.error("Network error — please try again.");
+      toast.error("Network error - please try again.");
     } finally {
       setSaving(false);
     }
@@ -456,7 +456,7 @@ function BrandSettingsSection({ brands }: { brands: Brand[] }) {
       setLogoUrl(data.url);
       toast.success("Brand logo uploaded. Save to apply.");
     } catch {
-      toast.error("Upload failed — please try again.");
+      toast.error("Upload failed - please try again.");
     } finally {
       setUploading(false);
       // reset input so the same file can be re-selected
@@ -482,7 +482,7 @@ function BrandSettingsSection({ brands }: { brands: Brand[] }) {
       if (!res.ok) { toast.error(data.error ?? "Failed to save brand settings."); return; }
       toast.success("Brand settings saved successfully.");
     } catch {
-      toast.error("Network error — please try again.");
+      toast.error("Network error - please try again.");
     } finally {
       setSaving(false);
     }

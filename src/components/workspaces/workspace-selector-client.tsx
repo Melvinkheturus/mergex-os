@@ -162,7 +162,7 @@ export function WorkspaceSelectorClient({ brands, user, userRole, teammates }: P
       setNewBrandName("");
       toast.success("Workspace brand division created successfully.");
     } catch {
-      toast.error("Network error — please try again.");
+      toast.error("Network error - please try again.");
     } finally {
       setSavingBrand(false);
     }
@@ -185,7 +185,7 @@ export function WorkspaceSelectorClient({ brands, user, userRole, teammates }: P
         }).catch(console.error);
       }
     } catch {
-      toast.error("Network error — please try again.");
+      toast.error("Network error - please try again.");
     } finally {
       setDeletingBrandId(null);
     }
@@ -308,7 +308,7 @@ export function WorkspaceSelectorClient({ brands, user, userRole, teammates }: P
             </div>
           </div>
 
-          {/* Sidebar footer — pushed to bottom */}
+          {/* Sidebar footer - pushed to bottom */}
           <div className="hidden md:flex flex-col gap-3.5 pt-6 mt-auto border-t border-neutral-200 dark:border-white/5">
             <div className="flex items-center gap-3 px-1.5">
               {user.avatarUrl ? (

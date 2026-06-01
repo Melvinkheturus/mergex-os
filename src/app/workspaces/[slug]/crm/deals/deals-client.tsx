@@ -75,7 +75,7 @@ function DealCard({ deal }: { deal: Deal }) {
       <Progress value={deal.probability} className="h-1" />
 
       <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-        <span>{deal.company?.name ?? deal.lead?.firstName ?? "—"}</span>
+        <span>{deal.company?.name ?? deal.lead?.firstName ?? "-"}</span>
         {deal.expectedClose && (
           <span className="flex items-center gap-1">
             <Calendar className="h-2.5 w-2.5" />

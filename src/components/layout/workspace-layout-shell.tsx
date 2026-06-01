@@ -6,7 +6,7 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { TopNav } from "@/components/layout/top-nav";
 import { CommandProvider } from "@/components/command/command-provider";
 
-// Full-height routes — no padding, full overflow control
+// Full-height routes - no padding, full overflow control
 const FULLSCREEN_ROUTE_SUFFIXES = ["/pipeline"];
 
 export function WorkspaceLayoutShell({ children }: { children: React.ReactNode }) {

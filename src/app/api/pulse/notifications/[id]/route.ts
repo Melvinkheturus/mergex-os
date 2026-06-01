@@ -3,8 +3,8 @@ import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 
 // GET /api/pulse/notifications/[id]
-// PATCH /api/pulse/notifications/[id]  — mark read/unread
-// DELETE /api/pulse/notifications/[id] — dismiss
+// PATCH /api/pulse/notifications/[id]  - mark read/unread
+// DELETE /api/pulse/notifications/[id] - dismiss
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { ChevronLeft, Trophy, XCircle, Loader2 } from "lucide-react";
@@ -10,15 +10,22 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+import { StageProgressBar } from "../_components/stage-progress-bar";
 import { LeadInfoPanel } from "../_components/lead-info-panel";
 import { HandoverPanel } from "../_components/handover-panel";
 import { OverviewTab } from "../_components/overview-tab";
 import { BusinessReviewTab } from "../_components/business-review-tab";
 import { BantTab } from "../_components/bant-tab";
+import { ClassificationTab } from "../_components/classification-tab";
 import { ActivitiesTab } from "../_components/activities-tab";
 import { MeetingsTab } from "../_components/meetings-tab";
 import { ProposalsTab } from "../_components/proposals-tab";
+import { DocumentsTab } from "../_components/documents-tab";
+import { InternalNotesTab } from "../_components/internal-notes-tab";
+import { AuditHistoryTab } from "../_components/audit-history-tab";
 import { WinLossDialog } from "../_components/win-loss-dialog";
+import { LeadSidebar } from "./lead-sidebar";
+
 
 import {
   Lead,
@@ -51,6 +58,9 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
   const [savingStage, setSavingStage] = useState(false);
   const [savingOwner, setSavingOwner] = useState(false);
 
+  // Quick action tab navigation
+  const [activeTab, setActiveTab] = useState("overview");
+
   // Win/Loss State
   const [showWinLossDialog, setShowWinLossDialog] = useState(false);
   const [winLossStatus, setWinLossStatus] = useState<"WON" | "LOST">("WON");
@@ -63,13 +73,15 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
   const [convertingToClient, setConvertingToClient] = useState(false);
 
   // Form Initializations
-  const overviewForm = useForm<any>({ resolver: zodResolver(overviewSchema) });
-  const businessReviewForm = useForm<any>({ resolver: zodResolver(businessReviewSchema) });
-  const bantForm = useForm<any>({ resolver: zodResolver(bantSchema) });
+  const overviewForm = useForm<OverviewFormValues>({ resolver: zodResolver(overviewSchema) as Resolver<OverviewFormValues> });
+  const businessReviewForm = useForm<BusinessReviewFormValues>({ resolver: zodResolver(businessReviewSchema) as Resolver<BusinessReviewFormValues> });
+  const bantForm = useForm<BantFormValues>({ resolver: zodResolver(bantSchema) as Resolver<BantFormValues> });
 
   // ── Data Loader ─────────────────────────────────────────────────────────────
 
   const loadLeadData = useCallback(async () => {
+    // Avoid calling setState synchronously within effect
+    await Promise.resolve();
     try {
       setLoading(true);
       const [optRes, leadRes] = await Promise.all([
@@ -107,6 +119,7 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
       businessReviewForm.reset({
         currentSituation: data.currentSituation || "",
         painPoints: data.painPoints.join(", "),
+        // opportunityNotes stores opportunities as comma-delimited
         opportunityNotes: data.opportunityNotes || "",
       });
 
@@ -126,7 +139,10 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
   }, [leadId, slug, router, overviewForm, businessReviewForm, bantForm]);
 
   useEffect(() => {
-    loadLeadData();
+    const timer = setTimeout(() => {
+      loadLeadData();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [leadId, loadLeadData]);
 
   // ── Quick Action Handlers ───────────────────────────────────────────────────
@@ -165,6 +181,13 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
     } finally {
       setSavingOwner(false);
     }
+  };
+
+  // Quick action handler - navigate to relevant tab
+  const handleQuickAction = (type: "EMAIL" | "MEETING" | "PROPOSAL") => {
+    if (type === "EMAIL") setActiveTab("activities");
+    if (type === "MEETING") setActiveTab("meetings");
+    if (type === "PROPOSAL") setActiveTab("proposals");
   };
 
   // ── Tab Submit Handlers ──────────────────────────────────────────────────────
@@ -286,7 +309,7 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
   const isWon = lead.winLossStatus === "WON";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Top action bar */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <Button
@@ -308,7 +331,7 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
               }
             >
               {isWon ? <Trophy className="h-3 w-3 mr-1" /> : <XCircle className="h-3 w-3 mr-1" />}
-              {lead.winLossStatus} {lead.winLossReason ? `— ${lead.winLossReason}` : ""}
+              {lead.winLossStatus} {lead.winLossReason ? `- ${lead.winLossReason}` : ""}
             </Badge>
           ) : (
             <Button
@@ -324,9 +347,40 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
         </div>
       </div>
 
-      {/* Main Grid Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_2.5fr] gap-6">
-        {/* Left Column */}
+      {/* Next Action Banner - shown when set */}
+      {lead.nextAction && (
+        <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl border border-violet-500/20 bg-violet-500/5">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-violet-500/70">Next Action</span>
+          <span className="text-sm font-semibold text-violet-600 dark:text-violet-400">
+            {lead.nextAction.replace(/_/g, " ")}
+          </span>
+          {lead.nextActionDate && (
+            <span className="text-xs text-muted-foreground ml-auto">
+              Due: {new Date(lead.nextActionDate).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* ── Stage Progress Bar ─────────────────────────────── */}
+
+      {stages.length > 0 && (
+        <div className="border border-border/30 rounded-2xl bg-card/30 p-4 overflow-hidden">
+          <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-3">
+            Pipeline Journey
+          </p>
+          <StageProgressBar
+            stages={stages}
+            currentStageId={lead.stageId}
+            onStageClick={handleStageChange}
+            saving={savingStage}
+          />
+        </div>
+      )}
+
+      {/* Main Grid Layout - 3 columns on xl, 2 on lg, 1 on mobile */}
+      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] xl:grid-cols-[280px_1fr_300px] gap-6">
+        {/* Left Column - Info Panel */}
         <div className="space-y-4">
           <LeadInfoPanel
             lead={lead}
@@ -336,6 +390,7 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
             savingOwner={savingOwner}
             onStageChange={handleStageChange}
             onOwnerChange={handleOwnerChange}
+            onQuickAction={handleQuickAction}
           />
 
           {isWon && (
@@ -349,27 +404,39 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
           )}
         </div>
 
-        {/* Right Column — Tabs */}
+        {/* Center Column - Tabs */}
         <div className="min-w-0">
-          <Tabs defaultValue="overview" className="space-y-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-5">
             <TabsList className="bg-muted/40 p-1 w-full justify-start overflow-x-auto flex h-10 border-b border-border/20 rounded-xl">
-              <TabsTrigger value="overview" className="text-xs font-semibold px-4 rounded-lg data-[state=active]:bg-card">
+              <TabsTrigger value="overview" className="text-xs font-semibold px-4 rounded-lg data-[state=active]:bg-card whitespace-nowrap">
                 Overview
               </TabsTrigger>
-              <TabsTrigger value="review" className="text-xs font-semibold px-4 rounded-lg data-[state=active]:bg-card">
+              <TabsTrigger value="review" className="text-xs font-semibold px-4 rounded-lg data-[state=active]:bg-card whitespace-nowrap">
                 Business Review
               </TabsTrigger>
-              <TabsTrigger value="bant" className="text-xs font-semibold px-4 rounded-lg data-[state=active]:bg-card">
+              <TabsTrigger value="bant" className="text-xs font-semibold px-4 rounded-lg data-[state=active]:bg-card whitespace-nowrap">
                 Qualification
               </TabsTrigger>
-              <TabsTrigger value="activities" className="text-xs font-semibold px-4 rounded-lg data-[state=active]:bg-card">
+              <TabsTrigger value="classification" className="text-xs font-semibold px-4 rounded-lg data-[state=active]:bg-card whitespace-nowrap">
+                Classification
+              </TabsTrigger>
+              <TabsTrigger value="activities" className="text-xs font-semibold px-4 rounded-lg data-[state=active]:bg-card whitespace-nowrap">
                 Activities
               </TabsTrigger>
-              <TabsTrigger value="meetings" className="text-xs font-semibold px-4 rounded-lg data-[state=active]:bg-card">
+              <TabsTrigger value="meetings" className="text-xs font-semibold px-4 rounded-lg data-[state=active]:bg-card whitespace-nowrap">
                 Meetings
               </TabsTrigger>
-              <TabsTrigger value="proposals" className="text-xs font-semibold px-4 rounded-lg data-[state=active]:bg-card">
+              <TabsTrigger value="proposals" className="text-xs font-semibold px-4 rounded-lg data-[state=active]:bg-card whitespace-nowrap">
                 Proposals
+              </TabsTrigger>
+              <TabsTrigger value="documents" className="text-xs font-semibold px-4 rounded-lg data-[state=active]:bg-card whitespace-nowrap">
+                Documents
+              </TabsTrigger>
+              <TabsTrigger value="internal" className="text-xs font-semibold px-4 rounded-lg data-[state=active]:bg-card whitespace-nowrap">
+                Internal Notes
+              </TabsTrigger>
+              <TabsTrigger value="audit" className="text-xs font-semibold px-4 rounded-lg data-[state=active]:bg-card whitespace-nowrap">
+                Audit History
               </TabsTrigger>
             </TabsList>
 
@@ -385,6 +452,10 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
               <BantTab form={bantForm} bantScore={lead.bantScore} onSubmit={onBantSubmit} />
             </TabsContent>
 
+            <TabsContent value="classification" className="mt-0">
+              <ClassificationTab form={overviewForm} onSubmit={onOverviewSubmit} leadId={leadId} />
+            </TabsContent>
+
             <TabsContent value="activities" className="mt-0">
               <ActivitiesTab leadId={leadId} />
             </TabsContent>
@@ -396,7 +467,24 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
             <TabsContent value="proposals" className="mt-0">
               <ProposalsTab leadId={leadId} />
             </TabsContent>
+
+            <TabsContent value="documents" className="mt-0">
+              <DocumentsTab leadId={leadId} />
+            </TabsContent>
+
+            <TabsContent value="internal" className="mt-0">
+              <InternalNotesTab leadId={leadId} />
+            </TabsContent>
+
+            <TabsContent value="audit" className="mt-0">
+              <AuditHistoryTab leadId={leadId} lead={lead} />
+            </TabsContent>
           </Tabs>
+        </div>
+
+        {/* Right Sidebar - hidden on lg, visible on xl+ */}
+        <div className="hidden xl:block">
+          <LeadSidebar lead={lead} />
         </div>
       </div>
 

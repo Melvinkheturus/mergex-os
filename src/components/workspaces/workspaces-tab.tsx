@@ -5,7 +5,7 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { LiquidMetalButton } from "@/components/ui/liquid-metal-button";
 
-// ── Brand color palette — each brand gets a unique accent ─────────────────
+// ── Brand color palette - each brand gets a unique accent ─────────────────
 const BRAND_COLORS = [
   { bg: "from-violet-500/10 to-purple-600/10", border: "border-violet-500/30", avatar: "bg-linear-to-br from-violet-500 to-purple-600", text: "text-violet-400" },
   { bg: "from-indigo-500/10 to-blue-600/10",   border: "border-indigo-500/30", avatar: "bg-linear-to-br from-indigo-500 to-blue-600", text: "text-indigo-400" },

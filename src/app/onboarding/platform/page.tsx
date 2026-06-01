@@ -236,7 +236,7 @@ function StepInviteTeam({ invites, onChange }: {
         </div>
       ) : (
         <div className="flex items-center justify-center py-6 rounded-xl border border-dashed border-[#E5E7EB] dark:border-[#26262C] text-xs text-muted-foreground">
-          No invites added — you can skip this step
+          No invites added - you can skip this step
         </div>
       )}
     </div>

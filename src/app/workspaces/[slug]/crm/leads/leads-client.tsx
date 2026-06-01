@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { LayoutList, Columns3, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-import { AddLeadDialog } from "./_components/add-lead-dialog";
 import { LeadsStats } from "./_components/leads-stats";
 import { LeadFilters } from "./_components/lead-filters";
 import { LeadsTable } from "./_components/leads-table";
+import { LeadsPipelineView } from "./_components/leads-pipeline-view";
 import {
   Lead,
   OptionStage,
@@ -16,8 +18,11 @@ import {
   LeadFormValues,
 } from "./_components/types";
 
+type ViewMode = "list" | "pipeline";
+
 export function LeadsPage() {
   const params = useParams();
+  const router = useRouter();
   const slug = params?.slug as string;
 
   // Shared Data States
@@ -26,7 +31,9 @@ export function LeadsPage() {
   const [sources, setSources] = useState<OptionSource[]>([]);
   const [owners, setOwners] = useState<OptionUser[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  // View Mode
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
 
   // Filter States
   const [search, setSearch] = useState("");
@@ -63,34 +70,6 @@ export function LeadsPage() {
     fetchData();
   }, [slug]);
 
-  // Handle Create Lead
-  const handleCreateLead = async (values: LeadFormValues) => {
-    try {
-      const servicesArray = values.services
-        ? values.services.split(",").map((s) => s.trim()).filter(Boolean)
-        : [];
-
-      const res = await fetch(`/api/crm/leads`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...values, services: servicesArray }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to create lead");
-      }
-
-      toast.success("Lead created successfully");
-      setIsDialogOpen(false);
-      fetchData();
-    } catch (err: unknown) {
-      console.error("Create lead error:", err);
-      const msg = err instanceof Error ? err.message : "Something went wrong.";
-      toast.error(msg);
-    }
-  };
-
   // Handle Delete Lead
   const handleDeleteLead = async (leadId: string) => {
     if (!confirm("Are you sure you want to delete this lead? This action cannot be undone.")) return;
@@ -110,6 +89,33 @@ export function LeadsPage() {
     }
   };
 
+  // Handle Pipeline Stage Change (optimistic)
+  const handlePipelineStageChange = async (leadId: string, stageId: string) => {
+    const prevLeads = leads;
+    // Optimistic update
+    setLeads((prev) =>
+      prev.map((l) =>
+        l.id === leadId
+          ? { ...l, stageId, stage: stages.find((s) => s.id === stageId) }
+          : l
+      )
+    );
+    try {
+      const res = await fetch(`/api/crm/leads/${leadId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stageId }),
+      });
+      if (!res.ok) throw new Error("Failed to update stage");
+      const updated: Lead = await res.json();
+      setLeads((prev) => prev.map((l) => (l.id === leadId ? updated : l)));
+      toast.success("Stage updated");
+    } catch {
+      setLeads(prevLeads); // rollback
+      toast.error("Failed to update stage");
+    }
+  };
+
   // Local filtering calculation
   const filteredLeads = leads.filter((l) => {
     const matchSearch =
@@ -123,51 +129,91 @@ export function LeadsPage() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Header Bar */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-foreground">CRM Leads</h2>
+          <h2 className="text-xl font-bold tracking-tight text-foreground">Lead Pipeline</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
             Identify, qualify, and track your active sales pipeline.
           </p>
         </div>
 
-        <AddLeadDialog
-          open={isDialogOpen}
-          onOpenChange={setIsDialogOpen}
-          stages={stages}
-          sources={sources}
-          owners={owners}
-          onSubmit={handleCreateLead}
-        />
+        <div className="flex items-center gap-2 shrink-0">
+          {/* View Toggle */}
+          <div className="flex items-center gap-1 border border-border/40 rounded-lg p-1 bg-muted/20">
+            <button
+              id="crm-view-list"
+              onClick={() => setViewMode("list")}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+                viewMode === "list"
+                  ? "bg-card text-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <LayoutList className="h-3.5 w-3.5" />
+              List
+            </button>
+            <button
+              id="crm-view-pipeline"
+              onClick={() => setViewMode("pipeline")}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+                viewMode === "pipeline"
+                  ? "bg-card text-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Columns3 className="h-3.5 w-3.5" />
+              Pipeline
+            </button>
+          </div>
+
+          <Button
+            size="sm"
+            onClick={() => router.push(`/workspaces/${slug}/crm/leads/new`)}
+            className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white shrink-0 font-semibold"
+          >
+            <Plus className="h-4 w-4 mr-1.5" />
+            Add Lead
+          </Button>
+        </div>
       </div>
 
       {/* Stats Summary Strip */}
       <LeadsStats leads={leads} />
 
-      {/* Filter strip */}
-      <LeadFilters
-        search={search}
-        setSearch={setSearch}
-        stageFilter={stageFilter}
-        setStageFilter={setStageFilter}
-        ownerFilter={ownerFilter}
-        setOwnerFilter={setOwnerFilter}
-        sourceFilter={sourceFilter}
-        setSourceFilter={setSourceFilter}
-        stages={stages}
-        owners={owners}
-        sources={sources}
-      />
+      {/* Filter strip - only in list mode */}
+      {viewMode === "list" && (
+        <LeadFilters
+          search={search}
+          setSearch={setSearch}
+          stageFilter={stageFilter}
+          setStageFilter={setStageFilter}
+          ownerFilter={ownerFilter}
+          setOwnerFilter={setOwnerFilter}
+          sourceFilter={sourceFilter}
+          setSourceFilter={setSourceFilter}
+          stages={stages}
+          owners={owners}
+          sources={sources}
+        />
+      )}
 
-      {/* Leads Table */}
-      <LeadsTable
-        leads={filteredLeads}
-        loading={loading}
-        onDelete={handleDeleteLead}
-        onAddClick={() => setIsDialogOpen(true)}
-      />
+      {/* Main Content */}
+      {viewMode === "list" ? (
+        <LeadsTable
+          leads={filteredLeads}
+          loading={loading}
+          onDelete={handleDeleteLead}
+          onAddClick={() => router.push(`/workspaces/${slug}/crm/leads/new`)}
+        />
+      ) : (
+        <LeadsPipelineView
+          leads={leads}
+          stages={stages}
+          onStageChange={handlePipelineStageChange}
+        />
+      )}
     </div>
   );
 }

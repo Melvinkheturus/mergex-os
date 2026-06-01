@@ -1,7 +1,7 @@
 {
   "name": "MergeX Sales OS",
   "short_name": "MergeX",
-  "description": "Enterprise sales execution platform — pipeline, CRM, meetings, analytics.",
+  "description": "Enterprise sales execution platform - pipeline, CRM, meetings, analytics.",
   "start_url": "/dashboard",
   "display": "standalone",
   "background_color": "#0B0B0F",
