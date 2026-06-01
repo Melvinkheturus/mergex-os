@@ -47,7 +47,7 @@ export async function POST(req: Request) {
         },
       },
     });
-    await Promise.all(createdBrands.map((b) => seedBrandDefaults(b.id)));
+    await Promise.all(createdBrands.map((b: { id: string }) => seedBrandDefaults(b.id)));
 
     // 2. Update user onboardingState in DB
     const dbUser = await db.user.findUnique({ where: { clerkId: userId } });
