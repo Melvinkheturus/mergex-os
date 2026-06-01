@@ -82,6 +82,11 @@ export interface Lead {
   winLossStatus: string | null;
   winLossReason: string | null;
   winLossNotes: string | null;
+  // Relationship Intelligence fields
+  decisionMaker: string | null;
+  influencer: string | null;
+  champion: string | null;
+  financeContact: string | null;
 }
 
 export interface BusinessReview {
@@ -202,6 +207,11 @@ export const overviewSchema = z.object({
   nextAction: z.string().optional().or(z.literal("")),
   nextActionDate: z.string().optional().or(z.literal("")),
   nextFollowUpAt: z.string().optional().or(z.literal("")),
+  // Relationship Intelligence
+  decisionMaker: z.string().optional().or(z.literal("")),
+  influencer: z.string().optional().or(z.literal("")),
+  champion: z.string().optional().or(z.literal("")),
+  financeContact: z.string().optional().or(z.literal("")),
 });
 export type OverviewFormValues = z.infer<typeof overviewSchema>;
 

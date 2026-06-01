@@ -276,6 +276,12 @@ model Lead {
   winLossReason    String?
   winLossNotes     String?
 
+  // Relationship Intelligence fields
+  decisionMaker    String?
+  influencer       String?
+  champion         String?
+  financeContact   String?
+
   brand            Brand             @relation(fields: [brandId], references: [id], onDelete: Cascade)
   source           LeadSource?       @relation(fields: [sourceId], references: [id], onDelete: SetNull)
   stage            LeadStage?        @relation(fields: [stageId], references: [id], onDelete: SetNull)

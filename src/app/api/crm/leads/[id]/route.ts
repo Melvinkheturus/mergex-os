@@ -97,6 +97,11 @@ export async function PUT(
       winLossStatus,
       winLossReason,
       winLossNotes,
+      // Relationship Intelligence
+      decisionMaker,
+      influencer,
+      champion,
+      financeContact,
     } = body;
 
     // Calculate BANT score if any slider changes
@@ -196,6 +201,11 @@ export async function PUT(
         winLossStatus: winLossStatus !== undefined ? winLossStatus : lead.winLossStatus,
         winLossReason: winLossReason !== undefined ? winLossReason : lead.winLossReason,
         winLossNotes: winLossNotes !== undefined ? winLossNotes : lead.winLossNotes,
+        // Relationship Intelligence
+        decisionMaker: decisionMaker !== undefined ? (decisionMaker || null) : lead.decisionMaker,
+        influencer: influencer !== undefined ? (influencer || null) : lead.influencer,
+        champion: champion !== undefined ? (champion || null) : lead.champion,
+        financeContact: financeContact !== undefined ? (financeContact || null) : lead.financeContact,
         // Always bump lastActivityAt
         lastActivityAt: new Date(),
       },

@@ -5,7 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { ChevronLeft, Trophy, XCircle, Loader2 } from "lucide-react";
+import { ChevronLeft, Trophy, XCircle, Loader2, Phone, MessageSquare, Mail, FileText, CheckCircle2, MoreHorizontal, StickyNote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,14 +17,84 @@ import { OverviewTab } from "../_components/overview-tab";
 import { BusinessReviewTab } from "../_components/business-review-tab";
 import { BantTab } from "../_components/bant-tab";
 import { ClassificationTab } from "../_components/classification-tab";
-import { ActivitiesTab } from "../_components/activities-tab";
-import { MeetingsTab } from "../_components/meetings-tab";
-import { ProposalsTab } from "../_components/proposals-tab";
-import { DocumentsTab } from "../_components/documents-tab";
-import { InternalNotesTab } from "../_components/internal-notes-tab";
-import { AuditHistoryTab } from "../_components/audit-history-tab";
 import { WinLossDialog } from "../_components/win-loss-dialog";
 import { LeadSidebar } from "./lead-sidebar";
+
+// Helper functions for lead completeness and stage mapping
+function calculateCompleteness(lead: Lead) {
+  const fields = [
+    lead.companyName,
+    lead.contactPerson,
+    lead.phone,
+    lead.email,
+    lead.website,
+    lead.sourceId,
+    lead.currentSituation,
+    lead.painPoints && lead.painPoints.length > 0 ? "filled" : null,
+    lead.opportunityNotes,
+    lead.bantBudget > 0 ? "filled" : null,
+    lead.bantAuthority > 0 ? "filled" : null,
+    lead.bantNeed > 0 ? "filled" : null,
+    lead.bantTimeline > 0 ? "filled" : null,
+    lead.icpScore > 0 ? "filled" : null,
+    lead.services && lead.services.length > 0 ? "filled" : null,
+    lead.priority,
+    lead.expectedValue,
+    lead.decisionMaker,
+    lead.influencer,
+    lead.champion,
+    lead.financeContact
+  ];
+  const filled = fields.filter(val => val !== null && val !== undefined && val !== "").length;
+  return Math.round((filled / fields.length) * 100);
+}
+
+function getOverviewCompletion(lead: Lead) {
+  const fields = [lead.companyName, lead.contactPerson, lead.phone, lead.email, lead.website, lead.sourceId];
+  const filled = fields.filter(Boolean).length;
+  return { filled, total: fields.length, isComplete: filled === fields.length };
+}
+
+function getBusinessReviewCompletion(lead: Lead) {
+  const fields = [
+    lead.currentSituation,
+    lead.painPoints && lead.painPoints.length > 0 ? "filled" : null,
+    lead.opportunityNotes
+  ];
+  const filled = fields.filter(Boolean).length;
+  return { filled, total: fields.length, isComplete: filled === fields.length };
+}
+
+function getQualificationCompletion(lead: Lead) {
+  const fields = [
+    lead.bantBudget > 0 ? "filled" : null,
+    lead.bantAuthority > 0 ? "filled" : null,
+    lead.bantNeed > 0 ? "filled" : null,
+    lead.bantTimeline > 0 ? "filled" : null
+  ];
+  const filled = fields.filter(Boolean).length;
+  return { filled, total: fields.length, isComplete: filled === fields.length };
+}
+
+function getClassificationCompletion(lead: Lead) {
+  const fields = [
+    lead.icpScore > 0 ? "filled" : null,
+    lead.services && lead.services.length > 0 ? "filled" : null,
+    lead.priority,
+    lead.expectedValue
+  ];
+  const filled = fields.filter(Boolean).length;
+  return { filled, total: fields.length, isComplete: filled === fields.length };
+}
+
+function getTabForStage(stageName: string): string {
+  const name = (stageName || "").toUpperCase();
+  if (name.includes("INTAKE")) return "overview";
+  if (name.includes("REVIEW")) return "review";
+  if (name.includes("QUALIFICATION") && !name.includes("AUDIT")) return "bant";
+  if (name.includes("CLASSIFICATION")) return "classification";
+  return "classification";
+}
 
 
 import {
@@ -60,6 +130,7 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
 
   // Quick action tab navigation
   const [activeTab, setActiveTab] = useState("overview");
+  const [sidebarActiveAction, setSidebarActiveAction] = useState<"CALL" | "EMAIL" | "WHATSAPP" | "NOTE" | null>(null);
 
   // Win/Loss State
   const [showWinLossDialog, setShowWinLossDialog] = useState(false);
@@ -99,6 +170,9 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
       if (!leadRes.ok) throw new Error("Failed to load lead details");
       const data: Lead = await leadRes.json();
       setLead(data);
+      if (data.stage?.name) {
+        setActiveTab(getTabForStage(data.stage.name));
+      }
 
       // Populate form defaults
       overviewForm.reset({
@@ -114,6 +188,10 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
         temperature: data.temperature as "HOT" | "WARM" | "COLD",
         expectedValue: data.expectedValue ? String(data.expectedValue) : "",
         services: data.services.join(", "),
+        decisionMaker: data.decisionMaker || "",
+        influencer: data.influencer || "",
+        champion: data.champion || "",
+        financeContact: data.financeContact || "",
       });
 
       businessReviewForm.reset({
@@ -157,7 +235,11 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
       });
       if (!res.ok) throw new Error("Failed to update stage");
       toast.success("Stage updated");
-      setLead(await res.json());
+      const updated = await res.json();
+      setLead(updated);
+      if (updated.stage?.name) {
+        setActiveTab(getTabForStage(updated.stage.name));
+      }
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to update stage");
     } finally {
@@ -308,42 +390,147 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
 
   const isWon = lead.winLossStatus === "WON";
 
+  // Calculate completeness and completion badges client-side
+  const completeness = calculateCompleteness(lead);
+  const overviewComp = getOverviewCompletion(lead);
+  const reviewComp = getBusinessReviewCompletion(lead);
+  const qualComp = getQualificationCompletion(lead);
+  const classComp = getClassificationCompletion(lead);
+
   return (
     <div className="space-y-5">
-      {/* Top action bar */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => router.push(`/workspaces/${slug}/crm/leads`)}
-          className="text-muted-foreground hover:text-foreground -ml-2"
-        >
-          <ChevronLeft className="h-4 w-4 mr-1" /> Back to Leads
-        </Button>
+      {/* Redesigned Premium Page Header */}
+      <div className="flex flex-col gap-4 border border-border/30 rounded-2xl bg-card/30 p-5 shadow-sm">
+        {/* Back Link & Win/Loss Status */}
+        <div className="flex items-center justify-between">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push(`/workspaces/${slug}/crm/leads`)}
+            className="text-muted-foreground hover:text-foreground -ml-2 h-8 text-xs font-semibold"
+          >
+            <ChevronLeft className="h-4 w-4 mr-1" /> Back to Leads
+          </Button>
 
-        <div className="flex items-center gap-2">
-          {lead.winLossStatus ? (
-            <Badge
-              className={
-                isWon
-                  ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
-                  : "bg-red-500/10 text-red-500 border border-red-500/20"
-              }
-            >
-              {isWon ? <Trophy className="h-3 w-3 mr-1" /> : <XCircle className="h-3 w-3 mr-1" />}
-              {lead.winLossStatus} {lead.winLossReason ? `- ${lead.winLossReason}` : ""}
-            </Badge>
-          ) : (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setShowWinLossDialog(true)}
-              className="text-xs border-border/40"
-            >
-              <XCircle className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
-              Close Lead
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {lead.winLossStatus ? (
+              <Badge
+                className={
+                  isWon
+                    ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-2.5 py-1 text-xs font-bold"
+                    : "bg-red-500/10 text-red-500 border border-red-500/20 px-2.5 py-1 text-xs font-bold"
+                }
+              >
+                {isWon ? <Trophy className="h-3.5 w-3.5 mr-1" /> : <XCircle className="h-3.5 w-3.5 mr-1" />}
+                {lead.winLossStatus} {lead.winLossReason ? `- ${lead.winLossReason}` : ""}
+              </Badge>
+            ) : (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowWinLossDialog(true)}
+                className="text-xs border-border/40 hover:bg-rose-500/5 hover:text-rose-500 hover:border-rose-500/20 h-8 font-semibold"
+              >
+                <XCircle className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                Close Lead
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Title, Subtitle, and Completeness */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-xl md:text-2xl font-black tracking-tight text-foreground">{lead.companyName}</h1>
+              {lead.leadNumber && (
+                <Badge variant="outline" className="bg-[#8B5CF6]/5 border-[#8B5CF6]/20 text-[#8B5CF6] text-[10px] font-bold px-2 h-5">
+                  {lead.leadNumber}
+                </Badge>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground font-medium">
+              {lead.industry && <span>{lead.industry} · </span>}
+              {lead.source?.name && <span>{lead.source.name} · </span>}
+              <span>Created {new Date(lead.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
+            </p>
+          </div>
+
+          {/* Global Completeness indicator */}
+          <div className="flex items-center gap-3 bg-muted/20 border border-border/20 px-4 py-2.5 rounded-xl self-start md:self-auto min-w-[200px]">
+            <div className="flex-1 space-y-1">
+              <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">
+                <span>Lead Completeness</span>
+                <span className="text-[#8B5CF6]">{completeness}%</span>
+              </div>
+              <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-violet-500 to-[#8B5CF6] rounded-full transition-all duration-500 ease-out"
+                  style={{ width: `${completeness}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Horizontal Quick Actions Command Bar */}
+        <div className="border-t border-border/10 pt-4 flex flex-wrap gap-2">
+          {[
+            {
+              id: "call",
+              label: "Call",
+              icon: Phone,
+              disabled: !lead.phone,
+              action: () => {
+                if (lead.phone) window.location.href = `tel:${lead.phone}`;
+              },
+            },
+            {
+              id: "whatsapp",
+              label: "WhatsApp",
+              icon: MessageSquare,
+              disabled: !lead.phone,
+              action: () => {
+                if (lead.phone) {
+                  const clean = lead.phone.replace(/\D/g, "");
+                  window.open(`https://wa.me/${clean}`, "_blank");
+                }
+              },
+            },
+            {
+              id: "email",
+              label: "Email",
+              icon: Mail,
+              disabled: !lead.email,
+              action: () => {
+                if (lead.email) window.location.href = `mailto:${lead.email}`;
+              },
+            },
+            {
+              id: "note",
+              label: "Add Note",
+              icon: StickyNote,
+              disabled: false,
+              action: () => {
+                setSidebarActiveAction("NOTE");
+              },
+            },
+          ].map((action) => {
+            const Icon = action.icon;
+            return (
+              <Button
+                key={action.id}
+                size="sm"
+                variant="outline"
+                disabled={action.disabled}
+                onClick={action.action}
+                className="h-8 text-xs border-border/40 hover:border-[#8B5CF6]/30 hover:bg-[#8B5CF6]/5 hover:text-[#8B5CF6] font-semibold flex items-center gap-1.5 transition-all active:scale-95 duration-100"
+              >
+                <Icon className="h-3.5 w-3.5 text-muted-foreground/75" />
+                {action.label}
+              </Button>
+            );
+          })}
         </div>
       </div>
 
@@ -363,7 +550,6 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
       )}
 
       {/* ── Stage Progress Bar ─────────────────────────────── */}
-
       {stages.length > 0 && (
         <div className="border border-border/30 rounded-2xl bg-card/30 p-4 overflow-hidden">
           <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-3">
@@ -374,6 +560,7 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
             currentStageId={lead.stageId}
             onStageClick={handleStageChange}
             saving={savingStage}
+            lead={lead}
           />
         </div>
       )}
@@ -390,7 +577,7 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
             savingOwner={savingOwner}
             onStageChange={handleStageChange}
             onOwnerChange={handleOwnerChange}
-            onQuickAction={handleQuickAction}
+            onLeadUpdate={setLead}
           />
 
           {isWon && (
@@ -407,36 +594,30 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
         {/* Center Column - Tabs */}
         <div className="min-w-0">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-5">
-            <TabsList className="bg-muted/40 p-1 w-full justify-start overflow-x-auto flex h-10 border-b border-border/20 rounded-xl">
-              <TabsTrigger value="overview" className="text-xs font-semibold px-4 rounded-lg data-[state=active]:bg-card whitespace-nowrap">
+            <TabsList className="bg-muted/40 p-1 w-full justify-start overflow-x-auto flex h-10 border-b border-border/20 rounded-xl gap-1">
+              <TabsTrigger value="overview" className="text-xs font-semibold px-4 rounded-lg data-[state=active]:bg-card whitespace-nowrap flex items-center gap-1.5">
                 Overview
+                <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4 bg-muted-foreground/10 text-muted-foreground font-bold">
+                  {overviewComp.isComplete ? "✓" : `${overviewComp.filled}/${overviewComp.total}`}
+                </Badge>
               </TabsTrigger>
-              <TabsTrigger value="review" className="text-xs font-semibold px-4 rounded-lg data-[state=active]:bg-card whitespace-nowrap">
+              <TabsTrigger value="review" className="text-xs font-semibold px-4 rounded-lg data-[state=active]:bg-card whitespace-nowrap flex items-center gap-1.5">
                 Business Review
+                <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4 bg-muted-foreground/10 text-muted-foreground font-bold">
+                  {reviewComp.isComplete ? "✓" : `${reviewComp.filled}/${reviewComp.total}`}
+                </Badge>
               </TabsTrigger>
-              <TabsTrigger value="bant" className="text-xs font-semibold px-4 rounded-lg data-[state=active]:bg-card whitespace-nowrap">
+              <TabsTrigger value="bant" className="text-xs font-semibold px-4 rounded-lg data-[state=active]:bg-card whitespace-nowrap flex items-center gap-1.5">
                 Qualification
+                <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4 bg-muted-foreground/10 text-muted-foreground font-bold">
+                  {qualComp.isComplete ? "✓" : `${qualComp.filled}/${qualComp.total}`}
+                </Badge>
               </TabsTrigger>
-              <TabsTrigger value="classification" className="text-xs font-semibold px-4 rounded-lg data-[state=active]:bg-card whitespace-nowrap">
+              <TabsTrigger value="classification" className="text-xs font-semibold px-4 rounded-lg data-[state=active]:bg-card whitespace-nowrap flex items-center gap-1.5">
                 Classification
-              </TabsTrigger>
-              <TabsTrigger value="activities" className="text-xs font-semibold px-4 rounded-lg data-[state=active]:bg-card whitespace-nowrap">
-                Activities
-              </TabsTrigger>
-              <TabsTrigger value="meetings" className="text-xs font-semibold px-4 rounded-lg data-[state=active]:bg-card whitespace-nowrap">
-                Meetings
-              </TabsTrigger>
-              <TabsTrigger value="proposals" className="text-xs font-semibold px-4 rounded-lg data-[state=active]:bg-card whitespace-nowrap">
-                Proposals
-              </TabsTrigger>
-              <TabsTrigger value="documents" className="text-xs font-semibold px-4 rounded-lg data-[state=active]:bg-card whitespace-nowrap">
-                Documents
-              </TabsTrigger>
-              <TabsTrigger value="internal" className="text-xs font-semibold px-4 rounded-lg data-[state=active]:bg-card whitespace-nowrap">
-                Internal Notes
-              </TabsTrigger>
-              <TabsTrigger value="audit" className="text-xs font-semibold px-4 rounded-lg data-[state=active]:bg-card whitespace-nowrap">
-                Audit History
+                <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4 bg-muted-foreground/10 text-muted-foreground font-bold">
+                  {classComp.isComplete ? "✓" : `${classComp.filled}/${classComp.total}`}
+                </Badge>
               </TabsTrigger>
             </TabsList>
 
@@ -455,36 +636,16 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
             <TabsContent value="classification" className="mt-0">
               <ClassificationTab form={overviewForm} onSubmit={onOverviewSubmit} leadId={leadId} />
             </TabsContent>
-
-            <TabsContent value="activities" className="mt-0">
-              <ActivitiesTab leadId={leadId} />
-            </TabsContent>
-
-            <TabsContent value="meetings" className="mt-0">
-              <MeetingsTab leadId={leadId} />
-            </TabsContent>
-
-            <TabsContent value="proposals" className="mt-0">
-              <ProposalsTab leadId={leadId} />
-            </TabsContent>
-
-            <TabsContent value="documents" className="mt-0">
-              <DocumentsTab leadId={leadId} />
-            </TabsContent>
-
-            <TabsContent value="internal" className="mt-0">
-              <InternalNotesTab leadId={leadId} />
-            </TabsContent>
-
-            <TabsContent value="audit" className="mt-0">
-              <AuditHistoryTab leadId={leadId} lead={lead} />
-            </TabsContent>
           </Tabs>
         </div>
 
         {/* Right Sidebar - hidden on lg, visible on xl+ */}
         <div className="hidden xl:block">
-          <LeadSidebar lead={lead} />
+          <LeadSidebar
+            lead={lead}
+            activeAction={sidebarActiveAction}
+            onActiveActionChange={setSidebarActiveAction}
+          />
         </div>
       </div>
 
