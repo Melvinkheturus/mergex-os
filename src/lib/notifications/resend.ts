@@ -1,10 +1,11 @@
 import { Resend } from "resend";
 
-// Singleton Resend client
-const resend = new Resend(process.env.RESEND_API_KEY || "re_mock_123");
+// Singleton Resend client — key from env, never hardcoded
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-const FROM_EMAIL = "Pulse Engine <pulse@mergex.in>";
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+const FROM_EMAIL =
+  process.env.RESEND_FROM_EMAIL ?? "MergeX OS <noreply@info.mergex.in>";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://os.mergex.in";
 
 // ── Shared email layout ──────────────────────────────────────────────────────
 function buildEmailHtml({
@@ -229,6 +230,128 @@ export async function sendFollowUpOverdueEmail(
       ctaLabel: "View Lead",
       ctaUrl: `${APP_URL}/dashboard/crm/leads/${leadId}`,
       priorityColor: "#f59e0b",
+    }),
+  });
+}
+
+// ── Team Invitation ──────────────────────────────────────────────────────────
+
+/**
+ * Sent when Super Admin invites a new team member.
+ * Contains their Employee ID, role, and a one-click activation link.
+ */
+export async function sendTeamInviteEmail({
+  to,
+  employeeId,
+  roleLabel,
+  brandNames,
+  invitedByName,
+  activationUrl,
+}: {
+  to: string;
+  employeeId: string;
+  roleLabel: string;
+  brandNames: string[];
+  invitedByName: string;
+  activationUrl: string;
+}) {
+  const brandsText =
+    brandNames.length > 0
+      ? brandNames.join(", ")
+      : "the platform";
+
+  return resend.emails.send({
+    from: FROM_EMAIL,
+    to,
+    subject: `You've been invited to MergeX OS`,
+    html: buildEmailHtml({
+      title: "You're invited to MergeX OS",
+      preheader: `${invitedByName} has invited you to join MergeX OS as ${roleLabel}.`,
+      body: `
+        <strong style="color:#fafafa;">${invitedByName}</strong> has invited you to join the MergeX OS platform.<br/><br/>
+
+        <table cellpadding="0" cellspacing="0" border="0" style="background:#1c1c1f;border-radius:10px;padding:16px 20px;width:100%;margin:12px 0;">
+          <tr>
+            <td style="color:#a1a1aa;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;padding-bottom:4px;">Your Employee ID</td>
+          </tr>
+          <tr>
+            <td style="color:#fafafa;font-size:20px;font-weight:700;font-family:monospace;letter-spacing:0.15em;">${employeeId}</td>
+          </tr>
+        </table>
+
+        <table cellpadding="0" cellspacing="0" border="0" style="width:100%;margin:8px 0;">
+          <tr>
+            <td style="color:#71717a;font-size:13px;padding:3px 0;">Role:</td>
+            <td style="color:#fafafa;font-size:13px;font-weight:600;padding:3px 0 3px 12px;">${roleLabel}</td>
+          </tr>
+          <tr>
+            <td style="color:#71717a;font-size:13px;padding:3px 0;">Brand Access:</td>
+            <td style="color:#fafafa;font-size:13px;font-weight:600;padding:3px 0 3px 12px;">${brandsText}</td>
+          </tr>
+        </table>
+
+        <p style="color:#71717a;font-size:13px;margin:16px 0 0;">Click the button below to activate your account and create your password. This link expires in <strong style="color:#a1a1aa;">7 days</strong>.</p>
+      `,
+      ctaLabel: "Activate Account →",
+      ctaUrl: activationUrl,
+      priorityColor: "#8b5cf6",
+    }),
+  });
+}
+
+// ── Recovery Code Alert ──────────────────────────────────────────────────────
+
+/**
+ * Sent to the Super Admin when new recovery codes are generated.
+ * This is a security alert — codes themselves are never sent in email.
+ */
+export async function sendRecoveryCodeAlertEmail({
+  to,
+  employeeId,
+  regeneratedAt,
+}: {
+  to: string;
+  employeeId: string;
+  regeneratedAt: Date;
+}) {
+  const timeStr = regeneratedAt.toLocaleString("en-IN", {
+    dateStyle: "full",
+    timeStyle: "short",
+  });
+
+  return resend.emails.send({
+    from: FROM_EMAIL,
+    to,
+    subject: `🔑 Recovery Codes Regenerated — Action Required`,
+    html: buildEmailHtml({
+      title: "Recovery Codes Regenerated",
+      preheader: `New recovery codes were generated for your MergeX OS account (${employeeId}).`,
+      body: `
+        New recovery codes have been generated for your Super Admin account.<br/><br/>
+
+        <table cellpadding="0" cellspacing="0" border="0" style="background:#1c1c1f;border-radius:10px;padding:16px 20px;width:100%;margin:12px 0;">
+          <tr>
+            <td style="color:#a1a1aa;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;padding-bottom:4px;">Account</td>
+          </tr>
+          <tr>
+            <td style="color:#fafafa;font-size:16px;font-weight:700;font-family:monospace;">${employeeId}</td>
+          </tr>
+          <tr>
+            <td style="color:#71717a;font-size:12px;padding-top:8px;">Generated at: ${timeStr}</td>
+          </tr>
+        </table>
+
+        <p style="color:#ef4444;font-size:13px;font-weight:600;">
+          ⚠️ Your previous recovery codes are now <strong>permanently invalidated</strong>.
+        </p>
+        <p style="color:#71717a;font-size:13px;">
+          The new codes were displayed once during generation and are not stored in plain text anywhere.
+          If you did not initiate this action, your account may be compromised — contact your system administrator immediately.
+        </p>
+      `,
+      ctaLabel: "Review Security Settings",
+      ctaUrl: `${APP_URL}/settings/security`,
+      priorityColor: "#ef4444",
     }),
   });
 }

@@ -401,6 +401,13 @@ model UserInviteBrand {
   @@index([inviteId])
 }
 
+model PlatformSettings {
+  id             String    @id @default("singleton")
+  initialized    Boolean   @default(false)
+  initializedAt  DateTime?
+  initialAdminId String?
+}
+
 enum AuditAction {
   LOGIN_SUCCESS
   LOGIN_FAILED

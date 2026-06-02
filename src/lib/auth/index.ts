@@ -138,46 +138,48 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
         )?.emailAddress ?? clerkUser.emailAddresses[0]?.emailAddress ?? "";
 
         if (primaryEmail) {
-          const userCount = await db.user.count();
+          // Check platform initialization — if not initialized, do NOT auto-provision.
+          // The Setup Wizard owns super-admin creation; proxy will redirect to /setup.
+          const settings = await db.platformSettings.findUnique({
+            where: { id: "singleton" },
+            select: { initialized: true },
+          });
+
+          if (!settings?.initialized) {
+            console.log("[auth-auto-provision] Platform not initialized — skipping auto-provision, redirecting to /setup.");
+            return null;
+          }
+
+          // Platform initialized — handle invite-based provisioning only.
           let roleId: string | null = null;
-          let onboardingState: "PLATFORM_SETUP" | "PROFILE_SETUP" | "COMPLETE" = "PROFILE_SETUP";
+          const onboardingState = "PROFILE_SETUP" as const;
 
-          // Generate employee ID
-          const employeeId = `MX${String(userCount + 1).padStart(4, "0")}`;
+          const invite = await db.userInvite.findFirst({
+            where: { email: primaryEmail, status: "PENDING" },
+            orderBy: { createdAt: "desc" },
+            include: { UserInviteBrand: true },
+          });
 
-          if (userCount === 0) {
-            const superAdminRole = await db.role.findFirst({ where: { name: "super_admin" } });
-            roleId = superAdminRole?.id ?? null;
-            onboardingState = "PLATFORM_SETUP";
-          } else {
-            const invite = await db.userInvite.findFirst({
-              where: { email: primaryEmail, status: "PENDING" },
-              orderBy: { createdAt: "desc" },
-              include: { UserInviteBrand: true },
+          if (invite) {
+            roleId = invite.roleId ?? null;
+            await db.userInvite.update({
+              where: { id: invite.id },
+              data: { status: "ACCEPTED", acceptedAt: new Date() },
             });
-
-            if (invite) {
-              roleId = invite.roleId ?? null;
-              onboardingState = "PROFILE_SETUP";
-
-              await db.userInvite.update({
-                where: { id: invite.id },
-                data: { status: "ACCEPTED", acceptedAt: new Date() },
-              });
-            } else {
-              const viewerRole = await db.role.findFirst({ where: { name: "viewer" } });
-              roleId = viewerRole?.id ?? null;
-            }
+          } else {
+            const viewerRole = await db.role.findFirst({ where: { name: "viewer" } });
+            roleId = viewerRole?.id ?? null;
           }
 
           if (roleId) {
+            // employeeId is pre-assigned on the User record created during invite.
+            // Do not auto-generate — it is a manually assigned organizational identifier.
             const createdUser = await db.user.upsert({
               where: { clerkId: userId },
               create: {
                 id: crypto.randomUUID(),
                 clerkId: userId,
                 email: primaryEmail,
-                employeeId,
                 firstName: clerkUser.firstName,
                 lastName: clerkUser.lastName,
                 avatarUrl: clerkUser.imageUrl,
@@ -199,17 +201,14 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
             // Set Clerk publicMetadata so the proxy redirects correctly
             const client = await clerkClient();
             await client.users.updateUserMetadata(userId, {
-              publicMetadata: {
-                onboardingState,
-                role: onboardingState === "PLATFORM_SETUP" ? "super_admin" : "user",
-              },
+              publicMetadata: { onboardingState, role: "user" },
             });
 
             user = await db.user.findUnique({
               where: { id: createdUser.id },
               select: USER_SELECT,
             });
-            console.log(`[auth-auto-provision] Provisioned user ${primaryEmail} (${employeeId}) with roleId=${roleId}`);
+            console.log(`[auth-auto-provision] Provisioned invited user ${primaryEmail} with roleId=${roleId}`);
           }
         }
       }

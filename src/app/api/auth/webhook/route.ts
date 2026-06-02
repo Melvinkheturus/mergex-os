@@ -54,65 +54,46 @@ export async function POST(req: Request) {
     (e) => e.id === data.primary_email_address_id
   )?.email_address ?? data.email_addresses[0]?.email_address ?? "";
 
-  // ── user.created ──────────────────────────────────────
+  // ── user.created ──────────────────────────────────────────────────────────
   if (type === "user.created") {
     try {
-      // Find the super_admin role
-      const superAdminRole = await db.role.findUnique({ where: { name: "super_admin" } });
-      if (!superAdminRole) {
-        console.error("[clerk-webhook] super_admin role not found in database.");
-        return NextResponse.json({ error: "System role misconfigured" }, { status: 500 });
+      // If platform is not yet initialized, the Setup Wizard owns super-admin creation.
+      // Ignore this webhook event — the setup API handles user + DB record creation.
+      const settings = await db.platformSettings.findUnique({
+        where: { id: "singleton" },
+        select: { initialized: true },
+      });
+      if (!settings?.initialized) {
+        console.log("[clerk-webhook] Platform not yet initialized — setup wizard owns user creation, skipping.");
+        return NextResponse.json({ ok: true });
       }
 
-      const superAdminCount = await db.user.count({
-        where: { Role: { name: "super_admin" } },
+      // Platform IS initialized — require a pending invite for every signup.
+      const invite = await db.userInvite.findFirst({
+        where: { email: primaryEmail, status: "PENDING" },
+        orderBy: { createdAt: "desc" },
       });
 
-      let roleId: string | null = null;
-      let brandId: string | null = null;
-      let onboardingState: "PLATFORM_SETUP" | "PROFILE_SETUP" = "PROFILE_SETUP";
-
-      if (superAdminCount === 0) {
-        // First user → super_admin + platform setup onboarding
-        roleId = superAdminRole.id;
-        onboardingState = "PLATFORM_SETUP";
-        console.log(`[clerk-webhook] First user ${primaryEmail} → super_admin + PLATFORM_SETUP`);
-      } else {
-        // Subsequent signups: require a pending invite
-        const invite = await db.userInvite.findFirst({
-          where: { email: primaryEmail, status: "PENDING" },
-          orderBy: { createdAt: "desc" },
-        });
-
-        if (!invite) {
-          console.warn(`[clerk-webhook] No pending invite found for ${primaryEmail}`);
-          return NextResponse.json({ ok: true });
-        }
-
-        roleId = invite.roleId;
-        brandId = invite.brandId;
-
-        // If no roleId pre-assigned on invite, assign the default viewer role
-        if (!roleId) {
-          const viewerRole = await db.role.findFirst({ where: { name: "viewer" } });
-          roleId = viewerRole?.id ?? null;
-        }
-
-        // Mark invite as accepted
-        await db.userInvite.update({
-          where: { id: invite.id },
-          data: { status: "ACCEPTED", acceptedAt: new Date() },
-        });
-
-        onboardingState = "PROFILE_SETUP";
+      if (!invite) {
+        console.warn(`[clerk-webhook] No pending invite found for ${primaryEmail} — ignoring signup.`);
+        return NextResponse.json({ ok: true });
       }
 
+      const roleId = invite.roleId ?? (await db.role.findFirst({ where: { name: "viewer" } }))?.id ?? null;
+      const brandId = invite.brandId;
+
       if (!roleId) {
-        console.error("[clerk-webhook] Role assignment failed");
+        console.error("[clerk-webhook] Role assignment failed — no roleId on invite and no viewer role found.");
         return NextResponse.json({ error: "Role assignment failed" }, { status: 500 });
       }
 
-      // Create user in DB with onboardingState
+      // Mark invite as accepted
+      await db.userInvite.update({
+        where: { id: invite.id },
+        data: { status: "ACCEPTED", acceptedAt: new Date() },
+      });
+
+      // Create user in DB
       const newUser = await db.user.create({
         data: {
           id: crypto.randomUUID(),
@@ -123,31 +104,31 @@ export async function POST(req: Request) {
           avatarUrl: data.image_url,
           roleId,
           isActive: true,
-          onboardingState,
+          onboardingState: "PROFILE_SETUP",
           updatedAt: new Date(),
         },
       });
 
-      // If invited to a specific brand, grant brand access via UserBrandAccess
+      // If invited to a specific brand, grant brand access
       if (brandId) {
         await db.userBrandAccess.create({
           data: { id: crypto.randomUUID(), userId: newUser.id, brandId },
         });
       }
 
-      // Set Clerk publicMetadata for zero-DB-hit middleware routing
+      // Set Clerk publicMetadata for zero-DB-hit proxy routing
       const client = await clerkClient();
       await client.users.updateUserMetadata(data.id, {
         publicMetadata: {
-          onboardingState,
-          role: onboardingState === "PLATFORM_SETUP" ? "super_admin" : "user",
+          onboardingState: "PROFILE_SETUP",
+          role: "user",
         },
       });
 
       await writeAuditLog({
         email: primaryEmail,
         action: "LOGIN_SUCCESS",
-        metadata: { event: "user.created", clerkId: data.id, onboardingState },
+        metadata: { event: "user.created", clerkId: data.id, onboardingState: "PROFILE_SETUP" },
       });
     } catch (err) {
       console.error("[clerk-webhook] user.created error", err);

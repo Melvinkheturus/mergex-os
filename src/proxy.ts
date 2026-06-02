@@ -9,6 +9,8 @@ const isPublicRoute = createRouteMatcher([
   "/sign-up(.*)",    // Clerk sign-up (invite flow)
   "/invite(.*)",     // Custom invite activation page
   "/forgot-password(.*)", // Forgot password / recovery code
+  "/setup",          // One-time platform setup wizard
+  "/api/setup(.*)",  // Setup API — must be public
   "/api/auth/webhook(.*)", // Clerk webhook - must be public
   "/api/auth/invite-lookup(.*)", // Invite token lookup
   "/api/auth/recovery-code/verify(.*)", // Recovery code verification
@@ -23,8 +25,31 @@ export default clerkMiddleware(async (auth, request) => {
   const url = request.nextUrl;
   const pathname = url.pathname;
 
+  // ── Platform initialization gate ──────────────────────────────────────────
+  // If platform not yet initialized, all page traffic goes to /setup.
+  // Skip for: /setup itself, /api/* routes, Next.js internals.
+  if (
+    !pathname.startsWith("/setup") &&
+    !pathname.startsWith("/api/") &&
+    !pathname.startsWith("/_next")
+  ) {
+    const settings = await db.platformSettings.findUnique({
+      where: { id: "singleton" },
+      select: { initialized: true },
+    });
+    if (!settings?.initialized) {
+      return NextResponse.redirect(new URL("/setup", request.url));
+    }
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   // Retrieve current auth state
   const { userId, sessionClaims } = await auth();
+
+  // Block /sign-up for unauthenticated users — invite link is the only entry point
+  if (!userId && pathname.startsWith("/sign-up")) {
+    return NextResponse.redirect(new URL("/sign-in", request.url));
+  }
 
   // If already authenticated and trying to access auth pages (sign-in or sign-up)
   if (userId && (pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up"))) {

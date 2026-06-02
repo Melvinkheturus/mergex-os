@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { sendTeamInviteEmail } from "@/lib/notifications";
 import crypto from "crypto";
 
 /**
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { email, roleId, brandIds, employeeId: customEmployeeId } = body as {
+  const { email, roleId, brandIds, employeeId: rawEmployeeId } = body as {
     email?: string;
     roleId?: string;
     brandIds?: string[];
@@ -35,6 +36,11 @@ export async function POST(request: NextRequest) {
 
   if (!email || !roleId) {
     return NextResponse.json({ error: "Email and roleId are required" }, { status: 400 });
+  }
+
+  // Employee ID is required — manually assigned by the admin
+  if (!rawEmployeeId?.trim()) {
+    return NextResponse.json({ error: "Employee ID is required" }, { status: 400 });
   }
 
   if (!brandIds || brandIds.length === 0) {
@@ -75,25 +81,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "One or more invalid brands" }, { status: 400 });
   }
 
-  // Auto-generate employeeId if not provided
-  let employeeId = customEmployeeId?.trim().toUpperCase();
-  if (!employeeId) {
-    const userCount = await db.user.count();
-    employeeId = `MX${String(userCount + 1).padStart(4, "0")}`;
-    // Ensure uniqueness
-    let existing = await db.user.findUnique({ where: { employeeId } });
-    let counter = userCount + 1;
-    while (existing) {
-      counter++;
-      employeeId = `MX${String(counter).padStart(4, "0")}`;
-      existing = await db.user.findUnique({ where: { employeeId } });
-    }
-  } else {
-    // Validate custom employeeId uniqueness
-    const taken = await db.user.findUnique({ where: { employeeId } });
-    if (taken) {
-      return NextResponse.json({ error: `Employee ID ${employeeId} is already taken` }, { status: 409 });
-    }
+  // Validate and normalize employeeId
+  const employeeId = rawEmployeeId.trim().toUpperCase();
+  const taken = await db.user.findUnique({ where: { employeeId } });
+  if (taken) {
+    return NextResponse.json(
+      { error: `Employee ID ${employeeId} is already taken` },
+      { status: 409 }
+    );
   }
 
   // Generate secure invite token
@@ -136,9 +131,11 @@ export async function POST(request: NextRequest) {
     }),
   ]);
 
-  // Send Clerk invite email
+  const activationUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://os.mergex.in"}/invite/${token}`;
+
+  // Send Clerk invite email (handles account creation + password setup)
   try {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://os.mergex.in";
     const client = await clerkClient();
     await client.invitations.createInvitation({
       emailAddress: normalizedEmail,
@@ -155,7 +152,21 @@ export async function POST(request: NextRequest) {
     // Don't fail — the invite record exists, user can use direct link
   }
 
-  const activationUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/invite/${token}`;
+  // Send Resend invite email (branded, shows employee ID + role + activation link)
+  try {
+    const inviterName = [user.firstName, user.lastName].filter(Boolean).join(" ") || "Your Administrator";
+    await sendTeamInviteEmail({
+      to: normalizedEmail,
+      employeeId,
+      roleLabel: role.label ?? role.name,
+      brandNames: brands.map((b) => b.name),
+      invitedByName: inviterName,
+      activationUrl,
+    });
+  } catch (emailErr) {
+    console.error("[team/invite] Resend email failed:", emailErr);
+    // Don't fail the invite — activation link still works
+  }
 
   return NextResponse.json({
     ok: true,
