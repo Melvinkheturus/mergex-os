@@ -163,7 +163,10 @@ export default function InvitePage({ params }: { params: { token: string } }) {
             <p className="text-sm text-muted-foreground mt-2">{invite?.error ?? "This invitation link is invalid or has expired."}</p>
           </div>
           <button
-            onClick={() => router.push("/sign-in")}
+            type="button"
+            onClick={() => {
+              window.location.href = "/sign-in";
+            }}
             className="mt-6 w-full h-11 rounded-xl bg-[#8B5CF6] text-white text-sm font-medium hover:bg-[#7C3AED] transition-colors"
           >
             Go to Sign In

@@ -452,6 +452,7 @@ ${codes.map((code, index) => `${index + 1}. ${code}`).join("\n")}
 
       {/* CTA */}
       <button
+        type="button"
         onClick={onDone}
         disabled={!saved}
         className="w-full flex items-center justify-center gap-1.5 rounded-lg bg-white hover:bg-zinc-100 disabled:bg-zinc-800 text-black disabled:text-zinc-500 py-2.5 text-xs font-bold shadow-lg shadow-black/25 active:scale-[0.99] transition-all disabled:opacity-40 duration-200"
@@ -651,7 +652,9 @@ export default function SetupPage() {
                   <RecoveryCodesScreen
                     employeeId={setupResult.employeeId}
                     codes={setupResult.codes}
-                    onDone={() => router.push("/sign-in")}
+                    onDone={() => {
+                      window.location.href = "/sign-in";
+                    }}
                   />
                 </motion.div>
               )}
