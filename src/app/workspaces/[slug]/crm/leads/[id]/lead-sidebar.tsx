@@ -199,272 +199,280 @@ export function LeadSidebar({ lead, activeAction, onActiveActionChange }: LeadSi
   const latestProposal = proposals[0] || null;
 
   return (
-    <aside className="flex flex-col gap-4 min-w-0">
-      
-      {/* ── Section 1: Next Action ────────────────────────────────── */}
-      <div className="rounded-xl border border-border/40 bg-card/50 overflow-hidden shadow-xs">
-        <div className="px-4 py-3 border-b border-border/20 bg-muted/5 flex items-center justify-between">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
-            <Zap className="h-3 w-3 text-amber-500" />
-            Next Action
-          </p>
-        </div>
-        <div className="p-4">
-          {lead.nextAction ? (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <ArrowRight className="h-3.5 w-3.5 text-violet-500 shrink-0" />
-                <span className="text-sm font-semibold text-foreground">
-                  {NEXT_ACTION_LABELS[lead.nextAction as NextActionType] ?? lead.nextAction}
-                </span>
-              </div>
-              {lead.nextActionDate && (
-                <p className="text-[10px] text-muted-foreground ml-5.5">
-                  Due: <span className="font-semibold text-foreground">
-                    {format(new Date(lead.nextActionDate), "d MMM yyyy")}
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
+      {/* Column 1: Next Action & Log Activity */}
+      <div className="space-y-4">
+        {/* ── Section 1: Next Action ────────────────────────────────── */}
+        <div className="rounded-xl border border-border/40 bg-card/50 overflow-hidden shadow-xs">
+          <div className="px-4 py-3 border-b border-border/20 bg-muted/5 flex items-center justify-between">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+              <Zap className="h-3 w-3 text-amber-500" />
+              Next Action
+            </p>
+          </div>
+          <div className="p-4">
+            {lead.nextAction ? (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <ArrowRight className="h-3.5 w-3.5 text-violet-500 shrink-0" />
+                  <span className="text-sm font-semibold text-foreground">
+                    {NEXT_ACTION_LABELS[lead.nextAction as NextActionType] ?? lead.nextAction}
                   </span>
-                </p>
-              )}
-            </div>
-          ) : (
-            <p className="text-xs text-muted-foreground/60 italic">No next action set</p>
+                </div>
+                {lead.nextActionDate && (
+                  <p className="text-[10px] text-muted-foreground ml-5.5">
+                    Due: <span className="font-semibold text-foreground">
+                      {format(new Date(lead.nextActionDate), "d MMM yyyy")}
+                    </span>
+                  </p>
+                )}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground/60 italic">No next action set</p>
+            )}
+          </div>
+        </div>
+
+        {/* ── Section 2: Log Activity (Inline Form) ───────────────────── */}
+        <div className="rounded-xl border border-border/40 bg-card/50 overflow-hidden shadow-xs">
+          <div className="px-4 py-3 border-b border-border/20 bg-muted/5 flex items-center justify-between">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              Log Activity
+            </p>
+            {!showLogForm && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setShowLogForm(true)}
+                className="h-6 text-[10px] font-bold px-2 text-[#8B5CF6] hover:bg-[#8B5CF6]/5"
+              >
+                <Plus className="h-3 w-3 mr-1" /> Log
+              </Button>
+            )}
+          </div>
+
+          {showLogForm && (
+            <form onSubmit={handleLogSubmit} className="p-3.5 space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="flex-1">
+                  <Select
+                    value={logType}
+                    onValueChange={(v: string) => setLogType(v as typeof logType)}
+                  >
+                    <SelectTrigger className="h-7 text-[10px] font-semibold bg-background/50 border-border/40">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="CALL" className="text-xs">Call</SelectItem>
+                      <SelectItem value="EMAIL" className="text-xs">Email</SelectItem>
+                      <SelectItem value="WHATSAPP" className="text-xs">WhatsApp</SelectItem>
+                      <SelectItem value="NOTE" className="text-xs">Internal Note</SelectItem>
+                      <SelectItem value="TASK" className="text-xs">Task</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <textarea
+                id="activity-log-textarea"
+                placeholder="What details did you discuss?"
+                value={logContent}
+                onChange={(e) => setLogContent(e.target.value)}
+                className="flex min-h-[70px] w-full rounded-lg border border-border/40 bg-background/50 px-3 py-2 text-xs placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#8B5CF6]/50 focus-visible:border-[#8B5CF6]/50 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+
+              <div className="flex items-center justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setShowLogForm(false);
+                    onActiveActionChange(null);
+                  }}
+                  className="h-7 text-[10px] font-semibold"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={submittingLog}
+                  className="h-7 text-[10px] font-bold bg-[#8B5CF6] hover:bg-[#7C3AED] text-white"
+                >
+                  {submittingLog ? <Loader2 className="h-3 w-3 animate-spin" /> : "Log Activity"}
+                </Button>
+              </div>
+            </form>
           )}
         </div>
       </div>
 
-      {/* ── Section 2: Log Activity (Inline Form) ───────────────────── */}
-      <div className="rounded-xl border border-border/40 bg-card/50 overflow-hidden shadow-xs">
-        <div className="px-4 py-3 border-b border-border/20 bg-muted/5 flex items-center justify-between">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-            Log Activity
-          </p>
-          {!showLogForm && (
+      {/* Column 2: Live Activity Feed */}
+      <div className="space-y-4">
+        {/* ── Section 3: Live Activity Feed ─────────────────────────── */}
+        <div className="rounded-xl border border-border/40 bg-card/50 overflow-hidden shadow-xs h-full flex flex-col">
+          <div className="px-4 py-3 border-b border-border/20 bg-muted/5 shrink-0">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+              <Activity className="h-3 w-3 text-[#8B5CF6]" />
+              Live Activity Feed
+            </p>
+          </div>
+
+          <div className="flex-1 min-h-[220px]">
+            {loadingActivities && activities.length === 0 ? (
+              <div className="flex items-center justify-center h-full py-8">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              </div>
+            ) : activities.length === 0 ? (
+              <div className="flex items-center justify-center h-full p-5 text-center text-xs text-muted-foreground/50 italic">
+                No activities logged yet
+              </div>
+            ) : (
+              <div className="p-3.5 max-h-[350px] overflow-y-auto space-y-4">
+                {groupedActivities.map((group) => (
+                  <div key={group.title} className="space-y-2">
+                    <h5 className="text-[9px] font-black uppercase tracking-wider text-muted-foreground/50">
+                      {group.title}
+                    </h5>
+                    <div className="relative border-l border-border/20 ml-2.5 pl-4 space-y-3.5">
+                      {group.items.map((act) => {
+                        const Icon = ACTIVITY_ICONS[act.type] || StickyNote;
+                        const actorName = act.user
+                          ? `${act.user.firstName ?? ""} ${act.user.lastName ?? ""}`.trim()
+                          : "System";
+
+                        return (
+                          <div key={act.id} className="relative flex gap-2.5">
+                            {/* Timeline node icon */}
+                            <div className="absolute -left-[23px] top-0.5 w-4 h-4 rounded-full border border-border bg-card flex items-center justify-center shrink-0">
+                              <Icon className="h-2 w-2 text-muted-foreground" />
+                            </div>
+                            <div className="flex-1 min-w-0 space-y-0.5">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-[10px] font-bold text-foreground">
+                                  {ACTIVITY_LABELS[act.type] || act.type}
+                                </span>
+                                <span className="text-[9px] text-muted-foreground/60">
+                                  {format(new Date(act.performedAt), "HH:mm")}
+                                </span>
+                              </div>
+                              <p className="text-[10px] text-muted-foreground leading-relaxed break-words">
+                                {act.content}
+                              </p>
+                              <p className="text-[8px] text-muted-foreground/40 font-semibold">
+                                by {actorName}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Column 3: Meetings, Proposals, Documents */}
+      <div className="space-y-4">
+        {/* ── Section 4: Meetings Summary Card ────────────────────────── */}
+        <div className="rounded-xl border border-border/40 bg-card/50 overflow-hidden shadow-xs">
+          <div className="px-4 py-3 border-b border-border/20 bg-muted/5 flex items-center justify-between">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+              <Calendar className="h-3 w-3 text-blue-500" />
+              Meetings
+            </p>
             <Button
               size="sm"
               variant="ghost"
-              onClick={() => setShowLogForm(true)}
-              className="h-6 text-[10px] font-bold px-2 text-[#8B5CF6] hover:bg-[#8B5CF6]/5"
+              onClick={() => router.push(`/workspaces/${slug}/crm/meetings`)}
+              className="h-6 text-[9px] font-bold px-2 text-[#8B5CF6] hover:bg-[#8B5CF6]/5"
             >
-              <Plus className="h-3 w-3 mr-1" /> Log
+              <ExternalLink className="h-2.5 w-2.5 mr-1" /> Open
             </Button>
-          )}
-        </div>
-
-        {showLogForm && (
-          <form onSubmit={handleLogSubmit} className="p-3.5 space-y-3">
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
-                <Select
-                  value={logType}
-                  onValueChange={(v: string) => setLogType(v as typeof logType)}
-                >
-                  <SelectTrigger className="h-7 text-[10px] font-semibold bg-background/50 border-border/40">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="CALL" className="text-xs">Call</SelectItem>
-                    <SelectItem value="EMAIL" className="text-xs">Email</SelectItem>
-                    <SelectItem value="WHATSAPP" className="text-xs">WhatsApp</SelectItem>
-                    <SelectItem value="NOTE" className="text-xs">Internal Note</SelectItem>
-                    <SelectItem value="TASK" className="text-xs">Task</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <textarea
-              id="activity-log-textarea"
-              placeholder="What details did you discuss?"
-              value={logContent}
-              onChange={(e) => setLogContent(e.target.value)}
-              className="flex min-h-[70px] w-full rounded-lg border border-border/40 bg-background/50 px-3 py-2 text-xs placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#8B5CF6]/50 focus-visible:border-[#8B5CF6]/50 disabled:cursor-not-allowed disabled:opacity-50"
-            />
-
-            <div className="flex items-center justify-end gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => {
-                  setShowLogForm(false);
-                  onActiveActionChange(null);
-                }}
-                className="h-7 text-[10px] font-semibold"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={submittingLog}
-                className="h-7 text-[10px] font-bold bg-[#8B5CF6] hover:bg-[#7C3AED] text-white"
-              >
-                {submittingLog ? <Loader2 className="h-3 w-3 animate-spin" /> : "Log Activity"}
-              </Button>
-            </div>
-          </form>
-        )}
-      </div>
-
-      {/* ── Section 3: Live Activity Feed ─────────────────────────── */}
-      <div className="rounded-xl border border-border/40 bg-card/50 overflow-hidden shadow-xs">
-        <div className="px-4 py-3 border-b border-border/20 bg-muted/5">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
-            <Activity className="h-3 w-3 text-[#8B5CF6]" />
-            Live Activity Feed
-          </p>
-        </div>
-
-        {loadingActivities && activities.length === 0 ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
           </div>
-        ) : activities.length === 0 ? (
-          <div className="p-5 text-center text-xs text-muted-foreground/50 italic">
-            No activities logged yet
-          </div>
-        ) : (
-          <div className="p-3.5 max-h-[300px] overflow-y-auto space-y-4">
-            {groupedActivities.map((group) => (
-              <div key={group.title} className="space-y-2">
-                <h5 className="text-[9px] font-black uppercase tracking-wider text-muted-foreground/50">
-                  {group.title}
-                </h5>
-                <div className="relative border-l border-border/20 ml-2.5 pl-4 space-y-3.5">
-                  {group.items.map((act) => {
-                    const Icon = ACTIVITY_ICONS[act.type] || StickyNote;
-                    const actorName = act.user
-                      ? `${act.user.firstName ?? ""} ${act.user.lastName ?? ""}`.trim()
-                      : "System";
-                    const initials = actorName[0]?.toUpperCase() ?? "S";
-
-                    return (
-                      <div key={act.id} className="relative flex gap-2.5">
-                        {/* Timeline node icon */}
-                        <div className="absolute -left-[23px] top-0.5 w-4 h-4 rounded-full border border-border bg-card flex items-center justify-center shrink-0">
-                          <Icon className="h-2 w-2 text-muted-foreground" />
-                        </div>
-                        <div className="flex-1 min-w-0 space-y-0.5">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="text-[10px] font-bold text-foreground">
-                              {ACTIVITY_LABELS[act.type] || act.type}
-                            </span>
-                            <span className="text-[9px] text-muted-foreground/60">
-                              {format(new Date(act.performedAt), "HH:mm")}
-                            </span>
-                          </div>
-                          <p className="text-[10px] text-muted-foreground leading-relaxed break-words">
-                            {act.content}
-                          </p>
-                          <p className="text-[8px] text-muted-foreground/40 font-semibold">
-                            by {actorName}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })}
+          <div className="p-4 space-y-2">
+            {loadingMeetings ? (
+              <div className="h-8 rounded-lg bg-muted/20 animate-pulse" />
+            ) : (
+              <div className="flex items-center justify-between text-xs">
+                <div className="space-y-0.5">
+                  <p className="text-muted-foreground text-[10px]">Upcoming Meetings</p>
+                  <p className="font-extrabold text-foreground text-sm">{upcomingMeetings.length}</p>
+                </div>
+                <div className="w-[1px] h-8 bg-border/20" />
+                <div className="space-y-0.5 text-right">
+                  <p className="text-muted-foreground text-[10px]">Completed Meetings</p>
+                  <p className="font-extrabold text-muted-foreground text-sm">{completedMeetings.length}</p>
                 </div>
               </div>
-            ))}
+            )}
           </div>
-        )}
-      </div>
-
-      {/* ── Section 4: Meetings Summary Card ────────────────────────── */}
-      <div className="rounded-xl border border-border/40 bg-card/50 overflow-hidden shadow-xs">
-        <div className="px-4 py-3 border-b border-border/20 bg-muted/5 flex items-center justify-between">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
-            <Calendar className="h-3 w-3 text-blue-500" />
-            Meetings
-          </p>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => router.push(`/workspaces/${slug}/crm/meetings`)}
-            className="h-6 text-[9px] font-bold px-2 text-[#8B5CF6] hover:bg-[#8B5CF6]/5"
-          >
-            <ExternalLink className="h-2.5 w-2.5 mr-1" /> Open
-          </Button>
         </div>
-        <div className="p-4 space-y-2">
-          {loadingMeetings ? (
-            <div className="h-8 rounded-lg bg-muted/20 animate-pulse" />
-          ) : (
-            <div className="flex items-center justify-between text-xs">
-              <div className="space-y-0.5">
-                <p className="text-muted-foreground text-[10px]">Upcoming Meetings</p>
-                <p className="font-extrabold text-foreground text-sm">{upcomingMeetings.length}</p>
+
+        {/* ── Section 5: Proposals Summary Card ───────────────────────── */}
+        <div className="rounded-xl border border-border/40 bg-card/50 overflow-hidden shadow-xs">
+          <div className="px-4 py-3 border-b border-border/20 bg-muted/5 flex items-center justify-between">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+              <FileText className="h-3 w-3 text-amber-500" />
+              Proposals
+            </p>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => router.push(`/workspaces/${slug}/crm/proposals`)}
+              className="h-6 text-[9px] font-bold px-2 text-[#8B5CF6] hover:bg-[#8B5CF6]/5"
+            >
+              <ExternalLink className="h-2.5 w-2.5 mr-1" /> Open
+            </Button>
+          </div>
+          <div className="p-4">
+            {loadingProposals ? (
+              <div className="h-8 rounded-lg bg-muted/20 animate-pulse" />
+            ) : latestProposal ? (
+              <div className="space-y-1.5 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-foreground truncate max-w-[150px]">
+                    {latestProposal.proposalNumber} - {latestProposal.title}
+                  </span>
+                  <Badge className="text-[9px] border bg-amber-500/10 text-amber-500 border-amber-500/25">
+                    {latestProposal.status}
+                  </Badge>
+                </div>
+                <p className="font-extrabold text-emerald-600 dark:text-emerald-400 flex items-center">
+                  <IndianRupee className="h-3 w-3 mr-0.5" />
+                  {Number(latestProposal.value).toLocaleString("en-IN")}
+                </p>
               </div>
-              <div className="w-[1px] h-8 bg-border/20" />
-              <div className="space-y-0.5 text-right">
-                <p className="text-muted-foreground text-[10px]">Completed Meetings</p>
-                <p className="font-extrabold text-muted-foreground text-sm">{completedMeetings.length}</p>
-              </div>
-            </div>
-          )}
+            ) : (
+              <p className="text-xs text-muted-foreground/60 italic text-center py-1">No active proposals</p>
+            )}
+          </div>
+        </div>
+
+        {/* ── Section 6: Documents Summary Card ───────────────────────── */}
+        <div className="rounded-xl border border-border/40 bg-card/50 overflow-hidden shadow-xs">
+          <div className="px-4 py-3 border-b border-border/20 bg-muted/5 flex items-center justify-between">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+              <FileSignature className="h-3 w-3 text-emerald-500" />
+              Documents
+            </p>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => router.push(`/workspaces/${slug}/crm/documents`)}
+              className="h-6 text-[9px] font-bold px-2 text-[#8B5CF6] hover:bg-[#8B5CF6]/5"
+            >
+              <ExternalLink className="h-2.5 w-2.5 mr-1" /> Open
+            </Button>
+          </div>
+          <div className="p-4 text-xs flex items-center justify-between">
+            <span className="text-muted-foreground font-semibold">Linked Documents</span>
+            <span className="font-black text-foreground">{proposals.length + meetings.length} Files</span>
+          </div>
         </div>
       </div>
-
-      {/* ── Section 5: Proposals Summary Card ───────────────────────── */}
-      <div className="rounded-xl border border-border/40 bg-card/50 overflow-hidden shadow-xs">
-        <div className="px-4 py-3 border-b border-border/20 bg-muted/5 flex items-center justify-between">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
-            <FileText className="h-3 w-3 text-amber-500" />
-            Proposals
-          </p>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => router.push(`/workspaces/${slug}/crm/proposals`)}
-            className="h-6 text-[9px] font-bold px-2 text-[#8B5CF6] hover:bg-[#8B5CF6]/5"
-          >
-            <ExternalLink className="h-2.5 w-2.5 mr-1" /> Open
-          </Button>
-        </div>
-        <div className="p-4">
-          {loadingProposals ? (
-            <div className="h-8 rounded-lg bg-muted/20 animate-pulse" />
-          ) : latestProposal ? (
-            <div className="space-y-1.5 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-foreground truncate max-w-[150px]">
-                  {latestProposal.proposalNumber} - {latestProposal.title}
-                </span>
-                <Badge className="text-[9px] border bg-amber-500/10 text-amber-500 border-amber-500/25">
-                  {latestProposal.status}
-                </Badge>
-              </div>
-              <p className="font-extrabold text-emerald-600 dark:text-emerald-400 flex items-center">
-                <IndianRupee className="h-3 w-3 mr-0.5" />
-                {Number(latestProposal.value).toLocaleString("en-IN")}
-              </p>
-            </div>
-          ) : (
-            <p className="text-xs text-muted-foreground/60 italic text-center py-1">No active proposals</p>
-          )}
-        </div>
-      </div>
-
-      {/* ── Section 6: Documents Summary Card ───────────────────────── */}
-      <div className="rounded-xl border border-border/40 bg-card/50 overflow-hidden shadow-xs">
-        <div className="px-4 py-3 border-b border-border/20 bg-muted/5 flex items-center justify-between">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
-            <FileSignature className="h-3 w-3 text-emerald-500" />
-            Documents
-          </p>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => router.push(`/workspaces/${slug}/crm/documents`)}
-            className="h-6 text-[9px] font-bold px-2 text-[#8B5CF6] hover:bg-[#8B5CF6]/5"
-          >
-            <ExternalLink className="h-2.5 w-2.5 mr-1" /> Open
-          </Button>
-        </div>
-        <div className="p-4 text-xs flex items-center justify-between">
-          <span className="text-muted-foreground font-semibold">Linked Documents</span>
-          <span className="font-black text-foreground">{proposals.length + meetings.length} Files</span>
-        </div>
-      </div>
-
-    </aside>
+    </div>
   );
 }

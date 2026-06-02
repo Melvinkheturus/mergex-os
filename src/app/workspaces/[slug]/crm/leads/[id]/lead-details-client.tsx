@@ -566,8 +566,8 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
         </div>
       )}
 
-      {/* Main Grid Layout - 3 columns on xl, 2 on lg, 1 on mobile */}
-      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] xl:grid-cols-[280px_1fr_300px] gap-6">
+      {/* Main Grid Layout - 2 columns on lg+ */}
+      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
         {/* Left Column - Info Panel */}
         <div className="space-y-4">
           <LeadInfoPanel
@@ -592,8 +592,8 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
           )}
         </div>
 
-        {/* Center Column - Tabs */}
-        <div className="min-w-0">
+        {/* Right Column - Tabs & Sidebar elements below */}
+        <div className="min-w-0 space-y-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-5">
             <TabsList className="bg-muted/40 p-1 w-full justify-start overflow-x-auto flex h-10 border-b border-border/20 rounded-xl gap-1">
               <TabsTrigger
@@ -662,10 +662,8 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
               <ClassificationTab form={overviewForm} onSubmit={onOverviewSubmit} leadId={leadId} />
             </TabsContent>
           </Tabs>
-        </div>
 
-        {/* Right Sidebar - hidden on lg, visible on xl+ */}
-        <div className="hidden xl:block">
+          {/* Lead Sidebar Widgets placed under the tabs */}
           <LeadSidebar
             lead={lead}
             activeAction={sidebarActiveAction}
