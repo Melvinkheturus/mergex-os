@@ -120,6 +120,15 @@ export function TopNav() {
 }
 
 // ── Native Profile Dropdown Menu ──
+interface DbProfile {
+  avatarUrl: string | null;
+  designation: string | null;
+  Role: {
+    name: string;
+    label: string;
+  } | null;
+}
+
 function ProfileMenu() {
   const { user } = useUser();
   const { signOut } = useClerk();
@@ -127,6 +136,21 @@ function ProfileMenu() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const params = useParams();
   const slug = params?.slug as string;
+  const [dbProfile, setDbProfile] = useState<DbProfile | null>(null);
+
+  const fetchProfile = async () => {
+    try {
+      const res = await fetch("/api/profile");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.ok && data.user) {
+          setDbProfile(data.user);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch profile:", err);
+    }
+  };
 
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
@@ -138,20 +162,55 @@ function ProfileMenu() {
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
+  useEffect(() => {
+    if (!user) return;
+    fetchProfile();
+
+    const handleProfileUpdate = () => {
+      fetchProfile();
+    };
+
+    window.addEventListener("mergex:profile-updated", handleProfileUpdate);
+    return () => {
+      window.removeEventListener("mergex:profile-updated", handleProfileUpdate);
+    };
+  }, [user]);
+
   if (!user) return null;
+
+  const userInitials = (user.firstName || user.lastName)
+    ? `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase()
+    : user.primaryEmailAddress?.emailAddress?.[0]?.toUpperCase() || "U";
+
+  const userRoleOrDesignation = (() => {
+    if (dbProfile?.designation) return dbProfile.designation;
+    if (dbProfile?.Role?.label) return dbProfile.Role.label;
+    
+    // Fallback to metadata
+    const metaRole = user.publicMetadata?.role as string;
+    if (metaRole === "super_admin") return "Super Admin";
+    if (metaRole === "admin") return "Admin";
+    if (metaRole === "cx_executive") return "CX Executive";
+    return "Member";
+  })();
+
+  const avatarSrc = dbProfile?.avatarUrl || user.imageUrl;
 
   return (
     <div ref={dropdownRef} className="relative">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="h-7 w-7 rounded-md overflow-hidden border border-border/20 hover:border-border/60 transition-all flex items-center justify-center cursor-pointer focus:outline-none"
+        className="h-7 w-7 rounded-full overflow-hidden border border-border/20 hover:border-border/60 transition-all flex items-center justify-center cursor-pointer focus:outline-none"
         aria-label="User profile options"
       >
-        {user.imageUrl ? (
-          <img src={user.imageUrl} className="h-full w-full object-cover" alt="User Avatar" />
+        {avatarSrc ? (
+          <img src={avatarSrc} className="h-full w-full object-cover" alt="User Avatar" />
         ) : (
-          <div className="h-full w-full bg-[#8B5CF6]/10 flex items-center justify-center text-xs font-bold text-[#8B5CF6] uppercase">
-            {user.firstName?.[0] ?? "U"}
+          <div 
+            className="h-full w-full flex items-center justify-center text-[10px] font-black text-white uppercase"
+            style={{ background: "radial-gradient(circle at 30% 107%, #7819f6 0%, #000000 90%)" }}
+          >
+            {userInitials}
           </div>
         )}
       </button>
@@ -161,11 +220,14 @@ function ProfileMenu() {
           
           {/* Account profile overview card inside dropdown */}
           <div className="px-3.5 py-2.5 border-b border-[#E5E7EB] dark:border-[#26262C]/60 flex items-center gap-2.5">
-            {user.imageUrl ? (
-              <img src={user.imageUrl} className="h-7 w-7 rounded-md border border-border/20 object-cover" alt="User Avatar" />
+            {avatarSrc ? (
+              <img src={avatarSrc} className="h-7 w-7 rounded-full border border-border/20 object-cover" alt="User Avatar" />
             ) : (
-              <div className="h-7 w-7 rounded-md bg-[#8B5CF6]/10 flex items-center justify-center text-xs font-bold text-[#8B5CF6] uppercase">
-                {user.firstName?.[0] ?? "U"}
+              <div 
+                className="h-7 w-7 rounded-full flex items-center justify-center text-[9px] font-black text-white uppercase border border-white/10"
+                style={{ background: "radial-gradient(circle at 30% 107%, #7819f6 0%, #000000 90%)" }}
+              >
+                {userInitials}
               </div>
             )}
             <div className="flex-1 min-w-0">
@@ -173,7 +235,7 @@ function ProfileMenu() {
                 {user.firstName ? `${user.firstName} ${user.lastName ?? ""}` : "Teammate"}
               </p>
               <p className="text-[10px] text-muted-foreground truncate mt-1 leading-none">
-                {(user.publicMetadata?.designation as string) ?? "Member"}
+                {userRoleOrDesignation}
               </p>
             </div>
           </div>

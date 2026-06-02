@@ -12,6 +12,31 @@ interface ProfileUpdateBody {
   activeBrandId?: string;
 }
 
+export async function GET() {
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const dbUser = await db.user.findUnique({
+      where: { clerkId: userId },
+      include: {
+        Role: true,
+      },
+    });
+
+    if (!dbUser) {
+      return NextResponse.json({ error: "User not found in database" }, { status: 404 });
+    }
+
+    return NextResponse.json({ ok: true, user: dbUser });
+  } catch (err: any) {
+    console.error("[profile-get] error:", err);
+    return NextResponse.json({ error: err.message || "Failed to retrieve profile" }, { status: 500 });
+  }
+}
+
 export async function PUT(req: Request) {
   const { userId } = await auth();
   if (!userId) {
