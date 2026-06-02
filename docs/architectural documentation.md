@@ -1,6 +1,6 @@
-# MergeX Sales OS - Architectural & Codebase Documentation
+# MergeX OS - Architectural & Codebase Documentation
 
-Welcome to the comprehensive technical documentation for **MergeX Sales OS**, an enterprise-grade, all-in-one sales operations platform designed to orchestrate the entire customer acquisition and onboarding lifecycle.
+Welcome to the comprehensive technical documentation for **MergeX OS**, an enterprise-grade, all-in-one operations platform designed to orchestrate the entire customer acquisition and onboarding lifecycle.
 
 This document serves as an exhaustive blueprint of the system's architecture, database design, core engine flows, directory structure, and technology stack.
 
@@ -8,7 +8,7 @@ This document serves as an exhaustive blueprint of the system's architecture, da
 
 ## 🗺️ System Overview & Architecture
 
-MergeX Sales OS is built on a modern **Serverless-First Hybrid Architecture**. It utilizes Next.js (App Router) for modular rendering and API routing, backed by Neon Serverless Postgres for relational storage with auto-scaling connection pools. Authentication and Identity management are decoupled via Clerk, which is synchronized seamlessly into our database using asynchronous webhooks.
+MergeX OS is built on a modern **Serverless-First Hybrid Architecture**. It utilizes Next.js (App Router) for modular rendering and API routing, backed by Neon Serverless Postgres for relational storage with auto-scaling connection pools. Authentication and Identity management are decoupled via Clerk, which is synchronized seamlessly into our database using asynchronous webhooks.
 
 ```mermaid
 graph TD
@@ -55,7 +55,7 @@ graph TD
 The project follows a standard Next.js directory structure, segregating API routes, page views, UI components, shared library code, type definitions, and database schemas.
 
 ```text
-Sales OS (Root)
+MergeX OS (Root)
 ├── prisma/
 │   ├── migrations/             # Database migration history
 │   └── schema.prisma           # Prisma 7 Database schema definition

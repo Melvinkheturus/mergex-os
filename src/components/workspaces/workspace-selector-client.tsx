@@ -209,7 +209,7 @@ export function WorkspaceSelectorClient({ brands, user, userRole, teammates }: P
   };
 
   const handleDeactivate = (name: string) => {
-    toast.success("Teammate account deactivated", { description: `${name} has been suspended from accessing Sales OS.` });
+    toast.success("Teammate account deactivated", { description: `${name} has been suspended from accessing MergeX OS.` });
   };
 
   const handleCancelInvite = (id: string, email: string) => {
@@ -248,7 +248,7 @@ export function WorkspaceSelectorClient({ brands, user, userRole, teammates }: P
           <div className="flex items-center gap-3">
             <img src="/logo/mergex-logo.png" alt="MergeX" className="w-7 h-7 object-contain shrink-0" />
             <span className="text-[11px] font-black text-foreground dark:text-white tracking-widest uppercase font-sans">
-              SALES OS
+              MERGEX OS
             </span>
           </div>
 

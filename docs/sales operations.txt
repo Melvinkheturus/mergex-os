@@ -618,7 +618,7 @@ Meeting Readiness Check
 
 # (13 Stages × Operational Layers)
 
-This is the finalized operational mapping for the MergeX Sales OS.
+This is the finalized operational mapping for the MergeX OS.
 
 ---
 

@@ -29,15 +29,15 @@ export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),
 
   title: {
-    default: "MergeX Sales OS - Sales Execution Platform",
-    template: "%s | MergeX Sales OS",
+    default: "MergeX OS - Workspace Execution Platform",
+    template: "%s | MergeX OS",
   },
 
   description:
-    "MergeX Sales OS is an enterprise-grade sales operations platform - CRM, pipeline management, ICP scoring, discovery meetings, proposal handoff, analytics, and team RBAC in one unified workspace.",
+    "MergeX OS is an enterprise-grade operations platform - CRM, pipeline management, ICP scoring, discovery meetings, proposal handoff, analytics, and team RBAC in one unified workspace.",
 
   keywords: [
-    "Sales OS",
+    "MergeX OS",
     "CRM",
     "Sales Operations",
     "MergeX",
@@ -70,16 +70,16 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     url: APP_URL,
-    siteName: "MergeX Sales OS",
-    title: "MergeX Sales OS - Sales Execution Platform",
+    siteName: "MergeX OS",
+    title: "MergeX OS - Workspace Execution Platform",
     description:
-      "Enterprise-grade sales operating system. Pipeline intelligence, ICP scoring, discovery meetings, and proposal handoff - all in one place.",
+      "Enterprise-grade operating system. Pipeline intelligence, ICP scoring, discovery meetings, and proposal handoff - all in one place.",
     images: [
       {
         url: "/logo/mergex-logo.png",
         width: 1200,
         height: 630,
-        alt: "MergeX Sales OS",
+        alt: "MergeX OS",
       },
     ],
     locale: "en_IN",
@@ -87,8 +87,8 @@ export const metadata: Metadata = {
 
   twitter: {
     card: "summary_large_image",
-    title: "MergeX Sales OS",
-    description: "Enterprise sales operating framework - beyond a CRM.",
+    title: "MergeX OS",
+    description: "Enterprise operating framework - beyond a CRM.",
     images: ["/logo/mergex-logo.png"],
     creator: "@mergex",
   },
@@ -108,7 +108,7 @@ export const metadata: Metadata = {
   },
 
   manifest: "/favicon/site.webmanifest",
-  applicationName: "MergeX Sales OS",
+  applicationName: "MergeX OS",
   category: "Business",
 };
 

@@ -15,7 +15,7 @@ function Logo() {
       />
       <div>
         <p className="text-sm font-semibold text-foreground tracking-tight leading-none">MergeX</p>
-        <p className="text-xs text-muted-foreground mt-0.5">Sales OS</p>
+        <p className="text-xs text-muted-foreground mt-0.5">OS</p>
       </div>
     </div>
   );

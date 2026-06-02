@@ -1,6 +1,6 @@
 import { BookOpen, Sparkles, HelpCircle, FileText, Globe } from "lucide-react";
 
-export const metadata = { title: "Knowledge | MergeX Sales OS" };
+export const metadata = { title: "Knowledge | MergeX OS" };
 
 export default function KnowledgePage() {
   return (

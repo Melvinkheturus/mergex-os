@@ -1,6 +1,6 @@
 import { FileText, Sparkles, FolderClosed, FileSignature, FileSpreadsheet } from "lucide-react";
 
-export const metadata = { title: "Documents | MergeX Sales OS" };
+export const metadata = { title: "Documents | MergeX OS" };
 
 export default function DocumentsPage() {
   return (

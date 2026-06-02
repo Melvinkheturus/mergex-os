@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { WorkspacesSettingsClient } from "./settings-client";
 
 export const metadata = {
-  title: "Workspace Settings | MergeX Sales OS",
+  title: "Workspace Settings | MergeX OS",
 };
 
 export default async function WorkspacesSettingsPage() {

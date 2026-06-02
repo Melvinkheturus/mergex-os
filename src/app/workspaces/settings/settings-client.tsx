@@ -122,7 +122,7 @@ export function WorkspacesSettingsClient({ brands }: Props) {
             </button>
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-black text-foreground dark:text-white tracking-widest uppercase font-sans">
-                SALES OS
+                MERGEX OS
               </span>
               <span className="text-[10px] text-muted-foreground/60">/</span>
               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest font-mono">
@@ -147,7 +147,7 @@ export function WorkspacesSettingsClient({ brands }: Props) {
             Workspace Settings
           </h1>
           <p className="text-xs text-muted-foreground mt-1 text-left">
-            Manage operational brand divisions and regional defaults for Sales OS.
+            Manage operational brand divisions and regional defaults for MergeX OS.
           </p>
         </div>
 

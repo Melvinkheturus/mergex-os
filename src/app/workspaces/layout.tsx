@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Workspaces | MergeX Sales OS",
+  title: "Workspaces | MergeX OS",
   description: "Choose your brand workspace to get started.",
 };
 

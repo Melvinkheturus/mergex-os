@@ -49,7 +49,7 @@ export async function POST(req: Request) {
 
     // Upload to Cloudinary
     const result = await cloudinary.uploader.upload(base64, {
-      folder: "sales-os/brand-logos",
+      folder: "mergex-os/brand-logos",
       resource_type: "image",
       transformation: [
         { width: 256, height: 256, crop: "limit" },

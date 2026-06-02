@@ -1,6 +1,6 @@
 // ─────────────────────────────────────────────
 // SHARED TYPESCRIPT TYPES & INTERFACES
-// MergeX Sales OS
+// MergeX OS
 // ─────────────────────────────────────────────
 
 export * from "./auth";

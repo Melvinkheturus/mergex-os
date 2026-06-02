@@ -126,7 +126,7 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
                 />
                 <div className="min-w-0">
                   <span className="font-semibold text-[11px] uppercase tracking-wider text-foreground truncate block">
-                    MERGEX SALES OS
+                    MERGEX OS
                   </span>
                 </div>
               </Link>

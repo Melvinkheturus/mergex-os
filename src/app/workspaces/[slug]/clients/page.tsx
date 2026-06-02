@@ -1,6 +1,6 @@
 import { Users, Sparkles, Layout, BarChart, CreditCard, History } from "lucide-react";
 
-export const metadata = { title: "Clients | MergeX Sales OS" };
+export const metadata = { title: "Clients | MergeX OS" };
 
 export default function ClientsPage() {
   return (

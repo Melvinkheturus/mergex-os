@@ -1,6 +1,6 @@
 import { LeadDetailsClient } from "./lead-details-client";
 
-export const metadata = { title: "Lead Profile | MergeX Sales OS" };
+export const metadata = { title: "Lead Profile | MergeX OS" };
 
 interface PageProps {
   params: Promise<{ slug: string; id: string }>;

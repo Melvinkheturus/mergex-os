@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { DashboardClient } from "@/components/dashboard/dashboard-client";
 
-export const metadata = { title: "Dashboard | MergeX Sales OS" };
+export const metadata = { title: "Dashboard | MergeX OS" };
 
 export default async function DashboardPage({
   params,

@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { SettingsPage } from "./settings-client";
 
-export const metadata = { title: "Settings | MergeX Sales OS" };
+export const metadata = { title: "Settings | MergeX OS" };
 
 interface PageProps {
   params: Promise<{ slug: string }>;

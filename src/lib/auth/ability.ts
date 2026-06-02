@@ -1,5 +1,5 @@
 /**
- * MergeX Sales OS — CASL Ability Builder
+ * MergeX OS — CASL Ability Builder
  *
  * Architecture:
  *   User → Role → Permissions (from DB) → CASL Ability

@@ -25,7 +25,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { LiquidMetalButton } from "@/components/ui/liquid-metal-button";
 
 export const metadata = {
-  title: "MergeX Sales OS - Internal Operational Workspace",
+  title: "MergeX OS - Internal Operational Workspace",
   description: "Confidential operations platform for customer experience, sales, and client execution.",
 };
 
@@ -52,15 +52,15 @@ export default async function LandingPage() {
       <header className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-md border-b border-white/5 animate-header">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
         
-        {/* Left: Big Logo + SALES OS in capital (no MergeX text) */}
+        {/* Left: Big Logo + MERGEX OS in capital (no MergeX text) */}
         <div className="flex items-center gap-3">
           <img
             src="/logo/mergex-logo.png"
-            alt="Sales OS Logo"
+            alt="MergeX OS Logo"
             className="w-12 h-12 md:w-14 md:h-14 object-contain shrink-0"
           />
           <span className="text-base md:text-lg font-black text-white tracking-widest uppercase">
-            SALES OS
+            MERGEX OS
           </span>
         </div>
 
@@ -138,7 +138,7 @@ export default async function LandingPage() {
           >
             <img 
               src="/dashboard.png" 
-              alt="MergeX Sales OS Dashboard" 
+              alt="MergeX OS Dashboard" 
               className="w-full h-auto object-cover object-top select-none filter brightness-[0.98]"
               loading="eager"
             />
@@ -148,23 +148,23 @@ export default async function LandingPage() {
 
       </div>
 
-      {/* ── ABOUT SALES OS SECTION ──────────────────────────────────────── */}
+      {/* ── ABOUT MERGEX OS SECTION ──────────────────────────────────────── */}
       <section id="about" className="relative z-10 max-w-4xl mx-auto px-6 py-24 border-t border-white/4 text-center flex flex-col items-center">
         <p className="text-xs font-bold text-purple-400 tracking-widest uppercase font-mono">
-          About Sales OS
+          About MergeX OS
         </p>
         <h2 className="text-3xl sm:text-4xl font-serif font-light italic text-white mt-4 tracking-tight leading-tight max-w-2xl">
-          Enterprise sales velocity, <br />
+          Enterprise operational velocity, <br />
           <span className="text-purple-400">
             reimagined for MergeX.
           </span>
         </h2>
         <div className="mt-8 space-y-6 text-neutral-400 text-sm sm:text-base leading-relaxed max-w-3xl">
           <p>
-            MergeX Sales OS is a highly confidential, custom-tailored command center engineered to orchestrate B2B sales development, customer experience, and client delivery.
+            MergeX OS is a highly confidential, custom-tailored command center engineered to orchestrate B2B sales development, customer experience, and client delivery.
           </p>
           <p className="text-sm">
-            Moving beyond traditional disjointed CRM pipelines, Sales OS unifies your entire pipeline lifecycle. From automated ICP lead qualification and client onboarding states, to secure workspace delegation and client contract vaulting-your sales velocity is accelerated and protected under rigid enterprise single sign-on.
+            Moving beyond traditional disjointed CRM pipelines, MergeX OS unifies your entire pipeline lifecycle. From automated ICP lead qualification and client onboarding states, to secure workspace delegation and client contract vaulting-your operational velocity is accelerated and protected under rigid enterprise single sign-on.
           </p>
         </div>
       </section>
@@ -240,11 +240,11 @@ export default async function LandingPage() {
           <div className="flex items-center gap-3">
             <img
               src="/logo/mergex-logo.png"
-              alt="Sales OS Logo"
+              alt="MergeX OS Logo"
               className="w-8 h-8 object-contain shrink-0"
             />
             <span className="text-xs font-black text-white tracking-widest uppercase font-sans">
-              MERGEX SALES OS
+              MERGEX OS
             </span>
           </div>
 

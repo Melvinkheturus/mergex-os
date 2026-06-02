@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { WorkspaceSelectorClient } from "@/components/workspaces/workspace-selector-client";
 
 export const metadata = {
-  title: "Workspaces | MergeX Sales OS",
+  title: "Workspaces | MergeX OS",
 };
 
 export default async function WorkspacesPage() {

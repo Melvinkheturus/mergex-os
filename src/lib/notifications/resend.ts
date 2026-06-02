@@ -45,7 +45,7 @@ function buildEmailHtml({
           <!-- Logo row -->
           <tr>
             <td style="padding:28px 32px 0;">
-              <span style="font-size:13px;font-weight:700;letter-spacing:0.15em;color:#a1a1aa;text-transform:uppercase;">MergeX Sales OS · Pulse Engine</span>
+              <span style="font-size:13px;font-weight:700;letter-spacing:0.15em;color:#a1a1aa;text-transform:uppercase;">MergeX OS · Pulse Engine</span>
             </td>
           </tr>
           <!-- Title -->
@@ -73,7 +73,7 @@ function buildEmailHtml({
           <tr>
             <td style="padding:28px 32px 32px;border-top:1px solid #27272a;margin-top:28px;">
               <p style="margin:0;font-size:12px;color:#52525b;">
-                This is an automated alert from MergeX Sales OS.<br/>
+                This is an automated alert from MergeX OS.<br/>
                 <a href="${APP_URL}/dashboard/settings/notifications" style="color:#71717a;text-decoration:underline;">Manage notification preferences</a>
               </p>
             </td>

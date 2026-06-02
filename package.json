@@ -1,6 +1,6 @@
 {
-  "name": "mergex-sales-os",
-  "description": "MergeX Sales OS - All-in-one sales operations platform",
+  "name": "mergex-os",
+  "description": "MergeX OS - All-in-one operations platform",
   "version": "0.1.0",
   "private": true,
   "scripts": {

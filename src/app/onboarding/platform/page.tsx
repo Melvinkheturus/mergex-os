@@ -47,7 +47,7 @@ function Logo() {
         alt="MergeX Logo" 
         className="w-8 h-8 object-contain shrink-0" 
       />
-      <span className="text-sm font-semibold text-foreground tracking-tight">MergeX Sales OS</span>
+      <span className="text-sm font-semibold text-foreground tracking-tight">MergeX OS</span>
     </div>
   );
 }

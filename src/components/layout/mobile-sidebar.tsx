@@ -31,7 +31,7 @@ export function MobileSidebar({ onClose }: MobileSidebarProps) {
             className="w-8 h-8 object-contain shrink-0" 
           />
           <span className="font-bold text-[11px] uppercase tracking-wider text-foreground">
-            MERGEX SALES OS
+            MERGEX OS
           </span>
         </div>
         <Button

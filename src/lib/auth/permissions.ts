@@ -1,5 +1,5 @@
 /**
- * MergeX Sales OS - Permission Engine
+ * MergeX OS - Permission Engine
  *
  * Convention: "module.resource.action"
  * Examples: "crm.leads.view", "crm.meetings.create", "settings.manage"
