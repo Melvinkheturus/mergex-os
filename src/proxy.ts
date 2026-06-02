@@ -66,8 +66,9 @@ export default clerkMiddleware(async (auth, request) => {
     if (onboardingState === "PROFILE_SETUP") {
       return NextResponse.redirect(new URL("/onboarding/profile", request.url));
     }
-    // COMPLETE - redirect directly to active brand workspace or hub
-    return NextResponse.redirect(await resolvePostLoginRedirect(userId, request.url));
+    // COMPLETE - redirect to active brand workspace, or fall through to /workspaces hub
+    const postLoginUrl = await resolvePostLoginRedirect(userId, request.url);
+    return NextResponse.redirect(postLoginUrl ?? new URL("/workspaces", request.url));
   }
 
   // Always allow public routes
@@ -104,12 +105,24 @@ export default clerkMiddleware(async (auth, request) => {
   // onboardingState === "COMPLETE" or undefined (existing users before this feature)
   // Block access to onboarding routes once complete
   if (isOnboardingRoute(request)) {
-    return NextResponse.redirect(await resolvePostLoginRedirect(userId, request.url));
+    const postLoginUrl = await resolvePostLoginRedirect(userId, request.url);
+    return NextResponse.redirect(postLoginUrl ?? new URL("/workspaces", request.url));
+  }
+
+  // ── Already on /workspaces (the hub) — let it render, no further redirect ──
+  // This prevents an infinite loop: resolvePostLoginRedirect falls back to
+  // /workspaces when the user has no activeBrandId, which would re-trigger
+  // middleware → loop. The workspaces hub page handles workspace selection itself.
+  if (pathname === "/workspaces" || pathname === "/workspaces/") {
+    return;
   }
 });
 
 // ── Resolve post-login destination from DB activeBrandId ──────────────────
-async function resolvePostLoginRedirect(clerkUserId: string, requestUrl: string): Promise<URL> {
+// Returns the specific workspace URL if the user has an active brand,
+// or null if not — callers fall back to /workspaces hub (NOT this function,
+// to avoid the /workspaces → middleware → here → /workspaces loop).
+async function resolvePostLoginRedirect(clerkUserId: string, requestUrl: string): Promise<URL | null> {
   try {
     const res = await fetch(
       new URL(`/api/auth/active-brand?clerkId=${encodeURIComponent(clerkUserId)}`, requestUrl),
@@ -122,9 +135,9 @@ async function resolvePostLoginRedirect(clerkUserId: string, requestUrl: string)
       }
     }
   } catch {
-    // DB unreachable during cold start - fall through to hub
+    // DB unreachable during cold start - return null, caller shows hub
   }
-  return new URL("/workspaces", requestUrl);
+  return null; // No active brand — let the caller redirect to /workspaces hub
 }
 
 export const config = {
