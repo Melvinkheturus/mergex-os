@@ -26,9 +26,10 @@ export default clerkMiddleware(async (auth, request) => {
   const pathname = url.pathname;
 
   // ── Platform initialization gate ──────────────────────────────────────────
-  // If platform not yet initialized, all page traffic goes to /setup.
-  // Skip for: /setup itself, /api/* routes, Next.js internals.
+  // If platform not yet initialized, page traffic (except landing page) goes to /setup.
+  // Skip for: landing page "/", /setup itself, /api/* routes, Next.js internals.
   if (
+    pathname !== "/" &&
     !pathname.startsWith("/setup") &&
     !pathname.startsWith("/api/") &&
     !pathname.startsWith("/_next")
