@@ -1,6 +1,5 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
 
 // Public routes - accessible without authentication
 const isPublicRoute = createRouteMatcher([
@@ -14,6 +13,7 @@ const isPublicRoute = createRouteMatcher([
   "/api/auth/webhook(.*)", // Clerk webhook - must be public
   "/api/auth/invite-lookup(.*)", // Invite token lookup
   "/api/auth/recovery-code/verify(.*)", // Recovery code verification
+  "/api/auth/active-brand(.*)", // Internal middleware → Node.js DB lookup
 ]);
 
 // Onboarding routes - blocked from normal app access
@@ -33,12 +33,17 @@ export default clerkMiddleware(async (auth, request) => {
     !pathname.startsWith("/api/") &&
     !pathname.startsWith("/_next")
   ) {
-    const settings = await db.platformSettings.findUnique({
-      where: { id: "singleton" },
-      select: { initialized: true },
-    });
-    if (!settings?.initialized) {
-      return NextResponse.redirect(new URL("/setup", request.url));
+    try {
+      const statusRes = await fetch(
+        new URL("/api/setup/status", request.nextUrl.origin),
+        { cache: "no-store" }
+      );
+      const { initialized } = await statusRes.json() as { initialized: boolean };
+      if (!initialized) {
+        return NextResponse.redirect(new URL("/setup", request.url));
+      }
+    } catch {
+      // DB unreachable — fail open (don't block traffic, let the page load)
     }
   }
   // ─────────────────────────────────────────────────────────────────────────
@@ -105,17 +110,14 @@ export default clerkMiddleware(async (auth, request) => {
 // ── Resolve post-login destination from DB activeBrandId ──────────────────
 async function resolvePostLoginRedirect(clerkUserId: string, requestUrl: string): Promise<URL> {
   try {
-    const user = await db.user.findUnique({
-      where: { clerkId: clerkUserId },
-      select: { activeBrandId: true },
-    });
-    if (user?.activeBrandId) {
-      const brand = await db.brand.findUnique({
-        where: { id: user.activeBrandId },
-        select: { slug: true, status: true },
-      });
-      if (brand && brand.status === "active") {
-        return new URL(`/workspaces/${brand.slug}/dashboard`, requestUrl);
+    const res = await fetch(
+      new URL(`/api/auth/active-brand?clerkId=${encodeURIComponent(clerkUserId)}`, requestUrl),
+      { cache: "no-store" }
+    );
+    if (res.ok) {
+      const { brandSlug } = await res.json() as { brandSlug?: string };
+      if (brandSlug) {
+        return new URL(`/workspaces/${brandSlug}/dashboard`, requestUrl);
       }
     }
   } catch {
