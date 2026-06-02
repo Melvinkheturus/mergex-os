@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { seedBrandDefaults } from "@/lib/crm/seed-defaults";
+import crypto from "crypto";
 
 interface BrandInput {
   name: string;
@@ -35,7 +36,12 @@ export async function POST(req: Request) {
   try {
     // 1. Create brands
     await db.brand.createMany({
-      data: brands.map((b: BrandInput) => ({ name: b.name, slug: b.slug })),
+      data: brands.map((b: BrandInput) => ({
+        id: crypto.randomUUID(),
+        name: b.name,
+        slug: b.slug,
+        updatedAt: new Date(),
+      })),
       skipDuplicates: true,
     });
 

@@ -9,13 +9,13 @@ async function verifyLeadAccess(leadId: string) {
   const lead = await db.lead.findUnique({
     where: { id: leadId },
     include: {
-      owner: {
+      User: {
         select: { id: true, firstName: true, lastName: true, avatarUrl: true },
       },
-      stage: {
+      LeadStage: {
         select: { id: true, name: true, label: true, color: true },
       },
-      source: {
+      LeadSource: {
         select: { id: true, name: true },
       },
     },
@@ -124,7 +124,7 @@ export async function PUT(
     if (stageId !== undefined && stageId !== lead.stageId) {
       auditEntries.push({
         action: "STAGE_CHANGED",
-        oldValue: lead.stage?.label ?? lead.stageId ?? null,
+        oldValue: lead.LeadStage?.label ?? lead.stageId ?? null,
         newValue: stageId ?? null,
       });
     }
@@ -210,13 +210,13 @@ export async function PUT(
         lastActivityAt: new Date(),
       },
       include: {
-        owner: {
+        User: {
           select: { id: true, firstName: true, lastName: true, avatarUrl: true },
         },
-        stage: {
+        LeadStage: {
           select: { id: true, name: true, label: true, color: true },
         },
-        source: {
+        LeadSource: {
           select: { id: true, name: true },
         },
       },

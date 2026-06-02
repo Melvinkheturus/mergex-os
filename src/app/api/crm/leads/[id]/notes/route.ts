@@ -32,7 +32,7 @@ export async function GET(
   const notes = await db.note.findMany({
     where: { leadId: id, isActive: true },
     include: {
-      creator: {
+      User: {
         select: { id: true, firstName: true, lastName: true, avatarUrl: true },
       },
     },
@@ -71,7 +71,7 @@ export async function POST(
         createdBy: result.user.id,
       },
       include: {
-        creator: {
+        User: {
           select: { id: true, firstName: true, lastName: true, avatarUrl: true },
         },
       },

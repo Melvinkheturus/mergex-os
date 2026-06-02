@@ -34,11 +34,11 @@ export async function GET(req: Request) {
 
     const proposals = await db.proposal.findMany({
       where: {
-        lead: { brandId },
+        Lead: { brandId },
         ...(statusFilter ? { status: statusFilter } : {}),
       },
       include: {
-        lead: {
+        Lead: {
           select: {
             id: true,
             companyName: true,

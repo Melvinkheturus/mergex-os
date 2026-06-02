@@ -28,7 +28,7 @@ export async function PUT(
         ...(status && { status }),
       },
       include: {
-        organizer: {
+        User: {
           select: { id: true, firstName: true, lastName: true, avatarUrl: true },
         },
       },

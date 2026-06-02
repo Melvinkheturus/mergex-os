@@ -4,6 +4,7 @@ import { Webhook } from "svix";
 import { clerkClient } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { writeAuditLog } from "@/lib/auth";
+import crypto from "crypto";
 
 type ClerkWebhookEvent = {
   type: string;
@@ -64,7 +65,7 @@ export async function POST(req: Request) {
       }
 
       const superAdminCount = await db.user.count({
-        where: { role: { name: "super_admin" } },
+        where: { Role: { name: "super_admin" } },
       });
 
       let roleId: string | null = null;
@@ -114,6 +115,7 @@ export async function POST(req: Request) {
       // Create user in DB with onboardingState
       const newUser = await db.user.create({
         data: {
+          id: crypto.randomUUID(),
           clerkId: data.id,
           email: primaryEmail,
           firstName: data.first_name,
@@ -122,13 +124,14 @@ export async function POST(req: Request) {
           roleId,
           isActive: true,
           onboardingState,
+          updatedAt: new Date(),
         },
       });
 
       // If invited to a specific brand, grant brand access via UserBrandAccess
       if (brandId) {
         await db.userBrandAccess.create({
-          data: { userId: newUser.id, brandId },
+          data: { id: crypto.randomUUID(), userId: newUser.id, brandId },
         });
       }
 

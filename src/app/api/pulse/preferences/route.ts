@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import crypto from "crypto";
 
 // GET /api/pulse/preferences
 export async function GET() {
@@ -17,6 +18,7 @@ export async function GET() {
   const prefs = await db.notificationPreference.upsert({
     where: { userId: user.id },
     create: {
+      id: crypto.randomUUID(),
       userId: user.id,
       inAppEnabled: true,
       emailEnabled: true,
@@ -49,6 +51,7 @@ export async function PUT(request: Request) {
   const updated = await db.notificationPreference.upsert({
     where: { userId: user.id },
     create: {
+      id: crypto.randomUUID(),
       userId: user.id,
       ...data,
     },

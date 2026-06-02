@@ -9,6 +9,7 @@ import { ChevronLeft, Trophy, XCircle, Loader2, Phone, MessageSquare, Mail, File
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 
 import { StageProgressBar } from "../_components/stage-progress-bar";
 import { LeadInfoPanel } from "../_components/lead-info-panel";
@@ -465,7 +466,7 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
               </div>
               <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-violet-500 to-[#8B5CF6] rounded-full transition-all duration-500 ease-out"
+                  className="h-full bg-linear-to-r from-violet-500 to-[#8B5CF6] rounded-full transition-all duration-500 ease-out"
                   style={{ width: `${completeness}%` }}
                 />
               </div>
@@ -551,8 +552,8 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
 
       {/* ── Stage Progress Bar ─────────────────────────────── */}
       {stages.length > 0 && (
-        <div className="border border-border/30 rounded-2xl bg-card/30 p-4 overflow-hidden">
-          <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-3">
+        <div className="border border-border/30 rounded-2xl bg-card/30 py-6 px-5 overflow-hidden">
+          <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-4">
             Pipeline Journey
           </p>
           <StageProgressBar
@@ -595,27 +596,51 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
         <div className="min-w-0">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-5">
             <TabsList className="bg-muted/40 p-1 w-full justify-start overflow-x-auto flex h-10 border-b border-border/20 rounded-xl gap-1">
-              <TabsTrigger value="overview" className="text-xs font-semibold px-4 rounded-lg data-[state=active]:bg-card whitespace-nowrap flex items-center gap-1.5">
+              <TabsTrigger
+                value="overview"
+                className="text-xs xl:text-[11px] font-semibold px-4 xl:px-2.5 rounded-lg data-[state=active]:bg-card whitespace-nowrap flex items-center gap-1.5 xl:gap-1"
+              >
                 Overview
-                <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4 bg-muted-foreground/10 text-muted-foreground font-bold">
+                <Badge
+                  variant="secondary"
+                  className="text-[9px] px-1 py-0 h-4 bg-muted-foreground/10 text-muted-foreground font-bold shrink-0"
+                >
                   {overviewComp.isComplete ? "✓" : `${overviewComp.filled}/${overviewComp.total}`}
                 </Badge>
               </TabsTrigger>
-              <TabsTrigger value="review" className="text-xs font-semibold px-4 rounded-lg data-[state=active]:bg-card whitespace-nowrap flex items-center gap-1.5">
+              <TabsTrigger
+                value="review"
+                className="text-xs xl:text-[11px] font-semibold px-4 xl:px-2.5 rounded-lg data-[state=active]:bg-card whitespace-nowrap flex items-center gap-1.5 xl:gap-1"
+              >
                 Business Review
-                <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4 bg-muted-foreground/10 text-muted-foreground font-bold">
+                <Badge
+                  variant="secondary"
+                  className="text-[9px] px-1 py-0 h-4 bg-muted-foreground/10 text-muted-foreground font-bold shrink-0"
+                >
                   {reviewComp.isComplete ? "✓" : `${reviewComp.filled}/${reviewComp.total}`}
                 </Badge>
               </TabsTrigger>
-              <TabsTrigger value="bant" className="text-xs font-semibold px-4 rounded-lg data-[state=active]:bg-card whitespace-nowrap flex items-center gap-1.5">
+              <TabsTrigger
+                value="bant"
+                className="text-xs xl:text-[11px] font-semibold px-4 xl:px-2.5 rounded-lg data-[state=active]:bg-card whitespace-nowrap flex items-center gap-1.5 xl:gap-1"
+              >
                 Qualification
-                <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4 bg-muted-foreground/10 text-muted-foreground font-bold">
+                <Badge
+                  variant="secondary"
+                  className="text-[9px] px-1 py-0 h-4 bg-muted-foreground/10 text-muted-foreground font-bold shrink-0"
+                >
                   {qualComp.isComplete ? "✓" : `${qualComp.filled}/${qualComp.total}`}
                 </Badge>
               </TabsTrigger>
-              <TabsTrigger value="classification" className="text-xs font-semibold px-4 rounded-lg data-[state=active]:bg-card whitespace-nowrap flex items-center gap-1.5">
+              <TabsTrigger
+                value="classification"
+                className="text-xs xl:text-[11px] font-semibold px-4 xl:px-2.5 rounded-lg data-[state=active]:bg-card whitespace-nowrap flex items-center gap-1.5 xl:gap-1"
+              >
                 Classification
-                <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4 bg-muted-foreground/10 text-muted-foreground font-bold">
+                <Badge
+                  variant="secondary"
+                  className="text-[9px] px-1 py-0 h-4 bg-muted-foreground/10 text-muted-foreground font-bold shrink-0"
+                >
                   {classComp.isComplete ? "✓" : `${classComp.filled}/${classComp.total}`}
                 </Badge>
               </TabsTrigger>

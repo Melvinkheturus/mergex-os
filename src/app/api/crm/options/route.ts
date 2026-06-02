@@ -39,8 +39,8 @@ export async function GET(req: Request) {
       db.user.findMany({
         where: {
           OR: [
-            { role: { name: { in: ["super_admin", "admin"] } } },
-            { brandAccess: { some: { brandId } } },
+            { Role: { name: { in: ["super_admin", "admin"] } } },
+            { UserBrandAccess: { some: { brandId } } },
           ],
           isActive: true,
         },

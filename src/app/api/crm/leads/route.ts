@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import crypto from "crypto";
 
 export async function GET(req: Request) {
   const user = await getCurrentUser();
@@ -56,7 +57,7 @@ export async function GET(req: Request) {
     const leads = await db.lead.findMany({
       where,
       include: {
-        owner: {
+        User: {
           select: {
             id: true,
             firstName: true,
@@ -64,7 +65,7 @@ export async function GET(req: Request) {
             avatarUrl: true,
           },
         },
-        stage: {
+        LeadStage: {
           select: {
             id: true,
             name: true,
@@ -72,7 +73,7 @@ export async function GET(req: Request) {
             color: true,
           },
         },
-        source: {
+        LeadSource: {
           select: {
             id: true,
             name: true,
@@ -168,7 +169,7 @@ export async function POST(req: Request) {
         services: Array.isArray(services) ? services : [],
       },
       include: {
-        owner: {
+        User: {
           select: {
             id: true,
             firstName: true,
@@ -176,7 +177,7 @@ export async function POST(req: Request) {
             avatarUrl: true,
           },
         },
-        stage: {
+        LeadStage: {
           select: {
             id: true,
             name: true,
@@ -184,7 +185,7 @@ export async function POST(req: Request) {
             color: true,
           },
         },
-        source: {
+        LeadSource: {
           select: {
             id: true,
             name: true,
@@ -196,11 +197,13 @@ export async function POST(req: Request) {
     if (initialNotes && typeof initialNotes === "string" && initialNotes.trim()) {
       await db.note.create({
         data: {
+          id: crypto.randomUUID(),
           leadId: lead.id,
           brandId,
           content: initialNotes.trim(),
           createdBy: user.id,
           visibility: "TEAM",
+          updatedAt: new Date(),
         },
       });
     }

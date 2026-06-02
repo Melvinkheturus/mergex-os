@@ -35,7 +35,7 @@ export async function GET(
     const meetings = await db.meeting.findMany({
       where: { leadId: id },
       include: {
-        organizer: {
+        User: {
           select: {
             id: true,
             firstName: true,
@@ -91,7 +91,7 @@ export async function POST(
         status: status || "SCHEDULED",
       },
       include: {
-        organizer: {
+        User: {
           select: {
             id: true,
             firstName: true,

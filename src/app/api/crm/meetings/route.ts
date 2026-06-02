@@ -42,18 +42,18 @@ export async function GET(req: Request) {
 
     const meetings = await db.meeting.findMany({
       where: {
-        lead: { brandId },
+        Lead: { brandId },
         ...dateFilter,
       },
       include: {
-        lead: {
+        Lead: {
           select: {
             id: true,
             companyName: true,
             contactPerson: true,
           },
         },
-        organizer: {
+        User: {
           select: {
             id: true,
             firstName: true,

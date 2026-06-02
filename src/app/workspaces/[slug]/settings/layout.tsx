@@ -10,11 +10,11 @@ export default async function SettingsLayout({
   const user = await getCurrentUser();
   const dbUser = user ? await db.user.findUnique({
     where: { id: user.id },
-    include: { role: true }
+    include: { Role: true }
   }) : null;
 
   return (
-    <SettingsClientLayout roleName={dbUser?.role.name}>
+    <SettingsClientLayout roleName={dbUser?.Role.name}>
       {children}
     </SettingsClientLayout>
   );

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSignIn, useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Loader2, Eye, EyeOff, ShieldCheck, ArrowRight } from "lucide-react";
 
 // ── Logo ───────────────────────────────────────────────────────
@@ -118,8 +119,8 @@ export default function SignInPage() {
       }
 
       if (signIn.status === "complete") {
-        // Clerk sets the active session automatically - redirect
-        router.push("/dashboard");
+        // Let the proxy resolve the correct destination based on onboardingState + activeBrandId
+        router.push("/workspaces");
       } else {
         // Unexpected incomplete state (e.g. MFA - not enabled, but handle gracefully)
         setError("Sign-in could not be completed. Please contact your admin.");
@@ -205,6 +206,15 @@ export default function SignInPage() {
             >
               Sign in <ArrowRight className="w-4 h-4" />
             </PrimaryButton>
+
+            <div className="text-center">
+              <Link
+                href="/forgot-password"
+                className="text-xs text-muted-foreground hover:text-[#8B5CF6] transition-colors"
+              >
+                Forgot password?
+              </Link>
+            </div>
           </div>
 
           {/* Footer */}

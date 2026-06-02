@@ -7,7 +7,11 @@ const isPublicRoute = createRouteMatcher([
   "/",               // landing page
   "/sign-in(.*)",    // Clerk sign-in
   "/sign-up(.*)",    // Clerk sign-up (invite flow)
+  "/invite(.*)",     // Custom invite activation page
+  "/forgot-password(.*)", // Forgot password / recovery code
   "/api/auth/webhook(.*)", // Clerk webhook - must be public
+  "/api/auth/invite-lookup(.*)", // Invite token lookup
+  "/api/auth/recovery-code/verify(.*)", // Recovery code verification
 ]);
 
 // Onboarding routes - blocked from normal app access

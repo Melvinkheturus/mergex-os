@@ -10,13 +10,9 @@ import {
   Flame,
   Thermometer,
   Snowflake,
-  Shield,
   Activity,
-  User,
-  Users,
-  IndianRupee,
   Briefcase,
-  CheckCircle2,
+  IndianRupee,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -55,44 +51,7 @@ export function LeadInfoPanel({
 }: LeadInfoPanelProps) {
   const initials = `${lead.companyName[0] || "L"}`.toUpperCase();
 
-  // Relationship Intelligence State
-  const [relations, setRelations] = useState({
-    decisionMaker: lead.decisionMaker || "",
-    influencer: lead.influencer || "",
-    champion: lead.champion || "",
-    financeContact: lead.financeContact || "",
-  });
-  const [savingRelations, setSavingRelations] = useState<string | null>(null);
 
-  // Sync state if lead changes from parent
-  useEffect(() => {
-    setRelations({
-      decisionMaker: lead.decisionMaker || "",
-      influencer: lead.influencer || "",
-      champion: lead.champion || "",
-      financeContact: lead.financeContact || "",
-    });
-  }, [lead]);
-
-  const handleRelationBlur = async (field: keyof typeof relations, value: string) => {
-    if (lead[field] === value) return; // no change
-    try {
-      setSavingRelations(field);
-      const res = await fetch(`/api/crm/leads/${lead.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ [field]: value }),
-      });
-      if (!res.ok) throw new Error("Failed to update relations");
-      const updated = await res.json();
-      toast.success(`${field.replace(/([A-Z])/g, " $1")} updated`);
-      if (onLeadUpdate) onLeadUpdate(updated);
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to save field");
-    } finally {
-      setSavingRelations(null);
-    }
-  };
 
   // Health Score Calculation
   // 1. BANT (40%): bantScore * 0.40
@@ -317,46 +276,6 @@ export function LeadInfoPanel({
               <span className="font-bold text-foreground">{stageHealth}/20 pts</span>
             </div>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* CARD 4: Relationship Intelligence */}
-      <Card className="border border-border/40 shadow-none rounded-2xl bg-card/45 backdrop-blur-xs">
-        <CardHeader className="p-4 pb-2">
-          <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-            <Shield className="h-3 w-3 text-violet-500" /> Relationship Intelligence
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-4 pt-0 space-y-3">
-          {[
-            { id: "decisionMaker", label: "Decision Maker", icon: User },
-            { id: "influencer", label: "Influencer", icon: Users },
-            { id: "champion", label: "Champion", icon: CheckCircle2 },
-            { id: "financeContact", label: "Finance Contact", icon: IndianRupee },
-          ].map((role) => {
-            const Icon = role.icon;
-            const fieldId = role.id as keyof typeof relations;
-            const isSaving = savingRelations === fieldId;
-
-            return (
-              <div key={role.id} className="space-y-1">
-                <div className="flex items-center justify-between text-[9px] font-bold text-muted-foreground/80 uppercase">
-                  <span className="flex items-center gap-1">
-                    <Icon className="h-2.5 w-2.5 text-muted-foreground/70" /> {role.label}
-                  </span>
-                  {isSaving && <span className="text-[8px] lowercase text-[#8B5CF6] animate-pulse">saving...</span>}
-                </div>
-                <Input
-                  className="h-8 text-xs bg-background/50 border-border/40 focus-visible:ring-[#8B5CF6]/50"
-                  placeholder={`Enter ${role.label.toLowerCase()}`}
-                  value={relations[fieldId]}
-                  disabled={isSaving}
-                  onChange={(e) => setRelations({ ...relations, [fieldId]: e.target.value })}
-                  onBlur={(e) => handleRelationBlur(fieldId, e.target.value)}
-                />
-              </div>
-            );
-          })}
         </CardContent>
       </Card>
     </div>

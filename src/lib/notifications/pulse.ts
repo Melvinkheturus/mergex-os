@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { NotificationType, NotificationPriority } from "@prisma/client";
+import crypto from "crypto";
 import {
   sendMomOverdueEmail,
   sendLeadAssignedEmail,
@@ -46,6 +47,7 @@ export async function emit(opts: EmitOptions) {
   // 1. Persist in-app notification
   const notification = await db.notification.create({
     data: {
+      id: crypto.randomUUID(),
       type,
       priority,
       title,

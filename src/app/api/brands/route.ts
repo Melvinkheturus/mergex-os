@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { seedBrandDefaults } from "@/lib/crm/seed-defaults";
+import crypto from "crypto";
 
 export async function GET() {
   const { userId: clerkId } = await auth();
@@ -49,11 +50,13 @@ export async function POST(req: Request) {
 
     const brand = await db.brand.create({
       data: {
+        id: crypto.randomUUID(),
         name,
         slug,
         color: color ?? "violet",
         description: description ?? null,
         logoUrl: typeof logoUrl === "string" ? logoUrl : null,
+        updatedAt: new Date(),
       },
     });
 

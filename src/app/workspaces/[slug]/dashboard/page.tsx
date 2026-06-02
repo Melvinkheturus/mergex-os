@@ -27,7 +27,7 @@ export default async function DashboardPage({
   });
 
   const teammates = await db.user.findMany({
-    include: { role: true },
+    include: { Role: true },
     orderBy: { createdAt: "desc" },
   });
 
@@ -46,7 +46,7 @@ export default async function DashboardPage({
         firstName: t.firstName,
         lastName: t.lastName,
         designation: t.designation,
-        role: { label: t.role.label },
+        role: { label: t.Role.label },
       }))}
       brands={brands.map((b) => ({
         id: b.id,

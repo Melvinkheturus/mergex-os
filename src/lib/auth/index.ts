@@ -3,15 +3,19 @@ import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import type { PermissionKey, PermissionString } from "./permissions";
 import { PERMISSIONS } from "./permissions";
+import { buildAbility, type AppAbility } from "./ability";
+import crypto from "crypto";
 
-// ── Types ─────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────
 
 export type AuthUser = {
   id: string;
   clerkId: string;
   email: string;
+  employeeId: string | null;
   firstName: string | null;
   lastName: string | null;
+  phone: string | null;
   avatarUrl: string | null;
   isActive: boolean;
   activeBrandId: string | null;
@@ -23,7 +27,97 @@ export type AuthUser = {
   permissions: PermissionString[];
 };
 
-// ── Get current user from DB with role + permissions ──────
+// ── Ability helper ─────────────────────────────────────────────
+
+/**
+ * Build a typed CASL ability for this user.
+ * Use on both server and client (pass AuthUser from context on client).
+ */
+export function getAbility(user: AuthUser): AppAbility {
+  return buildAbility(user.permissions, user.role.name === "super_admin");
+}
+
+// ── The user select shape ─────────────────────────────────────
+
+const USER_SELECT = {
+  id: true,
+  clerkId: true,
+  email: true,
+  employeeId: true,
+  firstName: true,
+  lastName: true,
+  phone: true,
+  avatarUrl: true,
+  isActive: true,
+  activeBrandId: true,
+  roleId: true,
+  Role: {
+    select: {
+      id: true,
+      name: true,
+      label: true,
+      RolePermission: {
+        select: {
+          Permission: {
+            select: { module: true, action: true },
+          },
+        },
+      },
+    },
+  },
+} as const;
+
+type UserWithRole = {
+  id: string;
+  clerkId: string;
+  email: string;
+  employeeId: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  phone: string | null;
+  avatarUrl: string | null;
+  isActive: boolean;
+  activeBrandId: string | null;
+  roleId: string;
+  Role: {
+    id: string;
+    name: string;
+    label: string;
+    RolePermission: {
+      Permission: {
+        module: string;
+        action: string;
+      };
+    }[];
+  };
+};
+
+function buildAuthUser(user: UserWithRole, overrideRole?: UserWithRole["Role"]): AuthUser {
+  const activeRole = overrideRole ?? user.Role;
+  const permissions = activeRole.RolePermission.map(
+    (rp) => `${rp.Permission.module}.${rp.Permission.action}` as PermissionString
+  );
+  return {
+    id: user.id,
+    clerkId: user.clerkId,
+    email: user.email,
+    employeeId: user.employeeId,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    phone: user.phone,
+    avatarUrl: user.avatarUrl,
+    isActive: user.isActive,
+    activeBrandId: user.activeBrandId,
+    role: {
+      id: activeRole.id,
+      name: activeRole.name,
+      label: activeRole.label,
+    },
+    permissions,
+  };
+}
+
+// ── Get current user from DB with role + permissions ──────────
 
 export async function getCurrentUser(): Promise<AuthUser | null> {
   const { userId } = await auth();
@@ -31,31 +125,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
 
   let user = await db.user.findUnique({
     where: { clerkId: userId },
-    select: {
-      id: true,
-      clerkId: true,
-      email: true,
-      firstName: true,
-      lastName: true,
-      avatarUrl: true,
-      isActive: true,
-      activeBrandId: true,
-      roleId: true,
-      role: {
-        select: {
-          id: true,
-          name: true,
-          label: true,
-          permissions: {
-            select: {
-              permission: {
-                select: { module: true, action: true },
-              },
-            },
-          },
-        },
-      },
-    },
+    select: USER_SELECT,
   });
 
   if (!user) {
@@ -70,8 +140,10 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
         if (primaryEmail) {
           const userCount = await db.user.count();
           let roleId: string | null = null;
-          let brandId: string | null = null;
           let onboardingState: "PLATFORM_SETUP" | "PROFILE_SETUP" | "COMPLETE" = "PROFILE_SETUP";
+
+          // Generate employee ID
+          const employeeId = `MX${String(userCount + 1).padStart(4, "0")}`;
 
           if (userCount === 0) {
             const superAdminRole = await db.role.findFirst({ where: { name: "super_admin" } });
@@ -81,11 +153,11 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
             const invite = await db.userInvite.findFirst({
               where: { email: primaryEmail, status: "PENDING" },
               orderBy: { createdAt: "desc" },
+              include: { UserInviteBrand: true },
             });
 
             if (invite) {
-              roleId = invite.roleId;
-              brandId = invite.brandId;
+              roleId = invite.roleId ?? null;
               onboardingState = "PROFILE_SETUP";
 
               await db.userInvite.update({
@@ -102,14 +174,17 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
             const createdUser = await db.user.upsert({
               where: { clerkId: userId },
               create: {
+                id: crypto.randomUUID(),
                 clerkId: userId,
                 email: primaryEmail,
+                employeeId,
                 firstName: clerkUser.firstName,
                 lastName: clerkUser.lastName,
                 avatarUrl: clerkUser.imageUrl,
                 roleId,
                 isActive: true,
                 onboardingState,
+                updatedAt: new Date(),
               },
               update: {
                 isActive: true,
@@ -117,10 +192,11 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
                 firstName: clerkUser.firstName,
                 lastName: clerkUser.lastName,
                 avatarUrl: clerkUser.imageUrl,
+                updatedAt: new Date(),
               }
             });
 
-            // Set Clerk publicMetadata so the middleware redirects correctly
+            // Set Clerk publicMetadata so the proxy redirects correctly
             const client = await clerkClient();
             await client.users.updateUserMetadata(userId, {
               publicMetadata: {
@@ -131,33 +207,9 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
 
             user = await db.user.findUnique({
               where: { id: createdUser.id },
-              select: {
-                id: true,
-                clerkId: true,
-                email: true,
-                firstName: true,
-                lastName: true,
-                avatarUrl: true,
-                isActive: true,
-                activeBrandId: true,
-                roleId: true,
-                role: {
-                  select: {
-                    id: true,
-                    name: true,
-                    label: true,
-                    permissions: {
-                      select: {
-                        permission: {
-                          select: { module: true, action: true },
-                        },
-                      },
-                    },
-                  },
-                },
-              },
+              select: USER_SELECT,
             });
-            console.log(`[auth-auto-provision] Provisioned user ${primaryEmail} with roleId=${roleId}`);
+            console.log(`[auth-auto-provision] Provisioned user ${primaryEmail} (${employeeId}) with roleId=${roleId}`);
           }
         }
       }
@@ -168,9 +220,8 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
 
   if (!user || !user.isActive) return null;
 
-  // Layer 2 Recovery: If user's email matches ROOT_ADMIN_EMAIL, dynamically force-inject super_admin role/rights
+  // Layer 2 Recovery: If user's email matches ROOT_ADMIN_EMAIL, force-inject super_admin role
   const rootAdminEmail = process.env.ROOT_ADMIN_EMAIL;
-  let activeRole = user.role;
 
   if (rootAdminEmail && user.email.toLowerCase() === rootAdminEmail.toLowerCase()) {
     const superAdminRole = await db.role.findFirst({
@@ -179,9 +230,9 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
         id: true,
         name: true,
         label: true,
-        permissions: {
+        RolePermission: {
           select: {
-            permission: {
+            Permission: {
               select: { module: true, action: true },
             },
           },
@@ -189,40 +240,20 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
       },
     });
 
-    if (superAdminRole && user.role.name !== "super_admin") {
-      // Auto-correct DB record to super_admin
+    if (superAdminRole && user.Role.name !== "super_admin") {
       await db.user.update({
         where: { id: user.id },
         data: { roleId: superAdminRole.id }
       });
-      activeRole = superAdminRole;
-      console.warn(`[recovery] Emergency ROOT_ADMIN_EMAIL match detected. Automatically restored super_admin rights for ${user.email}.`);
+      console.warn(`[recovery] ROOT_ADMIN_EMAIL match — restored super_admin rights for ${user.email}.`);
+      return buildAuthUser(user, superAdminRole);
     }
   }
 
-  const permissions = activeRole.permissions.map(
-    (rp) => `${rp.permission.module}.${rp.permission.action}` as PermissionString
-  );
-
-  return {
-    id: user.id,
-    clerkId: user.clerkId,
-    email: user.email,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    avatarUrl: user.avatarUrl,
-    isActive: user.isActive,
-    activeBrandId: user.activeBrandId,
-    role: {
-      id: activeRole.id,
-      name: activeRole.name,
-      label: activeRole.label,
-    },
-    permissions,
-  };
+  return buildAuthUser(user);
 }
 
-// ── Require auth - redirects if not authenticated ─────────
+// ── Require auth — redirects if not authenticated ─────────────
 
 export async function requireUser(): Promise<AuthUser> {
   const user = await getCurrentUser();
@@ -230,24 +261,24 @@ export async function requireUser(): Promise<AuthUser> {
   return user;
 }
 
-// ── Permission check (server-side) ────────────────────────
+// ── Permission check (server-side) ────────────────────────────
 
 export function hasPermission(
   user: AuthUser,
   key: PermissionKey
 ): boolean {
-  const p = PERMISSIONS[key];
-  const target = `${p.module}.${p.action}` as PermissionString;
-  return user.permissions.includes(target);
+  // Super admin bypasses all permission checks
+  if (user.role.name === "super_admin") return true;
+  return user.permissions.includes(key);
 }
 
-// ── Role check (server-side) ──────────────────────────────
+// ── Role check (server-side) ──────────────────────────────────
 
 export function hasRole(user: AuthUser, ...roleNames: string[]): boolean {
   return roleNames.includes(user.role.name);
 }
 
-// ── Require permission - redirects if unauthorized ────────
+// ── Require permission — redirects if unauthorized ────────────
 
 export async function requirePermission(key: PermissionKey): Promise<AuthUser> {
   const user = await requireUser();
@@ -255,12 +286,12 @@ export async function requirePermission(key: PermissionKey): Promise<AuthUser> {
   return user;
 }
 
-// ── Sync Clerk user → DB (call from webhook) ──────────────
+// ── Sync Clerk user → DB (call from webhook) ──────────────────
 
 export async function syncClerkUser(
   clerkUserId: string,
-  brandId: string | null,
-  roleId: string
+  roleId: string,
+  employeeId: string
 ) {
   const clerkUser = await currentUser();
   if (!clerkUser) throw new Error("No authenticated Clerk user");
@@ -268,23 +299,27 @@ export async function syncClerkUser(
   return db.user.upsert({
     where: { clerkId: clerkUserId },
     create: {
+      id: crypto.randomUUID(),
       clerkId: clerkUserId,
       email: clerkUser.emailAddresses[0]?.emailAddress ?? "",
+      employeeId,
       firstName: clerkUser.firstName,
       lastName: clerkUser.lastName,
       avatarUrl: clerkUser.imageUrl,
       roleId,
+      updatedAt: new Date(),
     },
     update: {
       email: clerkUser.emailAddresses[0]?.emailAddress ?? "",
       firstName: clerkUser.firstName,
       lastName: clerkUser.lastName,
       avatarUrl: clerkUser.imageUrl,
+      updatedAt: new Date(),
     },
   });
 }
 
-// ── Write login audit ──────────────────────────────────────
+// ── Write login audit ──────────────────────────────────────────
 
 export async function writeAuditLog(params: {
   userId?: string;
@@ -296,13 +331,19 @@ export async function writeAuditLog(params: {
 }) {
   return db.loginAudit.create({
     data: {
+      id: crypto.randomUUID(),
       userId: params.userId,
       email: params.email,
       action: params.action,
       ipAddress: params.ipAddress,
       userAgent: params.userAgent,
-      // Cast to JSON-compatible type for Prisma
       ...(params.metadata !== undefined && { metadata: params.metadata as object }),
     },
   });
 }
+
+// ── Re-exports ─────────────────────────────────────────────────
+export { buildAbility, emptyAbility } from "./ability";
+export type { AppAbility, AppAction, AppSubject } from "./ability";
+export { PERMISSIONS, can } from "./permissions";
+export type { PermissionKey, PermissionString } from "./permissions";

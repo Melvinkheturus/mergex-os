@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import crypto from "crypto";
 
 interface ProfileInput {
   firstName: string;
@@ -64,6 +65,7 @@ export async function POST(req: Request) {
         where: { userId: dbUser.id },
         update: { inAppEnabled: prefs.notificationsEnabled },
         create: {
+          id:           crypto.randomUUID(),
           userId:       dbUser.id,
           inAppEnabled: prefs.notificationsEnabled,
           emailEnabled: true,
@@ -78,7 +80,39 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.json({ ok: true });
+    // 4. Resolve accessible brands for post-onboarding routing
+    //    Super admin → all active brands
+    //    Regular user → their UserBrandAccess records
+    let firstBrandSlug: string | null = null;
+    let brandCount = 0;
+
+    if (dbUser) {
+      const isSuperAdmin = (await db.user.findUnique({
+        where: { id: dbUser.id },
+        include: { Role: { select: { name: true } } },
+      }))?.Role.name === "super_admin";
+
+      const accessibleBrands = isSuperAdmin
+        ? await db.brand.findMany({
+            where: { status: "active" },
+            orderBy: { createdAt: "asc" },
+            select: { slug: true },
+          })
+        : await db.brand.findMany({
+            where: {
+              UserBrandAccess: { some: { userId: dbUser.id } },
+              status: "active",
+            },
+            orderBy: { createdAt: "asc" },
+            select: { slug: true },
+          });
+
+      brandCount = accessibleBrands.length;
+      firstBrandSlug = accessibleBrands[0]?.slug ?? null;
+    }
+
+    return NextResponse.json({ ok: true, brandCount, firstBrandSlug });
+
   } catch (err) {
     console.error("[profile-complete] error:", err);
     return NextResponse.json({ error: "Profile setup failed. Please try again." }, { status: 500 });

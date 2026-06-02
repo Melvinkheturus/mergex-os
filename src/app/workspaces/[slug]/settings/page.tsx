@@ -13,7 +13,7 @@ export default async function Page({ params }: PageProps) {
   const user = await getCurrentUser();
   const dbUser = user ? await db.user.findUnique({
     where: { id: user.id },
-    include: { role: true }
+    include: { Role: true }
   }) : null;
 
   const brands = await db.brand.findMany({
@@ -21,7 +21,7 @@ export default async function Page({ params }: PageProps) {
   });
 
   const teammates = await db.user.findMany({
-    include: { role: true },
+    include: { Role: true },
     orderBy: { createdAt: "desc" }
   });
 
@@ -44,8 +44,8 @@ export default async function Page({ params }: PageProps) {
         designation: dbUser.designation,
         avatarUrl: dbUser.avatarUrl,
         role: {
-          name: dbUser.role.name,
-          label: dbUser.role.label
+          name: dbUser.Role.name,
+          label: dbUser.Role.label
         }
       } : null}
       brands={sortedBrands.map(b => ({
@@ -62,8 +62,8 @@ export default async function Page({ params }: PageProps) {
         lastName: t.lastName,
         designation: t.designation,
         role: {
-          name: t.role.name,
-          label: t.role.label
+          name: t.Role.name,
+          label: t.Role.label
         }
       }))}
     />

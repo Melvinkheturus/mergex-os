@@ -32,7 +32,7 @@ export async function GET(
   const logs = await db.auditLog.findMany({
     where: { leadId: id },
     include: {
-      actor: {
+      User: {
         select: { id: true, firstName: true, lastName: true, avatarUrl: true },
       },
     },

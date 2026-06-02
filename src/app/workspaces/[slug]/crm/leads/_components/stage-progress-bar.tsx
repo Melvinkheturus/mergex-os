@@ -99,9 +99,9 @@ export function StageProgressBar({
     : null;
 
   return (
-    <div className="w-full space-y-4">
+    <div className="w-full space-y-5">
       {/* 1. Horizontal Stepper Stepper Nodes */}
-      <div className="w-full overflow-x-auto pb-1">
+      <div className="w-full overflow-x-auto pt-2.5 pb-6">
         <div className="flex items-center min-w-max gap-0">
           {workflowStages.map((stage, idx) => {
             const isCompleted = currentIndex >= 0 && idx < currentIndex;
@@ -177,73 +177,95 @@ export function StageProgressBar({
         </div>
       </div>
 
-      {/* 2. Premium Stage Guidance Banner */}
+      {/* 2. Premium Stage Guidance Card */}
       {lead && currentStage && (
         <div className={cn(
-          "border rounded-xl p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 transition-all",
+          "relative overflow-hidden rounded-xl border p-5 transition-all duration-300",
           isStageComplete
-            ? "bg-emerald-500/5 border-emerald-500/20"
-            : "bg-[#8B5CF6]/5 border-[#8B5CF6]/15"
+            ? "bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent border-emerald-500/20 shadow-xs"
+            : "bg-gradient-to-br from-[#8B5CF6]/10 via-[#8B5CF6]/5 to-transparent border-[#8B5CF6]/15 shadow-xs"
         )}>
-          {/* Stage Name & Completeness */}
-          <div className="space-y-1">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/75">
-              Active Stage Guidance
-            </p>
-            <h4 className="text-xs font-bold text-foreground">
-              {currentStage.label}
-              <span className={cn(
-                "ml-2 text-[10px] font-semibold px-1.5 py-0.5 rounded-md border",
-                isStageComplete
-                  ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/25"
-                  : "bg-[#8B5CF6]/10 text-[#8B5CF6] border-[#8B5CF6]/20"
-              )}>
-                {progressPercent}% Complete
-              </span>
-            </h4>
-          </div>
+          {/* Subtle background glow */}
+          <div className={cn(
+            "absolute -right-16 -top-16 w-32 h-32 rounded-full blur-3xl opacity-20 pointer-events-none",
+            isStageComplete ? "bg-emerald-500" : "bg-[#8B5CF6]"
+          )} />
 
-          {/* Checklist of required fields */}
-          {checklist.length > 0 && (
-            <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1.5 max-w-xl">
-              {checklist.map((item, index) => (
-                <div key={index} className="flex items-center gap-1 text-[10px] font-medium">
-                  {item.isFilled ? (
-                    <Check className="h-3 w-3 text-emerald-500 shrink-0" strokeWidth={3} />
-                  ) : (
-                    <AlertCircle className="h-3 w-3 text-muted-foreground/40 shrink-0" />
-                  )}
-                  <span className={item.isFilled ? "text-foreground/90" : "text-muted-foreground/60"}>
-                    {item.label}
-                  </span>
-                </div>
-              ))}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 relative z-10">
+            {/* Stage Info */}
+            <div className="space-y-1.5 min-w-[200px]">
+              <div className="flex items-center gap-1.5">
+                <span className={cn(
+                  "w-1.5 h-1.5 rounded-full animate-pulse",
+                  isStageComplete ? "bg-emerald-500" : "bg-[#8B5CF6]"
+                )} />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/75">
+                  Active Stage Guidance
+                </span>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <h4 className="text-sm font-bold text-foreground">
+                  {currentStage.label}
+                </h4>
+                <span className={cn(
+                  "text-[10px] font-semibold px-2 py-0.5 rounded-full border shadow-2xs transition-all",
+                  isStageComplete
+                    ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/25"
+                    : "bg-[#8B5CF6]/10 text-[#8B5CF6] border-[#8B5CF6]/20"
+                )}>
+                  {progressPercent}% Complete
+                </span>
+              </div>
             </div>
-          )}
 
-          {/* Advance Action Button */}
-          {nextStage && (
-            <Button
-              size="sm"
-              disabled={saving}
-              onClick={() => onStageClick(nextStage.id)}
-              className={cn(
-                "h-8 text-xs font-bold shrink-0 shadow-none border transition-all active:scale-95 duration-700",
-                isStageComplete
-                  ? "bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600/30"
-                  : "bg-background text-[#8B5CF6] border-[#8B5CF6]/30 hover:bg-[#8B5CF6]/5"
-              )}
-            >
-              {saving ? (
-                <Loader2 className="h-3 w-3 animate-spin mr-1.5" />
-              ) : (
-                <>
-                  Advance Stage
-                  <ArrowRight className="h-3 w-3 ml-1.5" />
-                </>
-              )}
-            </Button>
-          )}
+            {/* Checklist of required fields */}
+            {checklist.length > 0 && (
+              <div className="flex-1 flex flex-wrap items-center gap-2 max-w-xl">
+                {checklist.map((item, index) => (
+                  <div
+                    key={index}
+                    className={cn(
+                      "flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-1 rounded-lg border transition-all duration-200",
+                      item.isFilled
+                        ? "bg-emerald-500/10 border-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                        : "bg-muted/30 border-border/40 text-muted-foreground/60"
+                    )}
+                  >
+                    {item.isFilled ? (
+                      <Check className="h-3 w-3 text-emerald-500 shrink-0" strokeWidth={3} />
+                    ) : (
+                      <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/35 shrink-0" />
+                    )}
+                    <span>{item.label}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Advance Action Button */}
+            {nextStage && (
+              <Button
+                size="sm"
+                disabled={saving}
+                onClick={() => onStageClick(nextStage.id)}
+                className={cn(
+                  "h-8 px-4 text-xs font-bold shrink-0 shadow-xs border transition-all active:scale-95 duration-200",
+                  isStageComplete
+                    ? "bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600/30 hover:shadow-emerald-500/10"
+                    : "bg-[#8B5CF6] hover:bg-[#7C3AED] text-white border-[#8B5CF6]/30 hover:shadow-[#8B5CF6]/10"
+                )}
+              >
+                {saving ? (
+                  <Loader2 className="h-3 w-3 animate-spin mr-1.5" />
+                ) : (
+                  <>
+                    Advance Stage
+                    <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
         </div>
       )}
     </div>

@@ -128,12 +128,12 @@ export function WorkspaceSelectorClient({ brands, user, userRole, teammates }: P
   const handleSelectBrand = async (brand: Brand) => {
     setLoadingBrandId(brand.id);
     setActiveBrandIdState(brand.id);
-    // Persist active brand to DB
+    // Persist active brand to DB with server-side access validation
     try {
-      await fetch("/api/profile", {
+      await fetch("/api/user/active-brand", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ activeBrandId: brand.id }),
+        body: JSON.stringify({ brandId: brand.id }),
       });
     } catch (e) {
       console.error("[handleSelectBrand] Failed to persist activeBrandId:", e);

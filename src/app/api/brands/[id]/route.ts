@@ -37,13 +37,13 @@ export async function PATCH(req: Request, context: RouteContext) {
   // Verify caller is admin or super_admin
   const dbUser = await db.user.findUnique({
     where: { clerkId },
-    include: { role: true },
+    include: { Role: true },
   });
   if (!dbUser) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
   const canEdit =
-    dbUser.role.name === "super_admin" || dbUser.role.name === "admin";
+    dbUser.Role.name === "super_admin" || dbUser.Role.name === "admin";
   if (!canEdit) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -105,9 +105,9 @@ export async function DELETE(_req: Request, context: RouteContext) {
 
   const dbUser = await db.user.findUnique({
     where: { clerkId },
-    include: { role: true },
+    include: { Role: true },
   });
-  if (!dbUser || dbUser.role.name !== "super_admin") {
+  if (!dbUser || dbUser.Role.name !== "super_admin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

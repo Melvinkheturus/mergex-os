@@ -266,9 +266,24 @@ export default function ProfileOnboardingPage() {
         throw new Error(d.error ?? "Setup failed");
       }
 
+      const { brandCount, firstBrandSlug } = await res.json() as {
+        ok: boolean;
+        brandCount: number;
+        firstBrandSlug: string | null;
+      };
+
       // Reload Clerk session to pick up new publicMetadata (COMPLETE state)
       await user?.reload();
-      router.push("/dashboard");
+
+      // Route based on brand access:
+      //   1 brand  → go directly to that brand's dashboard
+      //   0 or 2+  → go to workspace hub to select
+      if (brandCount === 1 && firstBrandSlug) {
+        router.push(`/workspaces/${firstBrandSlug}/dashboard`);
+      } else {
+        router.push("/workspaces");
+      }
+
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
       setLoading(false);

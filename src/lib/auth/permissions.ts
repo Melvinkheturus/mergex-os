@@ -1,137 +1,134 @@
 /**
  * MergeX Sales OS - Permission Engine
- * All permissions are structured as "module.action"
+ *
+ * Convention: "module.resource.action"
+ * Examples: "crm.leads.view", "crm.meetings.create", "settings.manage"
+ *
+ * These strings are stored verbatim in the DB as Permission.module + Permission.action
+ * and assembled as `${module}.${action}` when loading.
  */
 
-// ── Permission definitions ────────────────────────────────
+// ── Canonical permission strings ──────────────────────────────
 export const PERMISSIONS = {
-  // CRM
-  CRM_VIEW:    { module: "crm",     action: "view"   },
-  CRM_CREATE:  { module: "crm",     action: "create" },
-  CRM_EDIT:    { module: "crm",     action: "edit"   },
-  CRM_DELETE:  { module: "crm",     action: "delete" },
+  // ── CRM — Leads ──────────────────────────────────────────────
+  "crm.leads.view":   { module: "crm.leads",   action: "view"   },
+  "crm.leads.create": { module: "crm.leads",   action: "create" },
+  "crm.leads.edit":   { module: "crm.leads",   action: "edit"   },
+  "crm.leads.delete": { module: "crm.leads",   action: "delete" },
+  "crm.leads.assign": { module: "crm.leads",   action: "assign" },
+  "crm.leads.export": { module: "crm.leads",   action: "export" },
 
-  // Leads
-  LEADS_CREATE: { module: "leads", action: "create" },
-  LEADS_ASSIGN: { module: "leads", action: "assign" },
-  LEADS_EXPORT: { module: "leads", action: "export" },
+  // ── CRM — Meetings ────────────────────────────────────────────
+  "crm.meetings.view":     { module: "crm.meetings",   action: "view"     },
+  "crm.meetings.create":   { module: "crm.meetings",   action: "create"   },
+  "crm.meetings.complete": { module: "crm.meetings",   action: "complete" },
 
-  // Deals
-  DEALS_VIEW:   { module: "deals", action: "view"   },
-  DEALS_CREATE: { module: "deals", action: "create" },
-  DEALS_EDIT:   { module: "deals", action: "edit"   },
-  DEALS_DELETE: { module: "deals", action: "delete" },
+  // ── CRM — Proposals ───────────────────────────────────────────
+  "crm.proposals.view":   { module: "crm.proposals", action: "view"   },
+  "crm.proposals.create": { module: "crm.proposals", action: "create" },
+  "crm.proposals.edit":   { module: "crm.proposals", action: "edit"   },
 
-  // Contacts
-  CONTACTS_VIEW:   { module: "contacts", action: "view"   },
-  CONTACTS_CREATE: { module: "contacts", action: "create" },
-  CONTACTS_EDIT:   { module: "contacts", action: "edit"   },
+  // ── Clients ───────────────────────────────────────────────────
+  "clients.view":   { module: "clients", action: "view"   },
+  "clients.create": { module: "clients", action: "create" },
+  "clients.edit":   { module: "clients", action: "edit"   },
 
-  // Reports & Analytics
-  REPORTS_VIEW:   { module: "reports", action: "view"   },
-  REPORTS_EXPORT: { module: "reports", action: "export" },
+  // ── Documents ─────────────────────────────────────────────────
+  "documents.view":   { module: "documents", action: "view"   },
+  "documents.upload": { module: "documents", action: "upload" },
 
-  // Knowledge Base
-  KB_VIEW:    { module: "kb", action: "view"    },
-  KB_CREATE:  { module: "kb", action: "create"  },
-  KB_EDIT:    { module: "kb", action: "edit"    },
-  KB_PUBLISH: { module: "kb", action: "publish" },
+  // ── Knowledge Base ────────────────────────────────────────────
+  "knowledge.view":    { module: "knowledge", action: "view"    },
+  "knowledge.create":  { module: "knowledge", action: "create"  },
+  "knowledge.edit":    { module: "knowledge", action: "edit"    },
+  "knowledge.publish": { module: "knowledge", action: "publish" },
 
-  // Meetings & Calls
-  MEETINGS_CREATE:   { module: "meetings", action: "create"   },
-  MEETINGS_COMPLETE: { module: "meetings", action: "complete" },
+  // ── Users & Roles ─────────────────────────────────────────────
+  "users.view":   { module: "users", action: "view"   },
+  "users.invite": { module: "users", action: "invite" },
+  "users.manage": { module: "users", action: "manage" },
+  "roles.manage": { module: "roles", action: "manage" },
 
-  // Tasks
-  TASKS_VIEW:   { module: "tasks", action: "view"   },
-  TASKS_CREATE: { module: "tasks", action: "create" },
-  TASKS_ASSIGN: { module: "tasks", action: "assign" },
-
-  // Users & Roles
-  USERS_VIEW:   { module: "users", action: "view"   },
-  USERS_INVITE: { module: "users", action: "invite" },
-  USERS_MANAGE: { module: "users", action: "manage" },
-  ROLES_MANAGE: { module: "roles", action: "manage" },
-
-  // Settings
-  SETTINGS_VIEW:   { module: "settings", action: "view"   },
-  SETTINGS_MANAGE: { module: "settings", action: "manage" },
+  // ── Settings ──────────────────────────────────────────────────
+  "settings.view":   { module: "settings", action: "view"   },
+  "settings.manage": { module: "settings", action: "manage" },
 } as const;
 
 export type PermissionKey = keyof typeof PERMISSIONS;
-export type PermissionString = `${string}.${string}`;
+export type PermissionString = PermissionKey;
 
-// ── Default role → permission mapping ────────────────────
+// ── Default role → permission mapping ────────────────────────
 // Used to seed the database initial roles
 export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
   super_admin: Object.keys(PERMISSIONS) as PermissionKey[],
 
   admin: [
-    "CRM_VIEW", "CRM_CREATE", "CRM_EDIT", "CRM_DELETE",
-    "LEADS_CREATE", "LEADS_ASSIGN", "LEADS_EXPORT",
-    "DEALS_VIEW", "DEALS_CREATE", "DEALS_EDIT", "DEALS_DELETE",
-    "CONTACTS_VIEW", "CONTACTS_CREATE", "CONTACTS_EDIT",
-    "REPORTS_VIEW", "REPORTS_EXPORT",
-    "KB_VIEW", "KB_CREATE", "KB_EDIT", "KB_PUBLISH",
-    "MEETINGS_CREATE", "MEETINGS_COMPLETE",
-    "TASKS_VIEW", "TASKS_CREATE", "TASKS_ASSIGN",
-    "USERS_VIEW", "USERS_INVITE", "USERS_MANAGE",
-    "SETTINGS_VIEW", "SETTINGS_MANAGE",
+    "crm.leads.view", "crm.leads.create", "crm.leads.edit", "crm.leads.delete",
+    "crm.leads.assign", "crm.leads.export",
+    "crm.meetings.view", "crm.meetings.create", "crm.meetings.complete",
+    "crm.proposals.view", "crm.proposals.create", "crm.proposals.edit",
+    "clients.view", "clients.create", "clients.edit",
+    "documents.view", "documents.upload",
+    "knowledge.view", "knowledge.create", "knowledge.edit", "knowledge.publish",
+    "users.view", "users.invite", "users.manage",
+    "settings.view", "settings.manage",
   ],
 
   sales_manager: [
-    "CRM_VIEW", "CRM_CREATE", "CRM_EDIT",
-    "LEADS_CREATE", "LEADS_ASSIGN", "LEADS_EXPORT",
-    "DEALS_VIEW", "DEALS_CREATE", "DEALS_EDIT",
-    "CONTACTS_VIEW", "CONTACTS_CREATE", "CONTACTS_EDIT",
-    "REPORTS_VIEW", "REPORTS_EXPORT",
-    "KB_VIEW",
-    "MEETINGS_CREATE", "MEETINGS_COMPLETE",
-    "TASKS_VIEW", "TASKS_CREATE", "TASKS_ASSIGN",
-    "USERS_VIEW",
-    "SETTINGS_VIEW",
+    "crm.leads.view", "crm.leads.create", "crm.leads.edit",
+    "crm.leads.assign", "crm.leads.export",
+    "crm.meetings.view", "crm.meetings.create", "crm.meetings.complete",
+    "crm.proposals.view", "crm.proposals.create", "crm.proposals.edit",
+    "clients.view", "clients.create", "clients.edit",
+    "documents.view", "documents.upload",
+    "knowledge.view", "knowledge.create", "knowledge.edit",
+    "users.view", "users.invite",
+    "settings.view",
   ],
 
   cx_executive: [
-    "CRM_VIEW", "CRM_CREATE", "CRM_EDIT",
-    "LEADS_CREATE", "LEADS_ASSIGN",
-    "DEALS_VIEW", "DEALS_CREATE", "DEALS_EDIT",
-    "CONTACTS_VIEW", "CONTACTS_CREATE", "CONTACTS_EDIT",
-    "REPORTS_VIEW",
-    "KB_VIEW",
-    "MEETINGS_CREATE", "MEETINGS_COMPLETE",
-    "TASKS_VIEW", "TASKS_CREATE",
+    "crm.leads.view", "crm.leads.create", "crm.leads.edit", "crm.leads.assign",
+    "crm.meetings.view", "crm.meetings.create", "crm.meetings.complete",
+    "crm.proposals.view", "crm.proposals.create",
+    "clients.view",
+    "documents.view",
+    "knowledge.view",
+    "users.view",
   ],
 
   proposal_manager: [
-    "CRM_VIEW",
-    "DEALS_VIEW", "DEALS_CREATE", "DEALS_EDIT",
-    "CONTACTS_VIEW",
-    "KB_VIEW", "KB_CREATE", "KB_EDIT",
+    "crm.leads.view",
+    "crm.proposals.view", "crm.proposals.create", "crm.proposals.edit",
+    "crm.meetings.view",
+    "clients.view",
+    "knowledge.view", "knowledge.create", "knowledge.edit",
+    "documents.view", "documents.upload",
   ],
 
   analyst: [
-    "CRM_VIEW",
-    "DEALS_VIEW",
-    "CONTACTS_VIEW",
-    "REPORTS_VIEW", "REPORTS_EXPORT",
-    "KB_VIEW",
+    "crm.leads.view", "crm.leads.export",
+    "crm.proposals.view",
+    "crm.meetings.view",
+    "clients.view",
+    "knowledge.view",
+    "documents.view",
   ],
 
   viewer: [
-    "CRM_VIEW",
-    "DEALS_VIEW",
-    "CONTACTS_VIEW",
-    "KB_VIEW",
+    "crm.leads.view",
+    "crm.proposals.view",
+    "crm.meetings.view",
+    "clients.view",
+    "knowledge.view",
+    "documents.view",
   ],
 };
 
-// ── Client-side permission check helper ──────────────────
-// Pass the permission strings from the session/API call
+// ── Client-side permission check helper ──────────────────────
+// Pass the permission strings from the session/API
 export function can(
   userPermissions: PermissionString[],
   key: PermissionKey
 ): boolean {
-  const p = PERMISSIONS[key];
-  const target = `${p.module}.${p.action}` as PermissionString;
-  return userPermissions.includes(target);
+  return userPermissions.includes(key);
 }

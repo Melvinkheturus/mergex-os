@@ -1,26 +1,404 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
-  // Connection URLs are managed in prisma.config.ts (Prisma 7+)
 }
 
-enum PlanType {
-  FREE
-  PRO
-  ENTERPRISE
+model Activity {
+  id          String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  leadId      String
+  userId      String
+  type        String
+  content     String
+  performedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  Lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  User        User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([leadId])
 }
 
-enum InviteStatus {
-  PENDING
-  ACCEPTED
-  EXPIRED
-  REVOKED
+model AuditLog {
+  id        String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  leadId    String
+  brandId   String
+  action    String
+  oldValue  String?
+  newValue  String?
+  changedBy String
+  changedAt DateTime @default(now())
+  User      User     @relation(fields: [changedBy], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  Lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([brandId])
+  @@index([changedAt])
+  @@index([leadId])
+}
+
+model Brand {
+  id              String            @id
+  name            String
+  slug            String            @unique
+  logoUrl         String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime
+  color           String?           @default("violet")
+  description     String?
+  status          String            @default("active")
+  Client          Client[]
+  Lead            Lead[]
+  LeadSource      LeadSource[]
+  LeadStage       LeadStage[]
+  UserBrandAccess UserBrandAccess[]
+  UserInvite      UserInvite[]
+  UserInviteBrand UserInviteBrand[]
+}
+
+model BusinessReview {
+  id                  String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  leadId              String   @unique
+  brandId             String
+  businessModel       String?
+  targetMarket        String?
+  currentChannels     String?
+  currentChallenges   String?
+  currentStrengths    String?
+  currentWeaknesses   String?
+  painPoints          String[] @default([])
+  opportunities       String[] @default([])
+  recommendedServices String[] @default([])
+  reviewNotes         String?
+  reviewedBy          String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @default(now())
+  Lead                Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([brandId])
+  @@index([leadId])
+}
+
+model Client {
+  id                  String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  brandId             String
+  companyName         String
+  contactPerson       String
+  email               String?
+  phone               String?
+  website             String?
+  engagementManagerId String?
+  onboardingStatus    String   @default("PENDING")
+  status              String   @default("active")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @default(now())
+  Brand               Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  User                User?    @relation(fields: [engagementManagerId], references: [id], onUpdate: NoAction)
+
+  @@index([brandId])
+}
+
+model Lead {
+  id               String          @id @default(dbgenerated("(gen_random_uuid())::text"))
+  brandId          String
+  leadNumber       String?
+  companyName      String
+  contactPerson    String
+  designation      String?
+  email            String?
+  phone            String?
+  website          String?
+  industry         String?
+  location         String?
+  sourceId         String?
+  stageId          String?
+  ownerId          String?
+  icpScore         Int             @default(0)
+  temperature      String          @default("COLD")
+  expectedValue    Decimal?
+  priority         String          @default("MEDIUM")
+  services         String[]        @default([])
+  leadCategory     String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @default(now())
+  lastActivityAt   DateTime?
+  lastContactAt    DateTime?
+  nextFollowUpAt   DateTime?
+  nextAction       String?
+  nextActionDate   DateTime?
+  currentSituation String?
+  painPoints       String[]        @default([])
+  opportunityNotes String?
+  bantBudget       Int             @default(0)
+  bantAuthority    Int             @default(0)
+  bantNeed         Int             @default(0)
+  bantTimeline     Int             @default(0)
+  bantScore        Int             @default(0)
+  winLossStatus    String?
+  winLossReason    String?
+  winLossNotes     String?
+  decisionMaker    String?
+  influencer       String?
+  champion         String?
+  financeContact   String?
+  Activity         Activity[]
+  AuditLog         AuditLog[]
+  BusinessReview   BusinessReview?
+  Brand            Brand           @relation(fields: [brandId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  User             User?           @relation(fields: [ownerId], references: [id], onUpdate: NoAction)
+  LeadSource       LeadSource?     @relation(fields: [sourceId], references: [id], onUpdate: NoAction)
+  LeadStage        LeadStage?      @relation(fields: [stageId], references: [id], onUpdate: NoAction)
+  Meeting          Meeting[]
+  Note             Note[]
+  Proposal         Proposal[]
+
+  @@index([brandId])
+  @@index([nextFollowUpAt])
+  @@index([ownerId])
+  @@index([stageId])
+}
+
+model LeadSource {
+  id        String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  brandId   String
+  name      String
+  isSystem  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+  Lead      Lead[]
+  Brand     Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([brandId, name])
+}
+
+model LeadStage {
+  id        String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  brandId   String
+  name      String
+  label     String
+  color     String?
+  order     Int      @default(0)
+  isSystem  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+  Lead      Lead[]
+  Brand     Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([brandId, name])
+}
+
+model LoginAudit {
+  id        String      @id
+  userId    String?
+  email     String
+  action    AuditAction
+  ipAddress String?
+  userAgent String?
+  metadata  Json?
+  createdAt DateTime    @default(now())
+  User      User?       @relation(fields: [userId], references: [id])
+
+  @@index([createdAt])
+  @@index([email])
+  @@index([userId])
+}
+
+model Meeting {
+  id          String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  leadId      String
+  organizerId String
+  title       String
+  scheduledAt DateTime
+  duration    Int      @default(30)
+  mode        String
+  meetingUrl  String?
+  summary     String?
+  outcome     String?
+  status      String   @default("SCHEDULED")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+  Lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  User        User     @relation(fields: [organizerId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([leadId])
+}
+
+model Note {
+  id         String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  leadId     String
+  brandId    String
+  title      String?
+  content    String
+  visibility String    @default("TEAM")
+  createdBy  String
+  isActive   Boolean   @default(true)
+  deletedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now())
+  User       User      @relation(fields: [createdBy], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  Lead       Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([brandId])
+  @@index([leadId])
+}
+
+model Notification {
+  id        String               @id
+  type      NotificationType     @default(SYSTEM)
+  priority  NotificationPriority @default(MEDIUM)
+  title     String
+  message   String
+  isRead    Boolean              @default(false)
+  link      String?
+  userId    String
+  createdAt DateTime             @default(now())
+  User      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([isRead])
+  @@index([userId])
+}
+
+model NotificationPreference {
+  id           String  @id
+  userId       String  @unique
+  inAppEnabled Boolean @default(true)
+  emailEnabled Boolean @default(true)
+  User         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Permission {
+  id             String           @id
+  module         String
+  action         String
+  RolePermission RolePermission[]
+
+  @@unique([module, action])
+}
+
+model Proposal {
+  id             String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  leadId         String
+  proposalNumber String
+  title          String
+  status         String    @default("DRAFT")
+  sentAt         DateTime?
+  value          Decimal
+  notes          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @default(now())
+  Lead           Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([leadId, proposalNumber])
+}
+
+model RecoveryCode {
+  id        String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  userId    String
+  codeHash  String    @unique
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  User      User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([userId])
+}
+
+model Role {
+  id             String           @id
+  name           String           @unique
+  label          String
+  description    String?
+  isSystem       Boolean          @default(false)
+  RolePermission RolePermission[]
+  User           User[]
+}
+
+model RolePermission {
+  id           String     @id
+  roleId       String
+  permissionId String
+  Permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  Role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+}
+
+model User {
+  id                     String                  @id
+  clerkId                String                  @unique
+  email                  String                  @unique
+  firstName              String?
+  lastName               String?
+  avatarUrl              String?
+  roleId                 String
+  isActive               Boolean                 @default(true)
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime
+  employeeId             String?                 @unique
+  username               String?                 @unique
+  phone                  String?
+  designation            String?
+  onboardingState        OnboardingState         @default(PROFILE_SETUP)
+  activeBrandId          String?
+  theme                  String?                 @default("system")
+  Activity               Activity[]
+  AuditLog               AuditLog[]
+  Client                 Client[]
+  Lead                   Lead[]
+  LoginAudit             LoginAudit[]
+  Meeting                Meeting[]
+  Note                   Note[]
+  Notification           Notification[]
+  NotificationPreference NotificationPreference?
+  RecoveryCode           RecoveryCode[]
+  Role                   Role                    @relation(fields: [roleId], references: [id])
+  UserBrandAccess        UserBrandAccess[]
+
+  @@index([clerkId])
+  @@index([roleId])
+}
+
+model UserBrandAccess {
+  id        String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  userId    String
+  brandId   String
+  grantedAt DateTime @default(now())
+  Brand     Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([userId, brandId])
+  @@index([brandId])
+  @@index([userId])
+}
+
+model UserInvite {
+  id              String            @id
+  email           String
+  roleId          String?
+  brandId         String?
+  token           String            @unique
+  status          InviteStatus      @default(PENDING)
+  expiresAt       DateTime
+  invitedBy       String?
+  acceptedAt      DateTime?
+  createdAt       DateTime          @default(now())
+  Brand           Brand?            @relation(fields: [brandId], references: [id], onUpdate: NoAction)
+  UserInviteBrand UserInviteBrand[]
+
+  @@index([email])
+  @@index([token])
+}
+
+model UserInviteBrand {
+  id         String     @id @default(dbgenerated("(gen_random_uuid())::text"))
+  inviteId   String
+  brandId    String
+  Brand      Brand      @relation(fields: [brandId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  UserInvite UserInvite @relation(fields: [inviteId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([inviteId, brandId])
+  @@index([brandId])
+  @@index([inviteId])
 }
 
 enum AuditAction {
@@ -29,6 +407,13 @@ enum AuditAction {
   LOGOUT
   ROLE_CHANGED
   ACCOUNT_DEACTIVATED
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
 }
 
 enum NotificationPriority {
@@ -48,422 +433,13 @@ enum NotificationType {
 }
 
 enum OnboardingState {
-  PLATFORM_SETUP  // first super_admin - must complete platform setup
-  PROFILE_SETUP   // all users - must complete personal profile
-  COMPLETE        // onboarding done, normal access
+  PLATFORM_SETUP
+  PROFILE_SETUP
+  COMPLETE
 }
 
-// ── 1. RBAC Roles ──────────────────────────────
-model Role {
-  id          String  @id @default(cuid())
-  name        String  @unique  // e.g. "super_admin", "admin", "cx_executive", "viewer"
-  label       String           // e.g. "Super Admin"
-  description String?
-  isSystem    Boolean @default(false) // system roles cannot be deleted
-
-  users       User[]
-  permissions RolePermission[]
-}
-
-// ── 2. RBAC Permissions ─────────────────────────
-model Permission {
-  id     String @id @default(cuid())
-  module String // e.g. "brand", "users", "crm", "settings"
-  action String // e.g. "manage", "view", "invite"
-
-  roles  RolePermission[]
-
-  @@unique([module, action])
-}
-
-// ── 3. RBAC Role-Permission Pivot ────────────────
-model RolePermission {
-  id           String @id @default(cuid())
-  roleId       String
-  permissionId String
-
-  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
-
-  @@unique([roleId, permissionId])
-  @@index([roleId])
-}
-
-// ── 4. Brand / Division ─────────────────────────
-model Brand {
-  id          String   @id @default(cuid())
-  name        String
-  slug        String   @unique
-  logoUrl     String?
-  color       String?  @default("violet")
-  description String?
-  status      String   @default("active")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  invites    UserInvite[]
-  userAccess UserBrandAccess[]
-  leads      Lead[]
-  sources    LeadSource[]
-  stages     LeadStage[]
-  clients    Client[]
-}
-
-// ── 5. User (Clerk Identity Mapping) ─────────────
-model User {
-  id               String          @id @default(cuid())
-  clerkId          String          @unique
-  email            String          @unique
-  firstName        String?
-  lastName         String?
-  username         String?         @unique
-  avatarUrl        String?
-  designation      String?
-  roleId           String
-  isActive         Boolean         @default(true)
-  onboardingState  OnboardingState @default(PROFILE_SETUP)
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
-
-  activeBrandId    String?
-  theme            String?         @default("system")
-
-  role          Role                    @relation(fields: [roleId], references: [id])
-  loginAudits   LoginAudit[]
-  notifications Notification[]
-  preference    NotificationPreference?
-  brandAccess   UserBrandAccess[]
-  leadsOwned    Lead[]                  @relation("LeadOwner")
-  activities    Activity[]
-  meetings      Meeting[]               @relation("MeetingOrganizer")
-  clientsManaged Client[]              @relation("EngagementManager")
-  notesCreated  Note[]                 @relation("NoteCreator")
-  auditActions  AuditLog[]             @relation("AuditActor")
-
-  @@index([clerkId])
-  @@index([roleId])
-}
-
-// ── 5a. User ↔ Brand Access Control ──────────────
-model UserBrandAccess {
-  id        String   @id @default(cuid())
-  userId    String
-  brandId   String
-  grantedAt DateTime @default(now())
-
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, brandId])
-  @@index([userId])
-  @@index([brandId])
-}
-
-// ── 6. Invitation System ────────────────────────
-model UserInvite {
-  id         String       @id @default(cuid())
-  email      String
-  roleId     String?
-  brandId    String
-  token      String       @unique
-  status     InviteStatus @default(PENDING)
-  expiresAt  DateTime
-  invitedBy  String?
-  acceptedAt DateTime?
-  createdAt  DateTime     @default(now())
-
-  brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
-
-  @@index([token])
-  @@index([email])
-}
-
-// ── 7. Compliance Audit Log ─────────────────────
-model LoginAudit {
-  id        String      @id @default(cuid())
-  userId    String?
-  email     String
-  action    AuditAction
-  ipAddress String?
-  userAgent String?
-  metadata  Json?
-  createdAt DateTime    @default(now())
-
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@index([userId])
-  @@index([email])
-  @@index([createdAt])
-}
-
-// ── 8. Notification MVP ─────────────────────────
-model Notification {
-  id         String               @id @default(cuid())
-  type       NotificationType     @default(SYSTEM)
-  priority   NotificationPriority @default(MEDIUM)
-  title      String
-  message    String
-  isRead     Boolean              @default(false)
-  link       String?
-  userId     String
-  createdAt  DateTime             @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([isRead])
-}
-
-// ── 9. Notification Preferences ─────────────────
-model NotificationPreference {
-  id           String  @id @default(cuid())
-  userId       String  @unique
-  inAppEnabled Boolean @default(true)
-  emailEnabled Boolean @default(true)
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-// ── 10. CRM Models ──────────────────────────────
-
-model Lead {
-  id               String            @id @default(cuid())
-  brandId          String
-  leadNumber       String?           // e.g. "L-001"
-  companyName      String
-  contactPerson    String
-  designation      String?           // contact's job title
-  email            String?
-  phone            String?
-  website          String?
-  industry         String?
-  location         String?           // company city/region
-  sourceId         String?
-  stageId          String?
-  ownerId          String?
-  icpScore         Int               @default(0)
-  temperature      String            @default("COLD")
-  expectedValue    Decimal?
-  priority         String            @default("MEDIUM")
-  services         String[]
-  leadCategory     String?           // "Enterprise" | "Mid-Market" | "SMB" | "Startup"
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-
-  // Tracking dates
-  lastActivityAt   DateTime?
-  lastContactAt    DateTime?
-  nextFollowUpAt   DateTime?
-
-  // Next action (what does the CX exec need to do next?)
-  nextAction       String?           // "CALL_CLIENT" | "FOLLOW_UP" | "SEND_PROPOSAL" | "SCHEDULE_MEETING" | "WAITING_RESPONSE"
-  nextActionDate   DateTime?
-
-  // Business Review (legacy inline fields - kept for backward compat)
-  currentSituation String?
-  painPoints       String[]
-  opportunityNotes String?
-
-  // Qualification fields (kept on Lead - always loaded/edited together)
-  bantBudget       Int               @default(0)
-  bantAuthority    Int               @default(0)
-  bantNeed         Int               @default(0)
-  bantTimeline     Int               @default(0)
-  bantScore        Int               @default(0)
-
-  // Win/Loss fields
-  winLossStatus    String?
-  winLossReason    String?
-  winLossNotes     String?
-
-  // Relationship Intelligence fields
-  decisionMaker    String?
-  influencer       String?
-  champion         String?
-  financeContact   String?
-
-  brand            Brand             @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  source           LeadSource?       @relation(fields: [sourceId], references: [id], onDelete: SetNull)
-  stage            LeadStage?        @relation(fields: [stageId], references: [id], onDelete: SetNull)
-  owner            User?             @relation("LeadOwner", fields: [ownerId], references: [id], onDelete: SetNull)
-  activities       Activity[]
-  meetings         Meeting[]
-  proposals        Proposal[]
-  businessReview   BusinessReview?
-  notes            Note[]
-  auditLogs        AuditLog[]
-
-  @@index([brandId])
-  @@index([stageId])
-  @@index([ownerId])
-  @@index([nextFollowUpAt])
-}
-
-model LeadSource {
-  id        String   @id @default(cuid())
-  brandId   String
-  name      String
-  isSystem  Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  brand     Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  leads     Lead[]
-
-  @@unique([brandId, name])
-}
-
-model LeadStage {
-  id        String   @id @default(cuid())
-  brandId   String
-  name      String
-  label     String
-  color     String?
-  order     Int      @default(0)
-  isSystem  Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  brand     Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  leads     Lead[]
-
-  @@unique([brandId, name])
-}
-
-model Activity {
-  id          String   @id @default(cuid())
-  leadId      String
-  userId      String
-  type        String   // "CALL" | "EMAIL" | "WHATSAPP" | "NOTE" | "TASK"
-  content     String
-  performedAt DateTime @default(now())
-  createdAt   DateTime @default(now())
-
-  lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([leadId])
-}
-
-model Meeting {
-  id          String   @id @default(cuid())
-  leadId      String
-  organizerId String
-  title       String
-  scheduledAt DateTime
-  duration    Int      @default(30)
-  mode        String   // "GOOGLE_MEET" | "ZOOM" | "PHONE" | "IN_PERSON"
-  meetingUrl  String?
-  summary     String?
-  outcome     String?
-  status      String   @default("SCHEDULED")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  organizer   User     @relation("MeetingOrganizer", fields: [organizerId], references: [id], onDelete: Cascade)
-
-  @@index([leadId])
-}
-
-model Proposal {
-  id             String    @id @default(cuid())
-  leadId         String
-  proposalNumber String
-  title          String
-  status         String    @default("DRAFT")
-  sentAt         DateTime?
-  value          Decimal
-  notes          String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  lead           Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
-
-  @@unique([leadId, proposalNumber])
-}
-
-model Client {
-  id                  String   @id @default(cuid())
-  brandId             String
-  companyName         String
-  contactPerson       String
-  email               String?
-  phone               String?
-  website             String?
-  engagementManagerId String?
-  onboardingStatus    String   @default("PENDING")
-  status              String   @default("active")
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-
-  brand               Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  engagementManager   User?    @relation("EngagementManager", fields: [engagementManagerId], references: [id], onDelete: SetNull)
-
-  @@index([brandId])
-}
-
-// ── 11. Business Review (1:1 with Lead) ─────────────────────
-model BusinessReview {
-  id                  String   @id @default(cuid())
-  leadId              String   @unique
-  brandId             String
-  businessModel       String?
-  targetMarket        String?
-  currentChannels     String?
-  currentChallenges   String?
-  currentStrengths    String?
-  currentWeaknesses   String?
-  painPoints          String[]
-  opportunities       String[]
-  recommendedServices String[]
-  reviewNotes         String?
-  reviewedBy          String?
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-
-  lead    Lead  @relation(fields: [leadId], references: [id], onDelete: Cascade)
-
-  @@index([leadId])
-  @@index([brandId])
-}
-
-// ── 12. Notes ────────────────────────────────────────────────
-model Note {
-  id         String    @id @default(cuid())
-  leadId     String
-  brandId    String
-  title      String?
-  content    String
-  visibility String    @default("TEAM") // "PRIVATE" | "TEAM"
-  createdBy  String
-  isActive   Boolean   @default(true)
-  deletedAt  DateTime?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-
-  lead    Lead  @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  creator User  @relation("NoteCreator", fields: [createdBy], references: [id], onDelete: Cascade)
-
-  @@index([leadId])
-  @@index([brandId])
-}
-
-// ── 13. Audit Log ────────────────────────────────────────────
-model AuditLog {
-  id        String   @id @default(cuid())
-  leadId    String
-  brandId   String
-  action    String   // "STAGE_CHANGED" | "OWNER_CHANGED" | "PROPOSAL_CREATED" | "MEETING_SCHEDULED" | "STATUS_CHANGED"
-  oldValue  String?
-  newValue  String?
-  changedBy String
-  changedAt DateTime @default(now())
-
-  lead  Lead  @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  actor User  @relation("AuditActor", fields: [changedBy], references: [id], onDelete: Cascade)
-
-  @@index([leadId])
-  @@index([brandId])
-  @@index([changedAt])
+enum PlanType {
+  FREE
+  PRO
+  ENTERPRISE
 }

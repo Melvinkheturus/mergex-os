@@ -18,7 +18,7 @@ export default async function WorkspacesPage() {
   });
 
   const teammates = await db.user.findMany({
-    include: { role: true },
+    include: { Role: true },
     orderBy: { createdAt: "desc" },
   });
 
@@ -49,8 +49,8 @@ export default async function WorkspacesPage() {
         lastName: t.lastName,
         designation: t.designation,
         role: {
-          name: t.role.name,
-          label: t.role.label,
+          name: t.Role.name,
+          label: t.Role.label,
         },
       }))}
     />

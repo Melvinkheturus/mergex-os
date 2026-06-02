@@ -36,7 +36,7 @@ export async function GET(
     const activities = await db.activity.findMany({
       where: { leadId: id },
       include: {
-        user: {
+        User: {
           select: {
             id: true,
             firstName: true,
@@ -84,7 +84,7 @@ export async function POST(
         performedAt: performedAt ? new Date(performedAt) : new Date(),
       },
       include: {
-        user: {
+        User: {
           select: {
             id: true,
             firstName: true,

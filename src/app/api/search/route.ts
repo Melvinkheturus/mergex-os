@@ -100,7 +100,7 @@ export async function GET(request: Request) {
         { email:     { contains, mode } },
       ],
     },
-    select: { id: true, firstName: true, lastName: true, email: true, role: { select: { label: true } } },
+    select: { id: true, firstName: true, lastName: true, email: true, Role: { select: { label: true } } },
     take: perEntity,
   });
 
@@ -124,7 +124,7 @@ export async function GET(request: Request) {
         id:         u.id,
         entityType: "user",
         title:      `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim() || u.email,
-        subtitle:   u.role.label,
+        subtitle:   u.Role.label,
         href:       `/workspaces/${slug}/team`,
       })),
     });

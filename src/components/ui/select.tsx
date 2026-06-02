@@ -100,7 +100,7 @@ export function SelectValue({
   }, [placeholder, setPlaceholder]);
 
   return (
-    <HeroSelect.Value className={cn("text-sm", className)} {...props} />
+    <HeroSelect.Value className={cn("text-left truncate", className)} {...props} />
   );
 }
 
@@ -117,12 +117,12 @@ export function SelectContent({
     <HeroSelect.Popover
       style={{ minWidth: "var(--trigger-width)" }}
       className={cn(
-        "z-50 rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-md outline-none data-[entering]:animate-in data-[exiting]:animate-out data-[entering]:fade-in-0 data-[exiting]:fade-out-0 data-[entering]:zoom-in-95 data-[exiting]:zoom-out-95",
+        "z-50 rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-md outline-none pointer-events-auto data-entering:animate-in data-exiting:animate-out data-entering:fade-in-0 data-exiting:fade-out-0 data-entering:zoom-in-95 data-exiting:zoom-out-95",
         className
       )}
       {...props}
     >
-      <HeroListBox className="outline-none flex flex-col gap-0.5">
+      <HeroListBox className="outline-none flex flex-col gap-0.5 max-h-60 overflow-y-auto">
         {children as React.ComponentProps<typeof HeroListBox>["children"]}
       </HeroListBox>
     </HeroSelect.Popover>
@@ -158,13 +158,13 @@ export function SelectItem({
       id={value}
       textValue={textValue}
       className={cn(
-        "group/select-item relative flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 pr-8 text-xs outline-none select-none text-foreground hover:bg-accent hover:text-accent-foreground data-[hovered]:bg-accent data-[hovered]:text-accent-foreground data-[focus]:bg-accent data-[focus]:text-accent-foreground data-[selected]:bg-accent data-[selected]:text-accent-foreground transition-colors",
+        "group/select-item relative flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 pr-8 text-xs outline-none select-none text-foreground hover:bg-accent hover:text-accent-foreground data-hovered:bg-accent data-hovered:text-accent-foreground data-focus:bg-accent data-focus:text-accent-foreground data-selected:bg-accent data-selected:text-accent-foreground transition-colors",
         className
       )}
       {...props}
     >
       {children}
-      <HeroListBoxItemIndicator className="absolute right-2 hidden size-4 items-center justify-center text-foreground group-data-[selected]/select-item:flex">
+      <HeroListBoxItemIndicator className="absolute right-2 hidden size-4 items-center justify-center text-foreground group-data-selected/select-item:flex">
         <CheckIcon className="h-3.5 w-3.5" />
       </HeroListBoxItemIndicator>
     </HeroListBoxItem>
