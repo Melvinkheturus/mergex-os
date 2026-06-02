@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,8 +17,13 @@ import {
   Loader2,
   Building2,
   KeyRound,
+  User,
+  Mail,
+  Lock,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
+import { LiquidMetalButton } from "@/components/ui/liquid-metal-button";
 
 // ── Form schema ──────────────────────────────────────────────────────────────
 
@@ -34,7 +39,13 @@ const setupSchema = z
         "Use uppercase letters, numbers, and hyphens only (e.g. MX001)"
       ),
     email: z.string().email("Enter a valid email address"),
-    password: z.string().min(8, "Password must be at least 8 characters"),
+    password: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+      .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+      .regex(/[0-9]/, "Password must contain at least one number")
+      .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
     confirmPassword: z.string(),
     companyName: z.string().optional(),
   })
@@ -59,15 +70,15 @@ function Field({
   hint?: string;
 }) {
   return (
-    <div className="space-y-1.5">
-      <label className="block text-xs font-semibold text-foreground/80 tracking-wide uppercase">
+    <div className="space-y-1 w-full">
+      <label className="block text-[10px] font-bold text-zinc-400 tracking-wider uppercase select-none">
         {label}
       </label>
       {children}
       {hint && !error && (
-        <p className="text-[11px] text-muted-foreground">{hint}</p>
+        <p className="text-[9px] text-zinc-500 leading-normal">{hint}</p>
       )}
-      {error && <p className="text-[11px] text-destructive font-medium">{error}</p>}
+      {error && <p className="text-[10px] text-red-400 font-medium">{error}</p>}
     </div>
   );
 }
@@ -78,7 +89,7 @@ function Input({
 }: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
-      className={`w-full rounded-lg border border-border/60 bg-background/60 px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none transition focus:border-violet-500/60 focus:ring-2 focus:ring-violet-500/10 disabled:opacity-50 ${className ?? ""}`}
+      className={`w-full rounded-lg border border-white/10 bg-transparent px-3.5 py-2.5 text-xs text-white placeholder:text-zinc-600 outline-none transition-all duration-200 focus:border-white/20 disabled:opacity-50 hover:border-white/15 ${className ?? ""}`}
       {...props}
     />
   );
@@ -94,7 +105,7 @@ function CopyButton({ text }: { text: string }) {
   return (
     <button
       onClick={copy}
-      className="ml-2 shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-violet-500/10 hover:text-violet-400 transition-colors"
+      className="ml-2 shrink-0 rounded-md p-1.5 text-zinc-400 hover:bg-white/5 hover:text-white transition-colors"
       title="Copy"
     >
       {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
@@ -113,12 +124,27 @@ function SetupForm({
   const [showConfirm, setShowConfirm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+
   const {
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<SetupFormValues>({ resolver: zodResolver(setupSchema) });
+
+  const passwordValue = watch("password") || "";
+  const getPasswordStrength = (pass: string) => {
+    let score = 0;
+    if (!pass) return 0;
+    if (pass.length >= 8) score += 1;
+    if (/[A-Z]/.test(pass)) score += 1;
+    if (/[a-z]/.test(pass)) score += 1;
+    if (/[0-9]/.test(pass)) score += 1;
+    if (/[^A-Za-z0-9]/.test(pass)) score += 1;
+    return score;
+  };
+  const strengthScore = getPasswordStrength(passwordValue);
 
   const onSubmit = async (values: SetupFormValues) => {
     setSubmitting(true);
@@ -158,12 +184,18 @@ function SetupForm({
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       {/* Name row */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Field label="First Name" error={errors.firstName?.message}>
-          <Input placeholder="Manikandan" {...register("firstName")} />
+          <div className="relative">
+            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500" />
+            <Input placeholder="eg. Manikandan" className="pl-9" {...register("firstName")} />
+          </div>
         </Field>
         <Field label="Last Name" error={errors.lastName?.message}>
-          <Input placeholder="Kumar" {...register("lastName")} />
+          <div className="relative">
+            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500" />
+            <Input placeholder="eg. Kumar" className="pl-9" {...register("lastName")} />
+          </div>
         </Field>
       </div>
 
@@ -171,89 +203,112 @@ function SetupForm({
       <Field
         label="Employee ID"
         error={errors.employeeId?.message}
-        hint="Your permanent organizational identifier — e.g. MX001, MX-CEO-001"
       >
-        <Input
-          placeholder="MX001"
-          {...register("employeeId", {
-            onChange: (e) =>
-              setValue("employeeId", e.target.value.toUpperCase(), {
-                shouldValidate: true,
-              }),
-          })}
-          className="font-mono tracking-wider"
-        />
+        <div className="relative">
+          <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500" />
+          <Input
+            placeholder="eg. MX001"
+            {...register("employeeId", {
+              onChange: (e) =>
+                setValue("employeeId", e.target.value.toUpperCase(), {
+                  shouldValidate: true,
+                }),
+            })}
+            className="pl-9 font-mono tracking-wider"
+          />
+        </div>
       </Field>
 
       {/* Email */}
       <Field label="Email Address" error={errors.email?.message}>
-        <Input
-          type="email"
-          placeholder="manikandan@mergex.in"
-          {...register("email")}
-        />
+        <div className="relative">
+          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500" />
+          <Input
+            type="email"
+            placeholder="eg. manikandan@mergex.in"
+            className="pl-9"
+            {...register("email")}
+          />
+        </div>
       </Field>
 
       {/* Company Name */}
       <Field label="Company Name (optional)" error={errors.companyName?.message}>
-        <Input placeholder="MergeX Solutions" {...register("companyName")} />
-      </Field>
-
-      {/* Password */}
-      <Field label="Password" error={errors.password?.message}>
         <div className="relative">
-          <Input
-            type={showPassword ? "text" : "password"}
-            placeholder="Min. 8 characters"
-            {...register("password")}
-            className="pr-10"
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword((p) => !p)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-          >
-            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          </button>
+          <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500" />
+          <Input placeholder="eg. MergeX Solutions" className="pl-9" {...register("companyName")} />
         </div>
       </Field>
 
-      {/* Confirm Password */}
-      <Field label="Confirm Password" error={errors.confirmPassword?.message}>
-        <div className="relative">
-          <Input
-            type={showConfirm ? "text" : "password"}
-            placeholder="Repeat your password"
-            {...register("confirmPassword")}
-            className="pr-10"
-          />
-          <button
-            type="button"
-            onClick={() => setShowConfirm((p) => !p)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-          >
-            {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          </button>
-        </div>
-      </Field>
+      {/* Password row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Password */}
+        <Field label="Password" error={errors.password?.message}>
+          <div className="relative">
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500" />
+            <Input
+              type={showPassword ? "text" : "password"}
+              placeholder="Min. 8 chars"
+              {...register("password")}
+              className="pl-9 pr-9"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((p) => !p)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
+            >
+              {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+            </button>
+          </div>
+          {/* Password strength indicator */}
+          {passwordValue && (
+            <div className="flex gap-1 mt-2 h-1 w-full rounded-full overflow-hidden bg-white/5">
+              {[1, 2, 3, 4, 5].map((level) => (
+                <div
+                  key={level}
+                  className={`flex-1 transition-all duration-300 ${
+                    strengthScore >= level
+                      ? strengthScore <= 2
+                        ? "bg-rose-500"
+                        : strengthScore <= 4
+                        ? "bg-amber-400"
+                        : "bg-emerald-500"
+                      : "bg-transparent"
+                  }`}
+                />
+              ))}
+            </div>
+          )}
+        </Field>
 
-      <button
-        type="submit"
-        disabled={submitting}
-        className="mt-2 w-full flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-violet-500/25 hover:bg-violet-500 active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-      >
-        {submitting ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Initializing platform…
-          </>
-        ) : (
-          <>
-            <Shield className="h-4 w-4" />
-            Initialize Platform
-          </>
-        )}
-      </button>
+        {/* Confirm Password */}
+        <Field label="Confirm Password" error={errors.confirmPassword?.message}>
+          <div className="relative">
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500" />
+            <Input
+              type={showConfirm ? "text" : "password"}
+              placeholder="Repeat password"
+              {...register("confirmPassword")}
+              className="pl-9 pr-9"
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirm((p) => !p)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
+            >
+              {showConfirm ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+            </button>
+          </div>
+        </Field>
+      </div>
+
+      <div className="w-full pt-2 flex justify-end">
+        <LiquidMetalButton
+          label={submitting ? "Initializing..." : "Initialize Platform"}
+          width={180}
+          height={42}
+        />
+      </div>
     </form>
   );
 }
@@ -280,60 +335,60 @@ function RecoveryCodesScreen({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Success header */}
-      <div className="flex flex-col items-center text-center gap-3 py-2">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
-          <CheckCircle2 className="h-7 w-7 text-emerald-400" />
+      <div className="flex flex-col items-center text-center gap-2 py-1">
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+          <CheckCircle2 className="h-6 w-6 text-emerald-400" />
         </div>
         <div>
-          <h2 className="text-xl font-black text-foreground">Platform Initialized</h2>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h2 className="text-lg font-bold text-white">Platform Initialized</h2>
+          <p className="text-xs text-zinc-400 mt-0.5">
             Save your recovery codes before continuing
           </p>
         </div>
         {/* Employee ID badge */}
-        <div className="inline-flex items-center gap-2 rounded-full border border-violet-500/30 bg-violet-500/10 px-4 py-1.5">
-          <KeyRound className="h-3.5 w-3.5 text-violet-400" />
-          <span className="text-xs font-bold text-violet-400 font-mono tracking-wider">
+        <div className="inline-flex items-center gap-1.5 rounded-full border border-purple-500/30 bg-purple-500/10 px-3 py-1">
+          <KeyRound className="h-3 w-3 text-purple-400" />
+          <span className="text-[10px] font-bold text-purple-400 font-mono tracking-wider">
             Your ID: {employeeId}
           </span>
         </div>
       </div>
 
       {/* Warning banner */}
-      <div className="flex gap-3 rounded-xl border border-amber-500/30 bg-amber-500/8 px-4 py-3">
-        <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
-        <p className="text-xs font-medium text-amber-300/90 leading-relaxed">
+      <div className="flex gap-2.5 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3.5 py-2.5">
+        <AlertTriangle className="h-3.5 w-3.5 text-amber-400 shrink-0 mt-0.5" />
+        <p className="text-[10px] font-medium text-amber-300/80 leading-relaxed">
           These codes will <strong>never be shown again</strong>. Store them in a password
-          manager, printed document, or secure offline location. Each code can only be used once.
+          manager or secure offline location.
         </p>
       </div>
 
       {/* Recovery codes list */}
-      <div className="rounded-xl border border-border/40 bg-muted/20 overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/30">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+      <div className="rounded-lg border border-white/5 bg-[#121214] overflow-hidden">
+        <div className="flex items-center justify-between px-3.5 py-2 border-b border-white/5 bg-white/[0.02]">
+          <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-500">
             Recovery Codes ({codes.length})
           </span>
           <button
             onClick={copyAll}
-            className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground hover:text-violet-400 transition-colors"
+            className="flex items-center gap-1 text-[10px] font-semibold text-zinc-400 hover:text-white transition-colors"
           >
             {copiedAll ? (
-              <><Check className="h-3 w-3 text-emerald-400" /> Copied!</>
+              <><Check className="h-2.5 w-2.5 text-emerald-400" /> Copied!</>
             ) : (
-              <><Copy className="h-3 w-3" /> Copy all</>
+              <><Copy className="h-2.5 w-2.5" /> Copy all</>
             )}
           </button>
         </div>
-        <div className="divide-y divide-border/20">
+        <div className="divide-y divide-white/5">
           {codes.map((code, i) => (
             <div
               key={i}
-              className="flex items-center justify-between px-4 py-2.5 hover:bg-muted/30 transition-colors"
+              className="flex items-center justify-between px-3.5 py-2 hover:bg-white/[0.01] transition-colors"
             >
-              <span className="font-mono text-sm font-semibold tracking-wider text-foreground/90">
+              <span className="font-mono text-xs font-semibold tracking-wider text-white">
                 {code}
               </span>
               <CopyButton text={code} />
@@ -343,7 +398,7 @@ function RecoveryCodesScreen({
       </div>
 
       {/* Confirmation checkbox */}
-      <label className="flex items-start gap-3 cursor-pointer group">
+      <label className="flex items-start gap-2.5 cursor-pointer group">
         <div className="relative mt-0.5">
           <input
             type="checkbox"
@@ -352,18 +407,17 @@ function RecoveryCodesScreen({
             className="sr-only"
           />
           <div
-            className={`h-4 w-4 rounded border-2 flex items-center justify-center transition-all ${
+            className={`h-4 w-4 rounded border flex items-center justify-center transition-all duration-200 ${
               saved
-                ? "border-violet-500 bg-violet-500"
-                : "border-border group-hover:border-violet-400"
+                ? "border-purple-500 bg-purple-500"
+                : "border-white/10 group-hover:border-white/20 bg-transparent"
             }`}
           >
             {saved && <Check className="h-2.5 w-2.5 text-white" strokeWidth={3} />}
           </div>
         </div>
-        <span className="text-xs text-muted-foreground leading-relaxed">
-          I have securely saved all 5 recovery codes. I understand they will never
-          be shown again.
+        <span className="text-[11px] text-zinc-400 leading-normal select-none">
+          I have securely saved all recovery codes and know they are lost forever if I don't.
         </span>
       </label>
 
@@ -371,7 +425,7 @@ function RecoveryCodesScreen({
       <button
         onClick={onDone}
         disabled={!saved}
-        className="w-full flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-violet-500/25 hover:bg-violet-500 active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+        className="w-full flex items-center justify-center gap-1.5 rounded-lg bg-white hover:bg-zinc-100 disabled:bg-zinc-800 text-black disabled:text-zinc-500 py-2.5 text-xs font-bold shadow-lg shadow-black/25 active:scale-[0.99] transition-all disabled:opacity-40 duration-200"
       >
         Go to Sign In
       </button>
@@ -411,57 +465,148 @@ export default function SetupPage() {
 
   if (checking) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-6 w-6 animate-spin text-violet-500" />
+      <div className="min-h-screen flex items-center justify-center bg-black">
+        <Loader2 className="h-6 w-6 animate-spin text-purple-500" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      {/* Background glow */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[-20%] left-[30%] w-[600px] h-[600px] rounded-full bg-violet-600/8 blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[10%] w-[400px] h-[400px] rounded-full bg-indigo-600/6 blur-[100px]" />
-      </div>
+    <div className="min-h-screen max-h-screen h-screen bg-[#060608] text-white flex flex-col md:flex-row p-3 md:p-5 gap-5 relative overflow-hidden">
+      {/* Background radial ambient glow */}
+      <div className="absolute top-[-30%] left-[-10%] w-[800px] h-[800px] rounded-full bg-purple-600/5 blur-[180px] pointer-events-none" />
+      <div className="absolute bottom-[-30%] right-[-10%] w-[800px] h-[800px] rounded-full bg-indigo-600/5 blur-[180px] pointer-events-none" />
 
-      <div className="relative w-full max-w-md">
-        {/* Card */}
-        <div className="rounded-2xl border border-border/40 bg-card/80 backdrop-blur-sm shadow-2xl shadow-black/20 overflow-hidden">
-          {/* Header */}
-          <div className="border-b border-border/30 bg-muted/20 px-8 py-6">
+      {/* Left Side: Gradient Banner */}
+      <div className="relative w-full md:w-[44%] lg:w-[42%] xl:w-[40%] rounded-[20px] overflow-hidden bg-[#060608] p-6 md:p-8 flex flex-col justify-between min-h-[350px] md:min-h-0 md:h-full border border-white/5 border-b-transparent shadow-[0_0_50px_-12px_rgba(139,92,246,0.12)] shrink-0 select-none">
+        
+        {/* Arch Shaped Violet/Purple Dome Gradient (Curved n-shape dome dropping on sides) */}
+        <div 
+          className="absolute inset-0 pointer-events-none z-0"
+          style={{
+            background: "radial-gradient(100% 60% at 50% 0%, #8b5cf6 0%, #6d28d9 35%, #3b0764 65%, #060608 100%)"
+          }}
+        />
+
+        {/* Textured SVG Grains Overlay */}
+        <div 
+          className="absolute inset-0 opacity-[0.025] pointer-events-none mix-blend-overlay z-[1]"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`
+          }}
+        />
+
+        {/* Dissolve bottom card edge with page background color (#060608) */}
+        <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-[#060608] via-[#060608]/95 to-transparent pointer-events-none z-[2]" />
+
+        {/* Decorative ambient elements inside the card */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.08),transparent_60%)] pointer-events-none z-[1]" />
+        
+        {/* Logo & Header using local brand assets */}
+        <div className="relative z-10 flex items-center gap-3">
+          <img src="/logo/flat_logo.png" alt="MergeX Logo" className="h-6 w-auto object-contain brightness-200" />
+          <div className="pl-1">
+            <span className="text-sm font-extrabold tracking-tight text-white leading-none block">
+              MergeX OS
+            </span>
+          </div>
+        </div>
+
+        {/* Core Content */}
+        <div className="relative z-10 my-auto py-6">
+          <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight leading-[1.15]">
+            Get Started with Us
+          </h1>
+          <p className="text-xs text-white/60 mt-2 max-w-[260px] leading-relaxed">
+            Complete these simple steps to initialize and secure your system.
+          </p>
+
+          {/* Stepper Indicators */}
+          <div className="mt-6 space-y-3.5 max-w-[260px]">
+            {/* Step 1 */}
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-500/15 border border-violet-500/20">
-                <Building2 className="h-5 w-5 text-violet-400" />
+              <div className={`h-7 w-7 rounded-full flex items-center justify-center font-bold text-[10px] border transition-all duration-300 ${
+                screen === "form"
+                  ? "bg-white text-purple-700 border-white shadow-[0_0_12px_rgba(255,255,255,0.25)]"
+                  : "bg-white/20 text-white border-white/10"
+              }`}>
+                {screen === "codes" ? <Check className="h-3.5 w-3.5" /> : "1"}
               </div>
               <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-lg font-black text-foreground tracking-tight">
-                    MergeX OS
-                  </span>
-                  <span className="text-[10px] font-bold uppercase tracking-widest bg-violet-500/15 text-violet-400 border border-violet-500/20 px-2 py-0.5 rounded-full">
-                    {screen === "form" ? "Platform Setup" : "Setup Complete"}
-                  </span>
-                </div>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
-                  {screen === "form"
-                    ? "One-time initialization — runs only once"
-                    : "Save your recovery codes before continuing"}
+                <p className={`text-xs font-bold transition-all duration-300 ${screen === "form" ? "text-white" : "text-white/50"}`}>
+                  Sign up your account
                 </p>
+                <p className="text-[9px] text-white/30">First-time super admin</p>
+              </div>
+            </div>
+
+            {/* Step 2 */}
+            <div className="flex items-center gap-3">
+              <div className={`h-7 w-7 rounded-full flex items-center justify-center font-bold text-[10px] border transition-all duration-300 ${
+                screen === "codes"
+                  ? "bg-white text-purple-700 border-white shadow-[0_0_12px_rgba(255,255,255,0.25)]"
+                  : "bg-white/5 text-white/30 border-white/5"
+              }`}>
+                2
+              </div>
+              <div>
+                <p className={`text-xs font-bold transition-all duration-300 ${screen === "codes" ? "text-white" : "text-white/40"}`}>
+                  Set up security
+                </p>
+                <p className="text-[9px] text-white/30">Save recovery codes</p>
+              </div>
+            </div>
+
+            {/* Step 3 */}
+            <div className="flex items-center gap-3">
+              <div className="h-7 w-7 rounded-full flex items-center justify-center font-bold text-[10px] border bg-white/5 text-white/20 border-white/5">
+                3
+              </div>
+              <div>
+                <p className="text-xs font-bold text-white/20">
+                  Setup complete
+                </p>
+                <p className="text-[9px] text-white/20">Start managing workspaces</p>
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Body */}
-          <div className="px-8 py-7">
+        {/* Footer note moved from right side */}
+        <div className="relative z-10 text-center text-[10px] text-white/30 select-none">
+          This page is only accessible before platform initialization.
+        </div>
+
+      </div>
+
+      {/* Right Side: Form / Codes Workspace (Directly on Page BG) */}
+      <div className="w-full md:flex-1 flex flex-col items-center py-4 px-4 relative z-10 overflow-y-auto h-full max-h-full">
+        
+        <div className="w-full max-w-[420px] space-y-5 my-auto py-6">
+          
+          {/* Header info */}
+          <div>
+            <h2 className="text-xl font-bold tracking-tight text-white">
+              {screen === "form" ? "Create Super Admin Account" : "Secure Recovery Credentials"}
+            </h2>
+            <p className="text-xs text-zinc-500 mt-1 leading-normal">
+              {screen === "form" 
+                ? "Enter your credentials to initialize your primary Super Admin privilege."
+                : "These 5 distinct backup codes are essential to safeguard system access."
+              }
+            </p>
+          </div>
+
+          {/* Screen components with animation */}
+          <div className="relative">
             <AnimatePresence mode="wait">
               {screen === "form" && (
                 <motion.div
                   key="form"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.2 }}
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -10 }}
+                  transition={{ duration: 0.2, ease: "easeInOut" }}
                 >
                   <SetupForm onSuccess={handleSetupSuccess} />
                 </motion.div>
@@ -469,10 +614,10 @@ export default function SetupPage() {
               {screen === "codes" && setupResult && (
                 <motion.div
                   key="codes"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.2 }}
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -10 }}
+                  transition={{ duration: 0.2, ease: "easeInOut" }}
                 >
                   <RecoveryCodesScreen
                     employeeId={setupResult.employeeId}
@@ -483,14 +628,13 @@ export default function SetupPage() {
               )}
             </AnimatePresence>
           </div>
+
+
+
         </div>
 
-        {/* Footer note */}
-        <p className="mt-4 text-center text-[11px] text-muted-foreground/60">
-          This page is only accessible before platform initialization.
-          All future users are invited by the Super Admin.
-        </p>
       </div>
+
     </div>
   );
 }

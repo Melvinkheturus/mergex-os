@@ -98,6 +98,7 @@ export async function POST(req: Request) {
       password,
       firstName,
       lastName,
+      username: employeeId.toLowerCase().replace(/[^a-z0-9_-]/g, "_"),
       skipPasswordChecks: false,
     });
   } catch (err: unknown) {
