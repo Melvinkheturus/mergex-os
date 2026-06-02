@@ -34,7 +34,7 @@ export function NewLeadClientPage() {
     const fetchOptions = async () => {
       try {
         setLoadingOptions(true);
-        const optRes = await fetch(`/api/crm/options`);
+        const optRes = await fetch(`/api/crm/options?brandSlug=${slug}`);
         if (optRes.ok) {
           const { sources: src, owners: own } = await optRes.json();
           setSources(src || []);
@@ -301,7 +301,7 @@ export function NewLeadClientPage() {
                     <Label className="text-xs font-semibold text-foreground">
                       Source <span className="text-rose-500">*</span>
                     </Label>
-                    <Select value={watch("sourceId") || ""} onValueChange={(v) => setValue("sourceId", v)}>
+                    <Select value={watch("sourceId") || ""} onValueChange={(v) => setValue("sourceId", v, { shouldValidate: true })}>
                       <SelectTrigger className="h-10 text-sm focus:ring-[#8B5CF6] rounded-md border-border/80">
                         <SelectValue placeholder="Select Source" />
                       </SelectTrigger>
@@ -324,7 +324,7 @@ export function NewLeadClientPage() {
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs font-semibold text-foreground">Lead Owner</Label>
-                    <Select value={watch("ownerId") || ""} onValueChange={(v) => setValue("ownerId", v)}>
+                    <Select value={watch("ownerId") || ""} onValueChange={(v) => setValue("ownerId", v, { shouldValidate: true })}>
                       <SelectTrigger className="h-10 text-sm focus:ring-[#8B5CF6] rounded-md border-border/80">
                         <SelectValue placeholder="Select Owner (Current User if empty)" />
                       </SelectTrigger>

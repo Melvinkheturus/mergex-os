@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { LayoutList, Columns3, Plus } from "lucide-react";
+import { LayoutList, Columns3, Plus, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 import { LeadsStats } from "./_components/leads-stats";
@@ -41,11 +41,14 @@ export function LeadsPage() {
   const [sourceFilter, setSourceFilter] = useState("all");
   const [ownerFilter, setOwnerFilter] = useState("all");
 
+  // Accordion Stats Visibility
+  const [showStats, setShowStats] = useState(true);
+
   // Fetch Options & Leads
   const fetchData = async () => {
     try {
       setLoading(true);
-      const optRes = await fetch(`/api/crm/options`);
+      const optRes = await fetch(`/api/crm/options?brandSlug=${slug}`);
       if (optRes.ok) {
         const { stages: st, sources: src, owners: own } = await optRes.json();
         setStages(st || []);
@@ -133,7 +136,19 @@ export function LeadsPage() {
       {/* Header Bar */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-foreground">Lead Pipeline</h2>
+          <div
+            onClick={() => setShowStats((prev) => !prev)}
+            className="flex items-center gap-2 cursor-pointer group select-none"
+          >
+            <h2 className="text-xl font-bold tracking-tight text-foreground group-hover:text-purple-400 transition-colors">
+              Lead Pipeline
+            </h2>
+            {showStats ? (
+              <ChevronDown className="h-5 w-5 text-muted-foreground group-hover:text-purple-400 transition-colors" />
+            ) : (
+              <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-purple-400 transition-colors" />
+            )}
+          </div>
           <p className="text-xs text-muted-foreground mt-0.5">
             Identify, qualify, and track your active sales pipeline.
           </p>
@@ -180,7 +195,7 @@ export function LeadsPage() {
       </div>
 
       {/* Stats Summary Strip */}
-      <LeadsStats leads={leads} />
+      {showStats && <LeadsStats leads={leads} />}
 
       {/* Filter strip - only in list mode */}
       {viewMode === "list" && (

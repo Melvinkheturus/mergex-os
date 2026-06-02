@@ -227,7 +227,7 @@ export function AddLeadDialog({
             {/* Section 3: Lead Source */}
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">Source *</Label>
-              <Select value={watch("sourceId") || ""} onValueChange={(v) => setValue("sourceId", v)}>
+              <Select value={watch("sourceId") || ""} onValueChange={(v) => setValue("sourceId", v, { shouldValidate: true })}>
                 <SelectTrigger className="h-9 text-sm rounded-md border-border/80">
                   <SelectValue placeholder="Select Source" />
                 </SelectTrigger>
@@ -245,7 +245,7 @@ export function AddLeadDialog({
             {/* Section 4: Ownership */}
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">Lead Owner</Label>
-              <Select value={watch("ownerId") || ""} onValueChange={(v) => setValue("ownerId", v)}>
+              <Select value={watch("ownerId") || ""} onValueChange={(v) => setValue("ownerId", v, { shouldValidate: true })}>
                 <SelectTrigger className="h-9 text-sm rounded-md border-border/80">
                   <SelectValue placeholder="Select Owner (Current User if empty)" />
                 </SelectTrigger>
