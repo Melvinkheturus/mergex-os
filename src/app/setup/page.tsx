@@ -387,7 +387,7 @@ ${codes.map((code, index) => `${index + 1}. ${code}`).join("\n")}
 
       {/* Recovery codes list */}
       <div className="rounded-lg border border-white/5 bg-[#121214] overflow-hidden">
-        <div className="flex items-center justify-between px-3.5 py-2 border-b border-white/5 bg-white/[0.02]">
+        <div className="flex items-center justify-between px-3.5 py-2 border-b border-white/5 bg-white/2">
           <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-500">
             Recovery Codes ({codes.length})
           </span>
@@ -398,7 +398,7 @@ ${codes.map((code, index) => `${index + 1}. ${code}`).join("\n")}
             >
               <Download className="h-2.5 w-2.5" /> Download TXT
             </button>
-            <div className="h-2.5 w-[1px] bg-white/10" />
+            <div className="h-2.5 w-px bg-white/10" />
             <button
               onClick={copyAll}
               className="flex items-center gap-1 text-[10px] font-semibold text-zinc-400 hover:text-white transition-colors"
@@ -415,7 +415,7 @@ ${codes.map((code, index) => `${index + 1}. ${code}`).join("\n")}
           {codes.map((code, i) => (
             <div
               key={i}
-              className="flex items-center justify-between px-3.5 py-2 hover:bg-white/[0.01] transition-colors"
+              className="flex items-center justify-between px-3.5 py-2 hover:bg-white/1 transition-colors"
             >
               <span className="font-mono text-xs font-semibold tracking-wider text-white">
                 {code}
@@ -519,17 +519,17 @@ export default function SetupPage() {
 
         {/* Textured SVG Grains Overlay */}
         <div 
-          className="absolute inset-0 opacity-[0.025] pointer-events-none mix-blend-overlay z-[1]"
+          className="absolute inset-0 opacity-[0.025] pointer-events-none mix-blend-overlay z-1"
           style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`
           }}
         />
 
         {/* Dissolve bottom card edge with page background color (#060608) */}
-        <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-[#060608] via-[#060608]/95 to-transparent pointer-events-none z-[2]" />
+        <div className="absolute inset-x-0 bottom-0 h-44 bg-linear-to-t from-[#060608] via-[#060608]/95 to-transparent pointer-events-none z-2" />
 
         {/* Decorative ambient elements inside the card */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.08),transparent_60%)] pointer-events-none z-[1]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.08),transparent_60%)] pointer-events-none z-1" />
         
         {/* Logo & Header using local brand assets */}
         <div className="relative z-10 flex items-center gap-3">
