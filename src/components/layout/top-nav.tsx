@@ -22,6 +22,17 @@ function formatBreadcrumb(pathname: string): string {
   const segments = pathname.split("/").filter(Boolean);
   const last = segments[segments.length - 1];
   if (!last || last === "dashboard") return "Dashboard";
+
+  // If the last segment is a UUID, resolve a human-readable title based on the previous segment
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(last);
+  if (isUuid) {
+    const prev = segments[segments.length - 2];
+    if (prev === "leads") return "Lead Profile";
+    if (prev === "proposals") return "Proposal Detail";
+    if (prev === "meetings") return "Meeting Detail";
+    return "Detail View";
+  }
+
   return last
     .split("-")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
