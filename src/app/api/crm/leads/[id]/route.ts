@@ -46,7 +46,13 @@ export async function GET(
   if (!lead || !user) {
     return NextResponse.json({ error: result.error || "Not Found" }, { status: result.status || 404 });
   }
-  return NextResponse.json(lead);
+  const mappedLead = {
+    ...lead,
+    owner: lead.User || null,
+    stage: lead.LeadStage || null,
+    source: lead.LeadSource || null,
+  };
+  return NextResponse.json(mappedLead);
 }
 
 export async function PUT(
@@ -239,7 +245,14 @@ export async function PUT(
       });
     }
 
-    return NextResponse.json(updatedLead);
+    const mappedLead = {
+      ...updatedLead,
+      owner: updatedLead.User || null,
+      stage: updatedLead.LeadStage || null,
+      source: updatedLead.LeadSource || null,
+    };
+
+    return NextResponse.json(mappedLead);
   } catch (error) {
     console.error("Failed to update lead:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

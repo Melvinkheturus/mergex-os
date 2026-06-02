@@ -98,7 +98,14 @@ export async function GET(req: Request) {
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json(leads);
+    const mappedLeads = leads.map((l) => ({
+      ...l,
+      owner: l.User || null,
+      stage: l.LeadStage || null,
+      source: l.LeadSource || null,
+    }));
+
+    return NextResponse.json(mappedLeads);
   } catch (error) {
     console.error("Failed to fetch leads:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
@@ -246,7 +253,14 @@ export async function POST(req: Request) {
       });
     }
 
-    return NextResponse.json(lead);
+    const mappedLead = {
+      ...lead,
+      owner: lead.User || null,
+      stage: lead.LeadStage || null,
+      source: lead.LeadSource || null,
+    };
+
+    return NextResponse.json(mappedLead);
   } catch (error) {
     console.error("Failed to create lead:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
