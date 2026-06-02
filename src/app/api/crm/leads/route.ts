@@ -10,7 +10,22 @@ export async function GET(req: Request) {
   }
 
   const { searchParams } = new URL(req.url);
-  const brandId = searchParams.get("brandId") || user.activeBrandId;
+  const brandSlug = searchParams.get("brandSlug");
+  let brandId = searchParams.get("brandId");
+
+  if (brandSlug) {
+    const brand = await db.brand.findUnique({
+      where: { slug: brandSlug },
+      select: { id: true },
+    });
+    if (brand) {
+      brandId = brand.id;
+    }
+  }
+
+  if (!brandId) {
+    brandId = user.activeBrandId;
+  }
 
   if (!brandId) {
     return NextResponse.json({ error: "Active brand workspace is required" }, { status: 400 });
@@ -117,9 +132,32 @@ export async function POST(req: Request) {
       services,
       initialNotes,
       brandId: customBrandId,
+      brandSlug: customBrandSlug,
     } = body;
 
-    const brandId = customBrandId || user.activeBrandId;
+    const { searchParams } = new URL(req.url);
+    const queryBrandSlug = searchParams.get("brandSlug");
+    const queryBrandId = searchParams.get("brandId");
+
+    let brandId = customBrandId || queryBrandId;
+
+    if (!brandId) {
+      const slugToResolve = customBrandSlug || queryBrandSlug;
+      if (slugToResolve) {
+        const brand = await db.brand.findUnique({
+          where: { slug: slugToResolve },
+          select: { id: true },
+        });
+        if (brand) {
+          brandId = brand.id;
+        }
+      }
+    }
+
+    if (!brandId) {
+      brandId = user.activeBrandId;
+    }
+
     if (!brandId) {
       return NextResponse.json({ error: "Active brand workspace is required" }, { status: 400 });
     }

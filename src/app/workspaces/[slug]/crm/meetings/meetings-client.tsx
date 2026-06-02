@@ -61,14 +61,14 @@ export function MeetingsPageClient() {
   const fetchMeetings = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/crm/meetings?filter=${filter}`);
+      const res = await fetch(`/api/crm/meetings?filter=${filter}&brandSlug=${slug}`);
       if (res.ok) setMeetings(await res.json());
     } catch {
       // silent
     } finally {
       setLoading(false);
     }
-  }, [filter]);
+  }, [filter, slug]);
 
   useEffect(() => {
     fetchMeetings();

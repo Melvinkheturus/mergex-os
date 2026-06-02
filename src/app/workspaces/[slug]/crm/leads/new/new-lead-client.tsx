@@ -107,10 +107,10 @@ export function NewLeadClientPage() {
 
   const onSubmit = async (values: LeadFormValues) => {
     try {
-      const res = await fetch(`/api/crm/leads`, {
+      const res = await fetch(`/api/crm/leads?brandSlug=${slug}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        body: JSON.stringify({ ...values, brandSlug: slug }),
       });
 
       if (!res.ok) {

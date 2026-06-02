@@ -56,7 +56,7 @@ export function LeadsPage() {
         setOwners(own || []);
       }
 
-      const leadsRes = await fetch(`/api/crm/leads`);
+      const leadsRes = await fetch(`/api/crm/leads?brandSlug=${slug}`);
       if (leadsRes.ok) {
         const leadsData = await leadsRes.json();
         setLeads(leadsData || []);

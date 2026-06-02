@@ -57,8 +57,8 @@ export function ProposalsPageClient() {
     try {
       const url =
         filter === "all"
-          ? `/api/crm/proposals`
-          : `/api/crm/proposals?status=${filter}`;
+          ? `/api/crm/proposals?brandSlug=${slug}`
+          : `/api/crm/proposals?status=${filter}&brandSlug=${slug}`;
       const res = await fetch(url);
       if (res.ok) setProposals(await res.json());
     } catch {
@@ -66,7 +66,7 @@ export function ProposalsPageClient() {
     } finally {
       setLoading(false);
     }
-  }, [filter]);
+  }, [filter, slug]);
 
   useEffect(() => {
     fetchProposals();

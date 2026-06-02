@@ -9,7 +9,22 @@ export async function GET(req: Request) {
   }
 
   const { searchParams } = new URL(req.url);
-  const brandId = searchParams.get("brandId") || user.activeBrandId;
+  const brandSlug = searchParams.get("brandSlug");
+  let brandId = searchParams.get("brandId");
+
+  if (brandSlug) {
+    const brand = await db.brand.findUnique({
+      where: { slug: brandSlug },
+      select: { id: true },
+    });
+    if (brand) {
+      brandId = brand.id;
+    }
+  }
+
+  if (!brandId) {
+    brandId = user.activeBrandId;
+  }
 
   if (!brandId) {
     return NextResponse.json(
