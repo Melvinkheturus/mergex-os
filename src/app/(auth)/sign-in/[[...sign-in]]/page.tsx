@@ -103,36 +103,52 @@ export default function SignInPage() {
 
   // ── Step 1: Password ──────────────────────────────────────────────────────
   const handleSignIn = async () => {
-    if (!signIn || !email || !password) return;
+    if (!signIn || !email || !password) {
+      console.warn("[SignIn] Missing signIn hook, email, or password", { signIn: !!signIn, email, password: !!password });
+      return;
+    }
     setLoading(true);
     setError("");
     try {
+      console.log("[SignIn] Calling signIn.create with identifier:", email);
       const result = await signIn.create({ identifier: email, password });
 
+      console.log("[SignIn] result.status:", result.status);
+      console.log("[SignIn] Full result object:", JSON.stringify(result, null, 2));
+
       if (result.status === "complete") {
+        console.log("[SignIn] ✅ Complete! Activating session:", result.createdSessionId);
         await setActive?.({ session: result.createdSessionId });
         router.push("/workspaces");
       } else if (result.status === "needs_second_factor") {
-        // 2FA required — send email OTP and switch to OTP step
+        console.log("[SignIn] 2FA required, preparing email_code second factor");
         await signIn.prepareSecondFactor({ strategy: "email_code" });
         setStep("otp");
       } else if (result.status === "needs_first_factor") {
-        // Identifier accepted but first factor needs explicit attempt
+        console.log("[SignIn] needs_first_factor — attempting password factor explicitly");
         const factor = await signIn.attemptFirstFactor({ strategy: "password", password });
+        console.log("[SignIn] attemptFirstFactor result.status:", factor.status);
+        console.log("[SignIn] Full factor result:", JSON.stringify(factor, null, 2));
         if (factor.status === "complete") {
+          console.log("[SignIn] ✅ Complete after attemptFirstFactor! Session:", factor.createdSessionId);
           await setActive?.({ session: factor.createdSessionId });
           router.push("/workspaces");
         } else if (factor.status === "needs_second_factor") {
+          console.log("[SignIn] 2FA required after first factor, preparing email_code");
           await signIn.prepareSecondFactor({ strategy: "email_code" });
           setStep("otp");
         } else {
+          console.error("[SignIn] ❌ Unhandled factor status after attemptFirstFactor:", factor.status);
           setError("Sign-in could not be completed. Please contact your admin.");
         }
       } else {
+        console.error("[SignIn] ❌ Unhandled status from signIn.create:", result.status);
         setError("Sign-in could not be completed. Please contact your admin.");
       }
     } catch (err: unknown) {
-      const clerkErr = err as { errors?: { message: string }[] };
+      console.error("[SignIn] ❌ Exception caught:", err);
+      const clerkErr = err as { errors?: { message: string; code?: string; longMessage?: string }[] };
+      console.error("[SignIn] Clerk errors array:", JSON.stringify(clerkErr?.errors, null, 2));
       setError(clerkErr?.errors?.[0]?.message ?? "Sign-in failed. Check your credentials.");
     } finally {
       setLoading(false);
