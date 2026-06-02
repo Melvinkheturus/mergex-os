@@ -222,11 +222,14 @@ function ProfileSection({ user, brands }: { user: SettingsPageProps["user"]; bra
         <CardContent className="space-y-6">
           {/* Avatar Upload Block */}
           <div className="flex flex-col sm:flex-row items-center gap-6 pb-6 border-b border-border/10">
-            <div className="relative group shrink-0 h-20 w-20 rounded-full border border-border/25 overflow-hidden bg-[#8B5CF6]/5 flex items-center justify-center shadow-inner">
+            <div 
+              className="relative group shrink-0 h-20 w-20 rounded-full border border-white/10 overflow-hidden flex items-center justify-center shadow-inner"
+              style={{ background: "radial-gradient(circle at 30% 107%, #7819f6 0%, #000000 90%)" }}
+            >
               {avatarUrl ? (
                 <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
               ) : (
-                <span className="text-2xl font-extrabold text-[#8B5CF6]/85 uppercase">
+                <span className="text-2xl font-black text-white uppercase tracking-tight">
                   {((firstName?.[0] ?? "") + (lastName?.[0] ?? user?.email?.[0] ?? "")).toUpperCase() || "U"}
                 </span>
               )}

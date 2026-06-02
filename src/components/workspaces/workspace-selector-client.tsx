@@ -119,6 +119,10 @@ export function WorkspaceSelectorClient({ brands, user, userRole, teammates }: P
     ? `${user.firstName} ${user.lastName ?? ""}`.trim()
     : user.email;
 
+  const userInitials = (user.firstName || user.lastName)
+    ? `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase()
+    : user.email.slice(0, 2).toUpperCase();
+
   const filteredBrands = brandList.filter((b) =>
     b.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     b.slug.toLowerCase().includes(searchQuery.toLowerCase())
@@ -259,11 +263,14 @@ export function WorkspaceSelectorClient({ brands, user, userRole, teammates }: P
               <img
                 src={user.avatarUrl}
                 alt={displayName}
-                className="w-8 h-8 rounded-lg object-cover border border-neutral-200 dark:border-white/6 shrink-0"
+                className="w-8 h-8 rounded-full object-cover border border-neutral-200 dark:border-white/6 shrink-0"
               />
             ) : (
-              <div className="w-8 h-8 rounded-lg bg-purple-500/15 flex items-center justify-center text-xs font-bold text-purple-400 uppercase border border-purple-500/35 shrink-0 select-none">
-                {user.firstName?.[0] ?? "U"}
+              <div 
+                className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black text-white uppercase border border-white/10 shrink-0 select-none tracking-tight"
+                style={{ background: "radial-gradient(circle at 30% 107%, #7819f6 0%, #000000 90%)" }}
+              >
+                {userInitials}
               </div>
             )}
           </div>
@@ -312,10 +319,13 @@ export function WorkspaceSelectorClient({ brands, user, userRole, teammates }: P
           <div className="hidden md:flex flex-col gap-3.5 pt-6 mt-auto border-t border-neutral-200 dark:border-white/5">
             <div className="flex items-center gap-3 px-1.5">
               {user.avatarUrl ? (
-                <img src={user.avatarUrl} alt={displayName} className="w-8 h-8 rounded-lg object-cover border border-neutral-200 dark:border-white/6 shrink-0" />
+                <img src={user.avatarUrl} alt={displayName} className="w-8 h-8 rounded-full object-cover border border-neutral-200 dark:border-white/6 shrink-0" />
               ) : (
-                <div className="w-8 h-8 rounded-lg bg-purple-500/15 flex items-center justify-center text-xs font-bold text-purple-400 uppercase border border-purple-500/35 shrink-0 select-none">
-                  {user.firstName?.[0] ?? "U"}
+                <div 
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black text-white uppercase border border-white/10 shrink-0 select-none tracking-tight"
+                  style={{ background: "radial-gradient(circle at 30% 107%, #7819f6 0%, #000000 90%)" }}
+                >
+                  {userInitials}
                 </div>
               )}
               <div className="min-w-0">
