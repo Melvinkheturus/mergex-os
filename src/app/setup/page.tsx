@@ -21,6 +21,7 @@ import {
   Mail,
   Lock,
   Sparkles,
+  Download,
 } from "lucide-react";
 import { toast } from "sonner";
 import { LiquidMetalButton } from "@/components/ui/liquid-metal-button";
@@ -334,6 +335,25 @@ function RecoveryCodesScreen({
     toast.success("All codes copied to clipboard");
   };
 
+  const downloadTxt = () => {
+    const text = `MERGEX OS RECOVERY CODES
+Employee ID: ${employeeId}
+Generated: ${new Date().toLocaleString()}
+
+Keep these codes secure. They can be used to recover access if you lose your credentials.
+
+${codes.map((code, index) => `${index + 1}. ${code}`).join("\n")}
+`;
+    const element = document.createElement("a");
+    const file = new Blob([text], { type: "text/plain" });
+    element.href = URL.createObjectURL(file);
+    element.download = `mergex-recovery-codes-${employeeId}.txt`;
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+    toast.success("Recovery codes downloaded as TXT file");
+  };
+
   return (
     <div className="space-y-4">
       {/* Success header */}
@@ -371,16 +391,25 @@ function RecoveryCodesScreen({
           <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-500">
             Recovery Codes ({codes.length})
           </span>
-          <button
-            onClick={copyAll}
-            className="flex items-center gap-1 text-[10px] font-semibold text-zinc-400 hover:text-white transition-colors"
-          >
-            {copiedAll ? (
-              <><Check className="h-2.5 w-2.5 text-emerald-400" /> Copied!</>
-            ) : (
-              <><Copy className="h-2.5 w-2.5" /> Copy all</>
-            )}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={downloadTxt}
+              className="flex items-center gap-1 text-[10px] font-semibold text-zinc-400 hover:text-white transition-colors"
+            >
+              <Download className="h-2.5 w-2.5" /> Download TXT
+            </button>
+            <div className="h-2.5 w-[1px] bg-white/10" />
+            <button
+              onClick={copyAll}
+              className="flex items-center gap-1 text-[10px] font-semibold text-zinc-400 hover:text-white transition-colors"
+            >
+              {copiedAll ? (
+                <><Check className="h-2.5 w-2.5 text-emerald-400" /> Copied!</>
+              ) : (
+                <><Copy className="h-2.5 w-2.5" /> Copy all</>
+              )}
+            </button>
+          </div>
         </div>
         <div className="divide-y divide-white/5">
           {codes.map((code, i) => (

@@ -4,87 +4,31 @@ import { useState, useEffect } from "react";
 import { useSignIn, useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Loader2, Eye, EyeOff, ShieldCheck, ArrowRight } from "lucide-react";
+import {
+  Loader2,
+  Eye,
+  EyeOff,
+  ShieldCheck,
+  KeyRound,
+  Lock,
+  Mail,
+} from "lucide-react";
+import { LiquidMetalButton } from "@/components/ui/liquid-metal-button";
 
-// ── Logo ───────────────────────────────────────────────────────
-function Logo() {
-  return (
-    <div className="flex items-center gap-3">
-      <img 
-        src="/logo/mergex-logo.png" 
-        alt="MergeX Logo" 
-        className="w-9 h-9 object-contain shrink-0" 
-      />
-      <div>
-        <p className="text-sm font-semibold text-foreground tracking-tight leading-none">MergeX</p>
-        <p className="text-xs text-muted-foreground mt-0.5">Sales OS</p>
-      </div>
-    </div>
-  );
-}
-
-// ── Field ──────────────────────────────────────────────────────
-function Field({
-  label, type = "text", value, onChange, placeholder, disabled, autoFocus, suffix,
-}: {
-  label: string;
-  type?: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  disabled?: boolean;
-  autoFocus?: boolean;
-  suffix?: React.ReactNode;
-}) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-xs font-medium text-[#6B7280] uppercase tracking-wider">{label}</label>
-      <div className="relative">
-        <input
-          type={type}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          disabled={disabled}
-          autoFocus={autoFocus}
-          className="w-full h-12 px-4 rounded-xl border border-[#E5E7EB] dark:border-[#26262C] bg-white dark:bg-[#111114] text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]/40 focus:border-[#8B5CF6] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed pr-10"
-        />
-        {suffix && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2">{suffix}</div>
-        )}
-      </div>
-    </div>
-  );
-}
+// ── Error Message Component ──────────────────────────────────────────────────
 
 function ErrorMsg({ message }: { message: string }) {
   return (
-    <p className="text-xs text-[#EF4444] bg-[#EF4444]/8 border border-[#EF4444]/20 rounded-xl px-3 py-2.5">
-      {message}
-    </p>
+    <div className="flex gap-2.5 rounded-lg border border-rose-500/20 bg-rose-500/5 px-3.5 py-2.5">
+      <p className="text-[10px] font-medium text-rose-400 leading-relaxed">
+        {message}
+      </p>
+    </div>
   );
 }
 
-function PrimaryButton({
-  children, onClick, loading, disabled,
-}: {
-  children: React.ReactNode;
-  onClick?: () => void;
-  loading?: boolean;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={loading || disabled}
-      className="w-full h-12 rounded-xl bg-[#8B5CF6] hover:bg-[#7C3AED] text-white text-sm font-medium flex items-center justify-center gap-2 transition-colors duration-200 disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
-    >
-      {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : children}
-    </button>
-  );
-}
+// ── Page ─────────────────────────────────────────────────────────────────────
 
-// ── Main Sign-In Page ──────────────────────────────────────────
 export default function SignInPage() {
   const { isLoaded, userId } = useAuth();
   const { signIn } = useSignIn();
@@ -119,10 +63,8 @@ export default function SignInPage() {
       }
 
       if (signIn.status === "complete") {
-        // Let the proxy resolve the correct destination based on onboardingState + activeBrandId
         router.push("/workspaces");
       } else {
-        // Unexpected incomplete state (e.g. MFA - not enabled, but handle gracefully)
         setError("Sign-in could not be completed. Please contact your admin.");
       }
     } catch (err: unknown) {
@@ -139,97 +81,194 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F8FA] dark:bg-[#0B0B0F] flex items-center justify-center p-4">
-      {/* Grid background */}
-      <div
-        className="fixed inset-0 pointer-events-none"
-        style={{
-          backgroundImage: `linear-gradient(rgba(139,92,246,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(139,92,246,0.025) 1px, transparent 1px)`,
-          backgroundSize: "48px 48px",
-        }}
-      />
+    <div className="min-h-screen max-h-screen h-screen bg-[#060608] text-white flex flex-col md:flex-row p-3 md:p-5 gap-5 relative overflow-hidden">
+      {/* Background radial ambient glow */}
+      <div className="absolute top-[-30%] left-[-10%] w-[800px] h-[800px] rounded-full bg-purple-600/5 blur-[180px] pointer-events-none" />
+      <div className="absolute bottom-[-30%] right-[-10%] w-[800px] h-[800px] rounded-full bg-indigo-600/5 blur-[180px] pointer-events-none" />
 
-      <div className="relative w-full max-w-[400px]">
-        <div className="bg-white dark:bg-[#111114] border border-[#E5E7EB] dark:border-[#26262C] rounded-2xl shadow-sm overflow-hidden">
+      {/* Left Side: Gradient Banner */}
+      <div className="relative w-full md:w-[44%] lg:w-[42%] xl:w-[40%] rounded-[20px] overflow-hidden bg-[#060608] p-6 md:p-8 flex flex-col justify-between min-h-[350px] md:min-h-0 md:h-full border border-white/5 border-b-transparent shadow-[0_0_50px_-12px_rgba(139,92,246,0.12)] shrink-0 select-none">
+        
+        {/* Arch Shaped Violet/Purple Dome Gradient (Curved n-shape dome dropping on sides) */}
+        <div 
+          className="absolute inset-0 pointer-events-none z-0"
+          style={{
+            background: "radial-gradient(100% 60% at 50% 0%, #8b5cf6 0%, #6d28d9 35%, #3b0764 65%, #060608 100%)"
+          }}
+        />
 
-          {/* Header */}
-          <div className="px-8 pt-8 pb-6 border-b border-[#E5E7EB] dark:border-[#26262C]">
-            <Logo />
-            <div className="mt-6">
-              <h1 className="text-lg font-semibold text-foreground tracking-tight">
-                Sign in to your workspace
-              </h1>
-              <p className="text-xs text-muted-foreground mt-1">
-                cx.mergex.in - internal operations platform
-              </p>
-            </div>
+        {/* Textured SVG Grains Overlay */}
+        <div 
+          className="absolute inset-0 opacity-[0.025] pointer-events-none mix-blend-overlay z-[1]"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`
+          }}
+        />
+
+        {/* Dissolve bottom card edge with page background color (#060608) */}
+        <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-[#060608] via-[#060608]/95 to-transparent pointer-events-none z-[2]" />
+
+        {/* Decorative ambient elements inside the card */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.08),transparent_60%)] pointer-events-none z-[1]" />
+        
+        {/* Logo & Header using local brand assets */}
+        <div className="relative z-10 flex items-center gap-3">
+          <img src="/logo/flat_logo.png" alt="MergeX Logo" className="h-6 w-auto object-contain brightness-200" />
+          <div className="pl-1">
+            <span className="text-sm font-extrabold tracking-tight text-white leading-none block">
+              MergeX OS
+            </span>
           </div>
+        </div>
 
-          {/* Body */}
-          <div className="px-8 py-7 flex flex-col gap-4" onKeyDown={handleKeyDown}>
-            <Field
-              label="Email"
-              type="email"
-              value={email}
-              onChange={setEmail}
-              placeholder="you@mergex.in"
-              autoFocus
-              disabled={!isLoaded || loading}
-            />
-            <Field
-              label="Password"
-              type={showPw ? "text" : "password"}
-              value={password}
-              onChange={setPassword}
-              placeholder="Your password"
-              disabled={!isLoaded || loading}
-              suffix={
-                <button
-                  type="button"
-                  onClick={() => setShowPw((v) => !v)}
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                  aria-label={showPw ? "Hide password" : "Show password"}
-                >
-                  {showPw
-                    ? <EyeOff className="w-4 h-4" />
-                    : <Eye className="w-4 h-4" />}
-                </button>
-              }
-            />
+        {/* Core Content */}
+        <div className="relative z-10 my-auto py-6">
+          <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight leading-[1.15]">
+            Welcome to MergeX
+          </h1>
+          <p className="text-xs text-white/60 mt-2 max-w-[260px] leading-relaxed">
+            Securely authenticate to manage your operations platform.
+          </p>
 
-            {error && <ErrorMsg message={error} />}
-
-            <PrimaryButton
-              loading={loading}
-              disabled={!isLoaded || !email || !password}
-              onClick={handleSignIn}
-            >
-              Sign in <ArrowRight className="w-4 h-4" />
-            </PrimaryButton>
-
-            <div className="text-center">
-              <Link
-                href="/forgot-password"
-                className="text-xs text-muted-foreground hover:text-[#8B5CF6] transition-colors"
-              >
-                Forgot password?
-              </Link>
+          {/* Stepper / Features Indicators */}
+          <div className="mt-6 space-y-3.5 max-w-[260px]">
+            {/* Step 1 */}
+            <div className="flex items-center gap-3">
+              <div className="h-7 w-7 rounded-full flex items-center justify-center bg-white/5 border border-white/10 text-white">
+                <ShieldCheck className="h-3.5 w-3.5 text-purple-400" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-white">
+                  Secure Sign In
+                </p>
+                <p className="text-[9px] text-white/30">Enterprise-grade protection by Clerk</p>
+              </div>
             </div>
-          </div>
 
-          {/* Footer */}
-          <div className="px-8 pb-7">
-            <div className="flex items-center gap-2 justify-center text-xs text-muted-foreground">
-              <ShieldCheck className="w-3.5 h-3.5 text-[#10B981]" />
-              <span>Secured by Clerk · enterprise-grade auth</span>
+            {/* Step 2 */}
+            <div className="flex items-center gap-3">
+              <div className="h-7 w-7 rounded-full flex items-center justify-center bg-white/5 border border-white/10 text-white">
+                <KeyRound className="h-3.5 w-3.5 text-purple-400" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-white">
+                  Workspace Auditing
+                </p>
+                <p className="text-[9px] text-white/30">Access & actions strictly logged</p>
+              </div>
+            </div>
+
+            {/* Step 3 */}
+            <div className="flex items-center gap-3">
+              <div className="h-7 w-7 rounded-full flex items-center justify-center bg-white/5 border border-white/10 text-white">
+                <Lock className="h-3.5 w-3.5 text-purple-400" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-white">
+                  Encrypted Session
+                </p>
+                <p className="text-[9px] text-white/30">End-to-end zero-trust architecture</p>
+              </div>
             </div>
           </div>
         </div>
 
-        <p className="text-center text-xs text-muted-foreground mt-5">
+        {/* Footer note moved from right side */}
+        <div className="relative z-10 text-center text-[10px] text-white/30 select-none">
           Access is invite-only. Contact your admin to request access.
-        </p>
+        </div>
+
       </div>
+
+      {/* Right Side: Form Workspace (Directly on Page BG) */}
+      <div className="w-full md:flex-1 flex flex-col items-center py-4 px-4 relative z-10 overflow-y-auto h-full max-h-full animate-fade-in">
+        
+        <div className="w-full max-w-[420px] space-y-5 my-auto py-6">
+          
+          {/* Header info */}
+          <div>
+            <h2 className="text-xl font-bold tracking-tight text-white">
+              Sign in to your workspace
+            </h2>
+            <p className="text-xs text-zinc-500 mt-1 leading-normal">
+              cx.mergex.in - internal operations platform
+            </p>
+          </div>
+
+          {/* Form */}
+          <div className="relative" onKeyDown={handleKeyDown}>
+            <div className="space-y-4">
+              
+              {/* Email */}
+              <div className="space-y-1 w-full">
+                <label className="block text-[10px] font-bold text-zinc-400 tracking-wider uppercase select-none">
+                  Email
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@mergex.in"
+                    disabled={!isLoaded || loading}
+                    autoFocus
+                    className="w-full rounded-lg border border-white/10 bg-transparent pl-9 pr-3.5 py-2.5 text-xs text-white placeholder:text-zinc-600 outline-none transition-all duration-200 focus:border-white/20 disabled:opacity-50 hover:border-white/15"
+                  />
+                </div>
+              </div>
+
+              {/* Password */}
+              <div className="space-y-1 w-full">
+                <label className="block text-[10px] font-bold text-zinc-400 tracking-wider uppercase select-none">
+                  Password
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500" />
+                  <input
+                    type={showPw ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Your password"
+                    disabled={!isLoaded || loading}
+                    className="w-full rounded-lg border border-white/10 bg-transparent pl-9 pr-9 py-2.5 text-xs text-white placeholder:text-zinc-600 outline-none transition-all duration-200 focus:border-white/20 disabled:opacity-50 hover:border-white/15"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPw((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
+                  >
+                    {showPw ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                  </button>
+                </div>
+              </div>
+
+              {error && <ErrorMsg message={error} />}
+
+              {/* Button & Forgot Password row */}
+              <div className="pt-2 flex items-center justify-between">
+                <Link
+                  href="/forgot-password"
+                  className="text-xs text-zinc-500 hover:text-[#8B5CF6] transition-colors"
+                >
+                  Forgot password?
+                </Link>
+
+                <LiquidMetalButton
+                  label={loading ? "Signing in..." : "Sign in"}
+                  width={140}
+                  height={42}
+                  onClick={handleSignIn}
+                />
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
     </div>
   );
 }
