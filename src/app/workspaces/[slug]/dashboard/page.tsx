@@ -20,6 +20,8 @@ export default async function DashboardPage({
     select: { id: true, name: true },
   });
 
+  if (!brand) redirect("/sign-in");
+
   const brands = await db.brand.findMany({
     where: { status: "active" },
     orderBy: { createdAt: "desc" },
@@ -30,6 +32,133 @@ export default async function DashboardPage({
     include: { Role: true },
     orderBy: { createdAt: "desc" },
   });
+
+  const leads = await db.lead.findMany({
+    where: { brandId: brand.id },
+    include: {
+      LeadStage: {
+        select: {
+          id: true,
+          name: true,
+          label: true,
+          color: true,
+        },
+      },
+      LeadSource: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      User: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          avatarUrl: true,
+        },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  const meetings = await db.meeting.findMany({
+    where: { Lead: { brandId: brand.id } },
+    include: {
+      Lead: {
+        select: {
+          id: true,
+          companyName: true,
+          contactPerson: true,
+        },
+      },
+      User: {
+        select: {
+          firstName: true,
+          lastName: true,
+          avatarUrl: true,
+        },
+      },
+    },
+    orderBy: { scheduledAt: "desc" },
+  });
+
+  const proposals = await db.proposal.findMany({
+    where: { Lead: { brandId: brand.id } },
+    orderBy: { createdAt: "desc" },
+  });
+
+  const clients = await db.client.findMany({
+    where: { brandId: brand.id },
+    orderBy: { createdAt: "desc" },
+  });
+
+  const serializedLeads = leads.map((l) => ({
+    id: l.id,
+    companyName: l.companyName,
+    contactPerson: l.contactPerson,
+    email: l.email,
+    phone: l.phone,
+    expectedValue: l.expectedValue ? Number(l.expectedValue) : null,
+    winLossStatus: l.winLossStatus,
+    nextActionDate: l.nextActionDate ? l.nextActionDate.toISOString() : null,
+    createdAt: l.createdAt.toISOString(),
+    owner: l.User ? {
+      id: l.User.id,
+      firstName: l.User.firstName,
+      lastName: l.User.lastName,
+      email: l.User.email,
+      avatarUrl: l.User.avatarUrl,
+    } : null,
+    stage: l.LeadStage ? {
+      id: l.LeadStage.id,
+      name: l.LeadStage.name,
+      label: l.LeadStage.label,
+      color: l.LeadStage.color,
+    } : null,
+    source: l.LeadSource ? {
+      id: l.LeadSource.id,
+      name: l.LeadSource.name,
+    } : null,
+  }));
+
+  const serializedMeetings = meetings.map((m) => ({
+    id: m.id,
+    title: m.title,
+    scheduledAt: m.scheduledAt.toISOString(),
+    duration: m.duration,
+    mode: m.mode,
+    meetingUrl: m.meetingUrl,
+    status: m.status,
+    lead: m.Lead ? {
+      id: m.Lead.id,
+      companyName: m.Lead.companyName,
+      contactPerson: m.Lead.contactPerson,
+    } : null,
+    organizer: m.User ? {
+      firstName: m.User.firstName,
+      lastName: m.User.lastName,
+      avatarUrl: m.User.avatarUrl,
+    } : null,
+  }));
+
+  const serializedProposals = proposals.map((p) => ({
+    id: p.id,
+    title: p.title,
+    proposalNumber: p.proposalNumber,
+    status: p.status,
+    value: p.value ? Number(p.value) : 0,
+    createdAt: p.createdAt.toISOString(),
+  }));
+
+  const serializedClients = clients.map((c) => ({
+    id: c.id,
+    companyName: c.companyName,
+    contactPerson: c.contactPerson,
+    status: c.status,
+    createdAt: c.createdAt.toISOString(),
+  }));
 
   return (
     <DashboardClient
@@ -53,6 +182,10 @@ export default async function DashboardPage({
         name: b.name,
         slug: b.slug,
       }))}
+      leads={serializedLeads}
+      meetings={serializedMeetings}
+      proposals={serializedProposals}
+      clients={serializedClients}
     />
   );
 }

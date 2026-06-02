@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
 import { toast } from "sonner";
 import { NumberCounter } from "@/components/ui/number-counter";
 import { 
@@ -80,6 +81,72 @@ interface Brand {
   slug: string;
 }
 
+interface Client {
+  id: string;
+  companyName: string;
+  contactPerson: string;
+  status: string;
+  createdAt: string;
+}
+
+interface Proposal {
+  id: string;
+  title: string;
+  proposalNumber: string;
+  status: string;
+  value: number;
+  createdAt: string;
+}
+
+interface Meeting {
+  id: string;
+  title: string;
+  scheduledAt: string;
+  duration: number;
+  mode: string;
+  meetingUrl: string | null;
+  status: string;
+  lead: {
+    id: string;
+    companyName: string;
+    contactPerson: string;
+  } | null;
+  organizer: {
+    firstName: string | null;
+    lastName: string | null;
+    avatarUrl: string | null;
+  } | null;
+}
+
+interface Lead {
+  id: string;
+  companyName: string;
+  contactPerson: string;
+  email: string | null;
+  phone: string | null;
+  expectedValue: number | null;
+  winLossStatus: string | null;
+  nextActionDate: string | null;
+  createdAt: string;
+  owner: {
+    id: string;
+    firstName: string | null;
+    lastName: string | null;
+    email: string;
+    avatarUrl: string | null;
+  } | null;
+  stage: {
+    id: string;
+    name: string;
+    label: string;
+    color: string | null;
+  } | null;
+  source: {
+    id: string;
+    name: string;
+  } | null;
+}
+
 interface DashboardClientProps {
   user: {
     id: string;
@@ -90,6 +157,10 @@ interface DashboardClientProps {
   teammates: Teammate[];
   brands: Brand[];
   brandName: string;
+  leads: Lead[];
+  meetings: Meeting[];
+  proposals: Proposal[];
+  clients: Client[];
 }
 
 // Pool of 8 customizable KPIs
@@ -124,8 +195,107 @@ const WIDGET_POOL = {
 
 type WidgetType = keyof typeof WIDGET_POOL;
 
-export function DashboardClient({ user, teammates, brands, brandName }: DashboardClientProps) {
+export function DashboardClient({ 
+  user, 
+  teammates, 
+  brands, 
+  brandName,
+  leads = [],
+  meetings = [],
+  proposals = [],
+  clients = []
+}: DashboardClientProps) {
+  const router = useRouter();
+  const params = useParams();
+  const slug = params?.slug as string;
   const [greeting, setGreeting] = useState("Welcome back");
+
+  // Dynamic calculations for KPIs
+  const activeLeadsCount = leads.filter(l => !l.winLossStatus || l.winLossStatus === "OPEN").length;
+  
+  // Calculate meetings this week
+  const startOfWeek = new Date();
+  startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay()); // Sunday
+  startOfWeek.setHours(0, 0, 0, 0);
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(endOfWeek.getDate() + 7);
+  const meetingsThisWeek = meetings.filter(m => {
+    const d = new Date(m.scheduledAt);
+    return d >= startOfWeek && d < endOfWeek;
+  }).length;
+
+  const wonLeadsCount = leads.filter(l => l.winLossStatus === "WON").length;
+  const lostLeadsCount = leads.filter(l => l.winLossStatus === "LOST").length;
+  const totalClosedLeads = wonLeadsCount + lostLeadsCount;
+  const conversionRate = totalClosedLeads > 0 ? ((wonLeadsCount / totalClosedLeads) * 100).toFixed(1) : "0.0";
+  const activeClientsCount = clients.filter(c => c.status === "active").length;
+
+  const wonLeadsValue = leads
+    .filter(l => l.winLossStatus === "WON")
+    .reduce((sum, l) => sum + (Number(l.expectedValue) || 0), 0);
+  const unpaidExpectedValue = leads
+    .filter(l => !l.winLossStatus || l.winLossStatus === "OPEN")
+    .reduce((sum, l) => sum + (Number(l.expectedValue) || 0), 0);
+  const overdueActionsCount = leads.filter(l => l.nextActionDate && new Date(l.nextActionDate) < new Date()).length;
+
+  const dynamicKpiPool: Record<KpiType, { label: string; value: string; trend: string; trendUp: boolean; desc: string }> = {
+    "active-leads": { 
+      label: "Active Leads", 
+      value: String(activeLeadsCount), 
+      trend: `${leads.length > 0 ? Math.round((activeLeadsCount / leads.length) * 100) : 0}%`, 
+      trendUp: true, 
+      desc: "of total leads" 
+    },
+    "meetings-week": { 
+      label: "Meetings This Week", 
+      value: String(meetingsThisWeek), 
+      trend: String(meetings.length), 
+      trendUp: true, 
+      desc: "total meetings" 
+    },
+    "proposal-conversion": { 
+      label: "Proposal Conversion", 
+      value: `${conversionRate}%`, 
+      trend: `${wonLeadsCount} won`, 
+      trendUp: wonLeadsCount > 0, 
+      desc: `out of ${totalClosedLeads} closed` 
+    },
+    "active-clients": { 
+      label: "Active Clients", 
+      value: String(activeClientsCount), 
+      trend: String(clients.length), 
+      trendUp: true, 
+      desc: "total onboarded" 
+    },
+    "payments-collected": { 
+      label: "Payments Collected", 
+      value: `₹${(wonLeadsValue / 1000).toFixed(0)}K`, 
+      trend: `${wonLeadsCount} won deals`, 
+      trendUp: wonLeadsValue > 0, 
+      desc: "estimated value" 
+    },
+    "unpaid-invoices": { 
+      label: "Unpaid Invoices", 
+      value: `₹${(unpaidExpectedValue / 1000).toFixed(0)}K`, 
+      trend: "pipeline", 
+      trendUp: false, 
+      desc: "active expected value" 
+    },
+    "overdue-actions": { 
+      label: "Overdue Actions", 
+      value: String(overdueActionsCount), 
+      trend: "overdue", 
+      trendUp: false, 
+      desc: "requires attention" 
+    },
+    "completed-tasks": { 
+      label: "Completed Tasks", 
+      value: String(wonLeadsCount), 
+      trend: "won", 
+      trendUp: true, 
+      desc: "converted leads" 
+    },
+  };
 
   // Layout states for customized KPI slots (4 slots)
   const [kpis, setKpis] = useState<KpiType[]>([
@@ -182,12 +352,12 @@ export function DashboardClient({ user, teammates, brands, brandName }: Dashboar
       updated[existingIndex] = temp;
       setKpis(updated);
       localStorage.setItem("mergex_dashboard_kpis", JSON.stringify(updated));
-      toast.success(`Swapped KPI Cards: Slot #${slotIndex + 1} is now ${KPI_POOL[kpiKey].label}, Slot #${existingIndex + 1} is ${KPI_POOL[temp].label}`);
+      toast.success(`Swapped KPI Cards: Slot #${slotIndex + 1} is now ${dynamicKpiPool[kpiKey].label}, Slot #${existingIndex + 1} is ${dynamicKpiPool[temp].label}`);
     } else {
       updated[slotIndex] = kpiKey;
       setKpis(updated);
       localStorage.setItem("mergex_dashboard_kpis", JSON.stringify(updated));
-      toast.success(`KPI Card #${slotIndex + 1} updated to ${KPI_POOL[kpiKey].label}`);
+      toast.success(`KPI Card #${slotIndex + 1} updated to ${dynamicKpiPool[kpiKey].label}`);
     }
   };
 
@@ -218,12 +388,6 @@ export function DashboardClient({ user, teammates, brands, brandName }: Dashboar
       icon: <CheckCircle2 className="h-4 w-4 text-emerald-500" />
     });
   };
-  const handleNewAction = () => {
-    toast.info("Feature Coming Soon", {
-      description: "Quick creations are currently being wired to the CRM workflow builder."
-    });
-  };
-
 
   return (
     <div className="space-y-8 max-w-[1600px] mx-auto pb-8">
@@ -253,11 +417,11 @@ export function DashboardClient({ user, teammates, brands, brandName }: Dashboar
               <DropdownMenuLabel className="text-[10px] uppercase font-bold text-muted-foreground/60 px-2 py-1">
                 Sales Workflows
               </DropdownMenuLabel>
-              <DropdownMenuItem onClick={handleNewAction} className="text-xs flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-muted/50 rounded-md">
+              <DropdownMenuItem onClick={() => router.push(`/workspaces/${slug}/crm/leads/new`)} className="text-xs flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-muted/50 rounded-md">
                 <Briefcase className="h-3.5 w-3.5 text-[#8B5CF6]" />
                 <span>New Lead</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleNewAction} className="text-xs flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-muted/50 rounded-md">
+              <DropdownMenuItem onClick={() => router.push(`/workspaces/${slug}/clients`)} className="text-xs flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-muted/50 rounded-md">
                 <Users className="h-3.5 w-3.5 text-[#8B5CF6]" />
                 <span>New Client</span>
               </DropdownMenuItem>
@@ -265,11 +429,11 @@ export function DashboardClient({ user, teammates, brands, brandName }: Dashboar
               <DropdownMenuLabel className="text-[10px] uppercase font-bold text-muted-foreground/60 px-2 py-1">
                 Utilities
               </DropdownMenuLabel>
-              <DropdownMenuItem onClick={handleNewAction} className="text-xs flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-muted/50 rounded-md">
+              <DropdownMenuItem onClick={() => router.push(`/workspaces/${slug}/documents`)} className="text-xs flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-muted/50 rounded-md">
                 <FileText className="h-3.5 w-3.5 text-[#8B5CF6]" />
                 <span>Upload Document</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleNewAction} className="text-xs flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-muted/50 rounded-md">
+              <DropdownMenuItem onClick={() => router.push(`/workspaces/${slug}/crm/meetings`)} className="text-xs flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-muted/50 rounded-md">
                 <Calendar className="h-3.5 w-3.5 text-[#8B5CF6]" />
                 <span>Schedule Meeting</span>
               </DropdownMenuItem>
@@ -282,7 +446,7 @@ export function DashboardClient({ user, teammates, brands, brandName }: Dashboar
       {/* ── 2. KPI Strip (Floating, borderless cards) ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
         {kpis.map((kpiKey, slotIndex) => {
-          const kpi = KPI_POOL[kpiKey];
+          const kpi = dynamicKpiPool[kpiKey];
           return (
             <div key={slotIndex} className="relative group/kpi glass-frost-card rounded-[20px] p-6 transition-all flex flex-col justify-between h-[120px] text-left hover:shadow-[0_12px_40px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_16px_48px_rgba(0,0,0,0.4)]">
               <div className="flex justify-between items-start w-full">
@@ -305,14 +469,14 @@ export function DashboardClient({ user, teammates, brands, brandName }: Dashboar
                       Change KPI Metric
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator className="bg-border/10 my-1" />
-                    {(Object.keys(KPI_POOL) as KpiType[]).map((poolKey) => (
+                    {(Object.keys(dynamicKpiPool) as KpiType[]).map((poolKey) => (
                       <DropdownMenuItem 
                         key={poolKey}
                         onClick={() => handleSelectKpi(slotIndex, poolKey)}
                         className="text-xs flex justify-between items-center px-2 py-1.5 cursor-pointer hover:bg-muted/50 rounded-md"
                       >
-                        <span>{KPI_POOL[poolKey].label}</span>
-                        <span className="text-[10px] font-mono text-muted-foreground/50">{KPI_POOL[poolKey].value}</span>
+                        <span>{dynamicKpiPool[poolKey].label}</span>
+                        <span className="text-[10px] font-mono text-muted-foreground/50">{dynamicKpiPool[poolKey].value}</span>
                       </DropdownMenuItem>
                     ))}
                   </DropdownMenuContent>
@@ -423,7 +587,15 @@ export function DashboardClient({ user, teammates, brands, brandName }: Dashboar
                 </DropdownMenu>
               </CardHeader>
               <CardContent className="flex-1 flex flex-col justify-center overflow-hidden p-6 pt-0">
-                <AnalyticsWidget type={widgetKey} teammates={teammates} brands={brands} />
+                <AnalyticsWidget 
+                  type={widgetKey} 
+                  teammates={teammates} 
+                  brands={brands} 
+                  leads={leads}
+                  meetings={meetings}
+                  proposals={proposals}
+                  clients={clients}
+                />
               </CardContent>
             </Card>
           );

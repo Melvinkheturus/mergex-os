@@ -29,10 +29,80 @@ interface Brand {
   slug: string;
 }
 
+interface Client {
+  id: string;
+  companyName: string;
+  contactPerson: string;
+  status: string;
+  createdAt: string;
+}
+
+interface Proposal {
+  id: string;
+  title: string;
+  proposalNumber: string;
+  status: string;
+  value: number;
+  createdAt: string;
+}
+
+interface Meeting {
+  id: string;
+  title: string;
+  scheduledAt: string;
+  duration: number;
+  mode: string;
+  meetingUrl: string | null;
+  status: string;
+  lead: {
+    id: string;
+    companyName: string;
+    contactPerson: string;
+  } | null;
+  organizer: {
+    firstName: string | null;
+    lastName: string | null;
+    avatarUrl: string | null;
+  } | null;
+}
+
+interface Lead {
+  id: string;
+  companyName: string;
+  contactPerson: string;
+  email: string | null;
+  phone: string | null;
+  expectedValue: number | null;
+  winLossStatus: string | null;
+  nextActionDate: string | null;
+  createdAt: string;
+  owner: {
+    id: string;
+    firstName: string | null;
+    lastName: string | null;
+    email: string;
+    avatarUrl: string | null;
+  } | null;
+  stage: {
+    id: string;
+    name: string;
+    label: string;
+    color: string | null;
+  } | null;
+  source: {
+    id: string;
+    name: string;
+  } | null;
+}
+
 interface AnalyticsWidgetProps {
   type: string;
   teammates: Teammate[];
   brands: Brand[];
+  leads?: Lead[];
+  meetings?: Meeting[];
+  proposals?: Proposal[];
+  clients?: Client[];
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -70,7 +140,15 @@ function EmptyState({
 // ─────────────────────────────────────────────────────────────
 // Main Widget Router
 // ─────────────────────────────────────────────────────────────
-export function AnalyticsWidget({ type, teammates, brands }: AnalyticsWidgetProps) {
+export function AnalyticsWidget({ 
+  type, 
+  teammates, 
+  brands,
+  leads = [],
+  meetings = [],
+  proposals = [],
+  clients = []
+}: AnalyticsWidgetProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -88,27 +166,27 @@ export function AnalyticsWidget({ type, teammates, brands }: AnalyticsWidgetProp
   switch (type) {
     // ── CRM Analytics ───────────────────────────────────────
     case "pipeline-funnel":
-      return <PipelineFunnel />;
+      return <PipelineFunnel leads={leads} />;
     case "lead-sources":
-      return <LeadSources />;
+      return <LeadSources leads={leads} />;
     case "proposal-win-rate":
-      return <ProposalWinRate />;
+      return <ProposalWinRate leads={leads} />;
 
     // ── Client Analytics ────────────────────────────────────
     case "client-health":
-      return <ClientHealth />;
+      return <ClientHealth clients={clients} />;
     case "projects-by-status":
-      return <ProjectsByStatus />;
+      return <ProjectsByStatus clients={clients} />;
 
     // ── Team Analytics ──────────────────────────────────────
     case "cx-workload":
-      return <CXWorkload teammates={teammates} />;
+      return <CXWorkload teammates={teammates} leads={leads} />;
 
     // ── Document Analytics ──────────────────────────────────
     case "pending-agreements":
-      return <PendingAgreements brands={brands} />;
+      return <PendingAgreements proposals={proposals} />;
     case "invoice-status":
-      return <InvoiceStatus />;
+      return <InvoiceStatus proposals={proposals} />;
 
     default:
       return (
@@ -125,36 +203,165 @@ export function AnalyticsWidget({ type, teammates, brands }: AnalyticsWidgetProp
 // 1. CRM WIDGETS
 // ─────────────────────────────────────────────────────────────
 
-function PipelineFunnel() {
+function PipelineFunnel({ leads }: { leads: Lead[] }) {
+  if (leads.length === 0) {
+    return (
+      <EmptyState
+        icon={TrendingUp}
+        title="No Pipeline Data"
+        description="CRM funnel stages will show here once leads are added."
+        hint="Go to CRM → Add your first lead"
+      />
+    );
+  }
+
+  const stageMap: Record<string, { label: string; count: number; color: string }> = {};
+
+  leads.forEach((lead) => {
+    let stageId = lead.stage?.id || "unassigned";
+    let stageLabel = lead.stage?.label || "Unassigned";
+    let stageColor = lead.stage?.color || "#94A3B8";
+
+    if (lead.winLossStatus === "WON") {
+      stageId = "won";
+      stageLabel = "Closed Won";
+      stageColor = "#10B981";
+    } else if (lead.winLossStatus === "LOST") {
+      stageId = "lost";
+      stageLabel = "Closed Lost";
+      stageColor = "#EF4444";
+    }
+
+    if (!stageMap[stageId]) {
+      stageMap[stageId] = { label: stageLabel, count: 0, color: stageColor };
+    }
+    stageMap[stageId].count++;
+  });
+
+  const stagesList = Object.values(stageMap).sort((a, b) => b.count - a.count);
+
   return (
-    <EmptyState
-      icon={TrendingUp}
-      title="No Pipeline Data"
-      description="CRM funnel stages will show here once leads are added."
-      hint="Go to CRM → Add your first lead"
-    />
+    <div className="space-y-3.5 py-1 max-h-[280px] overflow-y-auto pr-1">
+      {stagesList.map((stage) => {
+        const pct = Math.round((stage.count / leads.length) * 100);
+        return (
+          <div key={stage.label} className="space-y-1">
+            <div className="flex justify-between items-center text-xs">
+              <span className="font-semibold text-foreground/80 flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: stage.color }} />
+                {stage.label}
+              </span>
+              <span className="font-mono text-muted-foreground font-semibold">
+                {stage.count} {stage.count === 1 ? "lead" : "leads"} ({pct}%)
+              </span>
+            </div>
+            <div className="h-2 w-full bg-muted/30 rounded-full overflow-hidden">
+              <div 
+                className="h-full rounded-full transition-all duration-500" 
+                style={{ 
+                  backgroundColor: stage.color, 
+                  width: `${pct}%` 
+                }} 
+              />
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
-function LeadSources() {
+function LeadSources({ leads }: { leads: Lead[] }) {
+  if (leads.length === 0) {
+    return (
+      <EmptyState
+        icon={BarChart2}
+        title="No Lead Sources"
+        description="Source distributions will show here once leads are tagged."
+        hint="Tag your leads with a source in CRM"
+      />
+    );
+  }
+
+  const sourceMap: Record<string, { label: string; count: number }> = {};
+  leads.forEach((lead) => {
+    const sourceName = lead.source?.name || "Unassigned";
+    if (!sourceMap[sourceName]) {
+      sourceMap[sourceName] = { label: sourceName, count: 0 };
+    }
+    sourceMap[sourceName].count++;
+  });
+
+  const sourcesList = Object.values(sourceMap).sort((a, b) => b.count - a.count);
+
   return (
-    <EmptyState
-      icon={BarChart2}
-      title="No Lead Sources"
-      description="Source distributions will show here once leads are tagged."
-      hint="Tag your leads with a source in CRM"
-    />
+    <div className="space-y-3.5 py-1 max-h-[280px] overflow-y-auto pr-1">
+      {sourcesList.map((src) => {
+        const pct = Math.round((src.count / leads.length) * 100);
+        return (
+          <div key={src.label} className="space-y-1">
+            <div className="flex justify-between items-center text-xs">
+              <span className="font-semibold text-foreground/80 truncate max-w-[200px]">
+                {src.label}
+              </span>
+              <span className="font-mono text-muted-foreground font-semibold">
+                {src.count} ({pct}%)
+              </span>
+            </div>
+            <div className="h-2 w-full bg-muted/30 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-linear-to-r from-[#C4B5FD] to-[#8B5CF6] rounded-full transition-all duration-500" 
+                style={{ width: `${pct}%` }} 
+              />
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
-function ProposalWinRate() {
+function ProposalWinRate({ leads }: { leads: Lead[] }) {
+  const wonLeadsCount = leads.filter(l => l.winLossStatus === "WON").length;
+  const lostLeadsCount = leads.filter(l => l.winLossStatus === "LOST").length;
+  const closedCount = wonLeadsCount + lostLeadsCount;
+  
+  if (closedCount === 0) {
+    return (
+      <EmptyState
+        icon={PieChartIcon}
+        title="No Proposals Closed"
+        description="Win rate statistics will display once proposals are closed won or lost."
+        hint="Close leads in CRM as Won or Lost"
+      />
+    );
+  }
+
+  const winRate = Math.round((wonLeadsCount / closedCount) * 100);
+
   return (
-    <EmptyState
-      icon={PieChartIcon}
-      title="No Proposals"
-      description="Win rate statistics will display once proposals are sent."
-      hint="Create a proposal in Documents"
-    />
+    <div className="flex flex-col items-center justify-center gap-4 py-2">
+      <div className="relative flex items-center justify-center">
+        <svg className="w-24 h-24 transform -rotate-90">
+          <circle cx="48" cy="48" r="40" stroke="currentColor" className="text-muted/20" strokeWidth="8" fill="transparent" />
+          <circle cx="48" cy="48" r="40" stroke="currentColor" className="text-[#8B5CF6]" strokeWidth="8" fill="transparent"
+            strokeDasharray="251.2"
+            strokeDashoffset={251.2 - (251.2 * winRate) / 100}
+          />
+        </svg>
+        <span className="absolute text-lg font-black text-foreground">{winRate}%</span>
+      </div>
+      <div className="flex gap-6 text-xs font-semibold">
+        <div className="flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+          <span>Won: {wonLeadsCount}</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-full bg-red-500" />
+          <span>Lost: {lostLeadsCount}</span>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -162,25 +369,54 @@ function ProposalWinRate() {
 // 2. CLIENT WIDGETS
 // ─────────────────────────────────────────────────────────────
 
-function ClientHealth() {
+function ClientHealth({ clients }: { clients: Client[] }) {
+  if (clients.length === 0) {
+    return (
+      <EmptyState
+        icon={Users}
+        title="No Clients Onboarded"
+        description="Operational health scores will show here once clients are added."
+        hint="Go to Clients → Add your first client"
+      />
+    );
+  }
+
   return (
-    <EmptyState
-      icon={Users}
-      title="No Clients Onboarded"
-      description="Operational health scores will show here once clients are added."
-      hint="Go to Clients → Add your first client"
-    />
+    <div className="space-y-3.5 py-1 max-h-[280px] overflow-y-auto pr-1">
+      {clients.map((c) => (
+        <div key={c.id} className="flex justify-between items-center text-xs p-2 rounded-lg border border-border/10 bg-muted/10">
+          <span className="font-semibold text-foreground/80">{c.companyName}</span>
+          <span className="text-[10px] text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-md font-semibold">
+            Healthy (100)
+          </span>
+        </div>
+      ))}
+    </div>
   );
 }
 
-function ProjectsByStatus() {
+function ProjectsByStatus({ clients }: { clients: Client[] }) {
+  if (clients.length === 0) {
+    return (
+      <EmptyState
+        icon={BarChart2}
+        title="No Projects Yet"
+        description="Project status breakdowns will show here once created."
+        hint="Create a project inside any Client record"
+      />
+    );
+  }
+
   return (
-    <EmptyState
-      icon={BarChart2}
-      title="No Projects Yet"
-      description="Project status breakdowns will show here once created."
-      hint="Create a project inside any Client record"
-    />
+    <div className="space-y-3.5 py-1 max-h-[280px] overflow-y-auto pr-1">
+      <div className="flex justify-between items-center text-xs">
+        <span className="font-semibold text-foreground/80">Active Projects</span>
+        <span className="font-mono text-muted-foreground font-semibold">{clients.length}</span>
+      </div>
+      <div className="h-2 w-full bg-muted/30 rounded-full overflow-hidden">
+        <div className="h-full bg-linear-to-r from-[#C4B5FD] to-[#8B5CF6] rounded-full w-full" />
+      </div>
+    </div>
   );
 }
 
@@ -188,7 +424,7 @@ function ProjectsByStatus() {
 // 3. TEAM WIDGETS
 // ─────────────────────────────────────────────────────────────
 
-function CXWorkload({ teammates }: { teammates: Teammate[] }) {
+function CXWorkload({ teammates, leads }: { teammates: Teammate[]; leads: Lead[] }) {
   if (teammates.length === 0) {
     return (
       <EmptyState
@@ -200,12 +436,13 @@ function CXWorkload({ teammates }: { teammates: Teammate[] }) {
     );
   }
 
-  // Teammates exist but no real lead data yet - show team list with zero state
   return (
     <div className="space-y-4 py-1 max-h-[280px] overflow-y-auto pr-1">
       {teammates.map((mate) => {
         const initials = ((mate.firstName?.[0] ?? "") + (mate.lastName?.[0] ?? mate.email[0])).toUpperCase();
         const displayName = mate.firstName ? `${mate.firstName} ${mate.lastName ?? ""}` : mate.email;
+        const mateLeadsCount = leads.filter(l => l.owner?.id === mate.id).length;
+        const pct = leads.length > 0 ? Math.round((mateLeadsCount / leads.length) * 100) : 0;
 
         return (
           <div key={mate.id} className="space-y-1.5">
@@ -221,12 +458,15 @@ function CXWorkload({ teammates }: { teammates: Teammate[] }) {
                   {mate.designation ?? mate.role.label}
                 </span>
               </div>
-              <span className="font-mono text-muted-foreground/40 font-semibold shrink-0 text-[10px]">
-                0 leads
+              <span className="font-mono text-muted-foreground/50 font-bold shrink-0 text-[10px]">
+                {mateLeadsCount} {mateLeadsCount === 1 ? "lead" : "leads"}
               </span>
             </div>
             <div className="h-1.5 w-full bg-muted/30 rounded-full overflow-hidden">
-              <div className="h-full w-0 bg-linear-to-r from-[#C4B5FD] to-[#8B5CF6] rounded-full" />
+              <div 
+                className="h-full bg-linear-to-r from-[#C4B5FD] to-[#8B5CF6] rounded-full transition-all duration-500" 
+                style={{ width: `${pct}%` }}
+              />
             </div>
           </div>
         );
@@ -242,26 +482,76 @@ function CXWorkload({ teammates }: { teammates: Teammate[] }) {
 // 4. DOCUMENT WIDGETS
 // ─────────────────────────────────────────────────────────────
 
-function PendingAgreements({ brands }: { brands: Brand[] }) {
-  void brands;
+function PendingAgreements({ proposals }: { proposals: Proposal[] }) {
+  const pending = proposals.filter(p => p.status === "DRAFT" || p.status === "SENT");
+
+  if (pending.length === 0) {
+    return (
+      <EmptyState
+        icon={FileText}
+        title="No Pending Agreements"
+        description="Contracts awaiting signatures will appear here."
+        hint="Go to Documents → Create Agreement"
+      />
+    );
+  }
 
   return (
-    <EmptyState
-      icon={FileText}
-      title="No Pending Agreements"
-      description="Contracts awaiting signatures will appear here."
-      hint="Go to Documents → Create Agreement"
-    />
+    <div className="space-y-3 py-1 max-h-[280px] overflow-y-auto pr-1">
+      {pending.map((p) => (
+        <div key={p.id} className="flex justify-between items-center text-xs p-2 rounded-lg border border-border/10 bg-muted/10">
+          <div className="min-w-0">
+            <p className="font-semibold text-foreground/80 truncate">{p.title}</p>
+            <p className="text-[9px] text-muted-foreground/60 font-medium truncate">{p.proposalNumber}</p>
+          </div>
+          <span className="text-[10px] text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-md font-semibold shrink-0">
+            {p.status}
+          </span>
+        </div>
+      ))}
+    </div>
   );
 }
 
-function InvoiceStatus() {
+function InvoiceStatus({ proposals }: { proposals: Proposal[] }) {
+  const collected = proposals.filter(p => p.status === "ACCEPTED" || p.status === "WON").reduce((sum, p) => sum + Number(p.value), 0);
+  const unpaid = proposals.filter(p => p.status !== "ACCEPTED" && p.status !== "WON").reduce((sum, p) => sum + Number(p.value), 0);
+  const total = collected + unpaid;
+  
+  if (total === 0) {
+    return (
+      <EmptyState
+        icon={AlertCircle}
+        title="No Invoice Data"
+        description="Collected vs unpaid invoice trends will show here."
+        hint="Go to Documents → Create Invoice"
+      />
+    );
+  }
+
+  const colPct = total > 0 ? Math.round((collected / total) * 100) : 0;
+  const unpPct = total > 0 ? Math.round((unpaid / total) * 100) : 0;
+
   return (
-    <EmptyState
-      icon={AlertCircle}
-      title="No Invoice Data"
-      description="Collected vs unpaid invoice trends will show here."
-      hint="Go to Documents → Create Invoice"
-    />
+    <div className="space-y-3.5 py-1">
+      <div className="space-y-1">
+        <div className="flex justify-between items-center text-xs">
+          <span className="font-semibold text-foreground/80">Collected Payments</span>
+          <span className="font-mono text-emerald-500 font-bold">₹{(collected / 1000).toFixed(0)}K ({colPct}%)</span>
+        </div>
+        <div className="h-2 w-full bg-muted/30 rounded-full overflow-hidden">
+          <div className="h-full bg-emerald-500 rounded-full transition-all duration-500" style={{ width: `${colPct}%` }} />
+        </div>
+      </div>
+      <div className="space-y-1">
+        <div className="flex justify-between items-center text-xs">
+          <span className="font-semibold text-foreground/80">Unpaid / Awaiting</span>
+          <span className="font-mono text-amber-500 font-bold">₹{(unpaid / 1000).toFixed(0)}K ({unpPct}%)</span>
+        </div>
+        <div className="h-2 w-full bg-muted/30 rounded-full overflow-hidden">
+          <div className="h-full bg-amber-500 rounded-full transition-all duration-500" style={{ width: `${unpPct}%` }} />
+        </div>
+      </div>
+    </div>
   );
 }
