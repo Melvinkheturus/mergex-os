@@ -116,6 +116,18 @@ export default function SignInPage() {
         // 2FA required — send email OTP and switch to OTP step
         await signIn.prepareSecondFactor({ strategy: "email_code" });
         setStep("otp");
+      } else if (result.status === "needs_first_factor") {
+        // Identifier accepted but first factor needs explicit attempt
+        const factor = await signIn.attemptFirstFactor({ strategy: "password", password });
+        if (factor.status === "complete") {
+          await setActive?.({ session: factor.createdSessionId });
+          router.push("/workspaces");
+        } else if (factor.status === "needs_second_factor") {
+          await signIn.prepareSecondFactor({ strategy: "email_code" });
+          setStep("otp");
+        } else {
+          setError("Sign-in could not be completed. Please contact your admin.");
+        }
       } else {
         setError("Sign-in could not be completed. Please contact your admin.");
       }
