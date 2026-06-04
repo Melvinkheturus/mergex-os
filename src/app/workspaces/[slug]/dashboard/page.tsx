@@ -29,6 +29,7 @@ export default async function DashboardPage({
   });
 
   const teammates = await db.user.findMany({
+    where: { isActive: true },
     include: { Role: true },
     orderBy: { createdAt: "desc" },
   });

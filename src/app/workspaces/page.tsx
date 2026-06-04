@@ -18,6 +18,7 @@ export default async function WorkspacesPage() {
   });
 
   const teammates = await db.user.findMany({
+    where: { isActive: true },
     include: { Role: true },
     orderBy: { createdAt: "desc" },
   });

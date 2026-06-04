@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Users,
   UserPlus,
-  Globe,
   Mail,
   ShieldCheck,
   Building2,
@@ -12,6 +11,7 @@ import {
   X,
   Check,
   Loader2,
+  AlertTriangle,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,10 +28,13 @@ interface Teammate {
   lastName: string | null;
   avatarUrl: string | null;
   designation?: string | null;
+  clerkId?: string;
   role: {
     name: string;
     label: string;
+    id?: string;
   };
+  brandAccess?: { id: string; name: string; slug: string }[];
 }
 
 interface Brand {
@@ -120,75 +123,168 @@ export function TeamTab({ teammates, brands }: TeamTabProps) {
   );
 }
 
+// ── Confirmation Modal ────────────────────────────────────────────────────────
+function ConfirmSuspendModal({
+  name,
+  email,
+  onConfirm,
+  onCancel,
+  loading,
+}: {
+  name: string;
+  email: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  loading: boolean;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onCancel} />
+      {/* Modal */}
+      <div className="relative z-10 w-full max-w-md bg-white dark:bg-[#0A0A0E] rounded-2xl border border-neutral-200 dark:border-white/10 shadow-2xl p-6 space-y-4">
+        <div className="flex items-start gap-3">
+          <div className="h-9 w-9 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0">
+            <AlertTriangle className="w-4.5 h-4.5 text-red-500" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-foreground">Suspend Account</h3>
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+              Are you sure you want to suspend <span className="font-bold text-foreground">{name}</span>?
+              Their account (<span className="font-mono text-[10px]">{email}</span>) will be deactivated
+              and removed from the platform. This action cannot be undone from here.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center justify-end gap-2 pt-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onCancel}
+            disabled={loading}
+            className="h-8 text-xs font-semibold cursor-pointer"
+          >
+            Cancel
+          </Button>
+          <Button
+            size="sm"
+            onClick={onConfirm}
+            disabled={loading}
+            className="h-8 text-xs font-bold bg-red-500 hover:bg-red-600 text-white cursor-pointer flex items-center gap-1.5"
+          >
+            {loading ? (
+              <><Loader2 className="w-3.5 h-3.5 animate-spin" />Suspending…</>
+            ) : (
+              <>Confirm Suspend</>
+            )}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── 1. Members ────────────────────────────────────────────────────────────────
-function MembersSection({ teammates }: { teammates: Teammate[] }) {
-  const handleSuspend = (name: string) => {
-    toast.success("Teammate suspended", {
-      description: `${name} has been suspended from MergeX OS.`,
-    });
+function MembersSection({ teammates: initialTeammates }: { teammates: Teammate[] }) {
+  const [members, setMembers] = useState<Teammate[]>(initialTeammates);
+  const [suspendTarget, setSuspendTarget] = useState<Teammate | null>(null);
+  const [suspending, setSuspending] = useState(false);
+
+  const handleConfirmSuspend = async () => {
+    if (!suspendTarget) return;
+    setSuspending(true);
+    try {
+      const res = await fetch(`/api/team/members?id=${suspendTarget.id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? "Failed to suspend account.");
+        return;
+      }
+      setMembers((prev) => prev.filter((m) => m.id !== suspendTarget.id));
+      toast.success("Account suspended", {
+        description: `${suspendTarget.email} has been deactivated and removed from the platform.`,
+      });
+      setSuspendTarget(null);
+    } catch {
+      toast.error("Network error — please try again.");
+    } finally {
+      setSuspending(false);
+    }
   };
 
   return (
-    <div className="glass-frost-card rounded-[20px] shadow-sm border border-neutral-200 dark:border-white/5 p-5.5 bg-neutral-50/20 dark:bg-white/1 space-y-4">
-      <div>
-        <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-          <Users className="w-4.5 h-4.5 text-[#8B5CF6]" />
-          Active Members
-        </h3>
-        <p className="text-xs text-muted-foreground mt-1">
-          {teammates.length} authorized member{teammates.length !== 1 ? "s" : ""} in this organization.
-        </p>
-      </div>
+    <>
+      {suspendTarget && (
+        <ConfirmSuspendModal
+          name={suspendTarget.firstName ? `${suspendTarget.firstName} ${suspendTarget.lastName ?? ""}`.trim() : suspendTarget.email}
+          email={suspendTarget.email}
+          onConfirm={handleConfirmSuspend}
+          onCancel={() => setSuspendTarget(null)}
+          loading={suspending}
+        />
+      )}
 
-      <div className="space-y-2">
-        {teammates.map((t) => {
-          const initials = getInitials(t);
-          const name = t.firstName ? `${t.firstName} ${t.lastName ?? ""}`.trim() : t.email;
-          return (
-            <div
-              key={t.id}
-              className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 border border-neutral-200 dark:border-white/5 rounded-xl bg-white dark:bg-[#0A0A0E] shadow-sm"
-            >
-              <div className="flex items-center gap-3">
-                {t.avatarUrl ? (
-                  <img
-                    src={t.avatarUrl}
-                    alt={name}
-                    className="h-8 w-8 rounded-lg object-cover border border-neutral-200 dark:border-white/6 shrink-0"
-                  />
-                ) : (
-                  <div className="h-8 w-8 rounded-lg bg-[#8B5CF6]/5 border border-[#8B5CF6]/20 flex items-center justify-center text-xs font-extrabold text-[#8B5CF6] shrink-0">
-                    {initials}
+      <div className="glass-frost-card rounded-[20px] shadow-sm border border-neutral-200 dark:border-white/5 p-5.5 bg-neutral-50/20 dark:bg-white/1 space-y-4">
+        <div>
+          <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+            <Users className="w-4.5 h-4.5 text-[#8B5CF6]" />
+            Active Members
+          </h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            {members.length} authorized member{members.length !== 1 ? "s" : ""} in this organization.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          {members.map((t) => {
+            const initials = getInitials(t);
+            const name = t.firstName ? `${t.firstName} ${t.lastName ?? ""}`.trim() : t.email;
+            return (
+              <div
+                key={t.id}
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 border border-neutral-200 dark:border-white/5 rounded-xl bg-white dark:bg-[#0A0A0E] shadow-sm"
+              >
+                <div className="flex items-center gap-3">
+                  {t.avatarUrl ? (
+                    <img
+                      src={t.avatarUrl}
+                      alt={name}
+                      className="h-8 w-8 rounded-lg object-cover border border-neutral-200 dark:border-white/6 shrink-0"
+                    />
+                  ) : (
+                    <div className="h-8 w-8 rounded-lg bg-[#8B5CF6]/5 border border-[#8B5CF6]/20 flex items-center justify-center text-xs font-extrabold text-[#8B5CF6] shrink-0">
+                      {initials}
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-foreground truncate leading-none">{name}</p>
+                    <p className="text-[10px] text-muted-foreground/60 truncate mt-1">{t.email}</p>
+                    {t.designation && (
+                      <p className="text-[10px] text-muted-foreground/40 truncate mt-0.5">{t.designation}</p>
+                    )}
                   </div>
-                )}
-                <div className="min-w-0">
-                  <p className="text-xs font-bold text-foreground truncate leading-none">{name}</p>
-                  <p className="text-[10px] text-muted-foreground/60 truncate mt-1">{t.email}</p>
-                  {t.designation && (
-                    <p className="text-[10px] text-muted-foreground/40 truncate mt-0.5">{t.designation}</p>
+                </div>
+                <div className="flex items-center gap-3 self-end sm:self-auto">
+                  <Badge variant="outline" className="text-[9px] uppercase tracking-wider border-emerald-500/20 text-emerald-600 bg-emerald-500/5 font-semibold">
+                    {t.role.label}
+                  </Badge>
+                  {t.role.name !== "super_admin" && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSuspendTarget(t)}
+                      className="h-7 text-[10px] font-bold text-neutral-500 hover:text-red-500 hover:bg-red-500/5 cursor-pointer"
+                    >
+                      Suspend
+                    </Button>
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-3 self-end sm:self-auto">
-                <Badge variant="outline" className="text-[9px] uppercase tracking-wider border-emerald-500/20 text-emerald-600 bg-emerald-500/5 font-semibold">
-                  {t.role.label}
-                </Badge>
-                {t.role.name !== "super_admin" && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleSuspend(name)}
-                    className="h-7 text-[10px] font-bold text-neutral-500 hover:text-red-500 hover:bg-red-500/5 cursor-pointer"
-                  >
-                    Suspend
-                  </Button>
-                )}
-              </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -634,8 +730,168 @@ function RolesSection() {
   );
 }
 
+// ── Brand Access Dropdown per member ─────────────────────────────────────────
+function BrandAccessDropdown({
+  member,
+  brands,
+  onSaved,
+}: {
+  member: Teammate;
+  brands: Brand[];
+  onSaved: (memberId: string, newBrandIds: string[]) => void;
+}) {
+  const isSuperAdmin = member.role.name === "super_admin";
+  const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState<string[]>(
+    member.brandAccess?.map((b) => b.id) ?? []
+  );
+  const [saving, setSaving] = useState(false);
+  const dropRef = useRef<HTMLDivElement>(null);
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropRef.current && !dropRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const toggle = (id: string) => {
+    setSelected((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/team/members?id=${member.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ brandIds: selected }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        toast.error(data.error ?? "Failed to update brand access.");
+        return;
+      }
+      onSaved(member.id, selected);
+      toast.success("Brand access updated.");
+      setOpen(false);
+    } catch {
+      toast.error("Network error — please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (isSuperAdmin) {
+    return (
+      <span className="text-[10px] text-emerald-600 font-bold bg-emerald-500/5 border border-emerald-500/20 px-2 py-1 rounded-lg">
+        All Brands
+      </span>
+    );
+  }
+
+  const selectedNames = brands
+    .filter((b) => selected.includes(b.id))
+    .map((b) => b.name);
+
+  return (
+    <div ref={dropRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-1.5 h-7 px-2.5 rounded-lg bg-white dark:bg-[#0A0A0E] border border-neutral-200 dark:border-white/8 text-[10px] font-semibold text-foreground hover:border-[#8B5CF6]/40 transition-colors cursor-pointer max-w-[180px]"
+      >
+        <span className={cn("truncate", selectedNames.length === 0 && "text-muted-foreground")}>
+          {selectedNames.length === 0
+            ? "No access"
+            : selectedNames.length === brands.length
+            ? "All brands"
+            : selectedNames.join(", ")}
+        </span>
+        <ChevronDown className="w-3 h-3 text-neutral-400 shrink-0" />
+      </button>
+
+      {open && (
+        <div className="absolute z-40 top-full mt-1 left-0 min-w-[180px] bg-white dark:bg-[#0A0A0E] border border-neutral-200 dark:border-white/10 rounded-xl shadow-xl overflow-hidden">
+          <div className="max-h-48 overflow-y-auto">
+            {brands.map((b) => {
+              const checked = selected.includes(b.id);
+              return (
+                <button
+                  key={b.id}
+                  type="button"
+                  onClick={() => toggle(b.id)}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-foreground hover:bg-neutral-50 dark:hover:bg-white/5 transition-colors cursor-pointer text-left"
+                >
+                  <span
+                    className={cn(
+                      "w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors",
+                      checked
+                        ? "bg-[#8B5CF6] border-[#8B5CF6]"
+                        : "border-neutral-300 dark:border-white/20 bg-transparent"
+                    )}
+                  >
+                    {checked && <Check className="w-2.5 h-2.5 text-white" />}
+                  </span>
+                  <span className="truncate">{b.name}</span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="border-t border-neutral-200 dark:border-white/8 px-3 py-2 flex justify-end">
+            <Button
+              size="sm"
+              onClick={handleSave}
+              disabled={saving}
+              className="h-7 text-[10px] font-bold bg-[#8B5CF6] hover:bg-[#7C3AED] text-white cursor-pointer px-3"
+            >
+              {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Save"}
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── 4. Brand Access ───────────────────────────────────────────────────────────
 function BrandAccessSection({ teammates, brands }: { teammates: Teammate[]; brands: Brand[] }) {
+  const [members, setMembers] = useState<Teammate[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/team/members")
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) setMembers(data as Teammate[]);
+        else setMembers(teammates); // fallback to prop
+      })
+      .catch(() => {
+        setMembers(teammates);
+        toast.error("Failed to load brand access data.");
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleBrandAccessSaved = (memberId: string, newBrandIds: string[]) => {
+    setMembers((prev) =>
+      prev.map((m) =>
+        m.id === memberId
+          ? {
+              ...m,
+              brandAccess: brands.filter((b) => newBrandIds.includes(b.id)),
+            }
+          : m
+      )
+    );
+  };
+
   return (
     <div className="glass-frost-card rounded-[20px] shadow-sm border border-neutral-200 dark:border-white/5 p-5.5 bg-neutral-50/20 dark:bg-white/1 space-y-4">
       <div>
@@ -644,69 +900,69 @@ function BrandAccessSection({ teammates, brands }: { teammates: Teammate[]; bran
           Brand Access
         </h3>
         <p className="text-xs text-muted-foreground mt-1">
-          Overview of which team members have access to which brand workspaces.
+          Manage which brand workspaces each team member can access.
         </p>
       </div>
 
-      {/* Table header */}
-      <div className="rounded-xl overflow-hidden border border-neutral-200 dark:border-white/5">
-        <div className="grid bg-neutral-50 dark:bg-white/2 px-4 py-2.5 border-b border-neutral-200 dark:border-white/5"
-          style={{ gridTemplateColumns: `1fr 140px ${brands.map(() => "80px").join(" ")}` }}
-        >
-          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Member</span>
-          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Role</span>
-          {brands.map((b) => (
-            <span key={b.id} className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 text-center truncate">
-              {b.name}
-            </span>
+      {loading ? (
+        <div className="space-y-2 animate-pulse">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="flex items-center justify-between p-3 border border-neutral-200 dark:border-white/5 rounded-xl bg-white dark:bg-[#0A0A0E]">
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-8 w-8 rounded-lg" />
+                <div className="space-y-1">
+                  <Skeleton className="h-3 w-24 rounded" />
+                  <Skeleton className="h-2.5 w-16 rounded" />
+                </div>
+              </div>
+              <Skeleton className="h-7 w-32 rounded-lg" />
+            </div>
           ))}
         </div>
-
-        {teammates.map((t, i) => {
-          const name = t.firstName ? `${t.firstName} ${t.lastName ?? ""}`.trim() : t.email;
-          const isSuperAdmin = t.role.name === "super_admin";
-          return (
-            <div
-              key={t.id}
-              className={cn(
-                "grid items-center px-4 py-3 border-b border-neutral-200 dark:border-white/5 last:border-0",
-                i % 2 === 0 ? "bg-white dark:bg-[#0A0A0E]" : "bg-neutral-50/50 dark:bg-white/1"
-              )}
-              style={{ gridTemplateColumns: `1fr 140px ${brands.map(() => "80px").join(" ")}` }}
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                {t.avatarUrl ? (
-                  <img
-                    src={t.avatarUrl}
-                    alt={name}
-                    className="h-6 w-6 rounded-md object-cover border border-neutral-200 dark:border-white/6 shrink-0"
-                  />
-                ) : (
-                  <div className="h-6 w-6 rounded-md bg-[#8B5CF6]/5 border border-[#8B5CF6]/20 flex items-center justify-center text-[9px] font-extrabold text-[#8B5CF6] shrink-0">
-                    {getInitials(t)}
-                  </div>
-                )}
-                <span className="text-xs font-semibold text-foreground truncate">{name}</span>
-              </div>
-              <Badge variant="outline" className="text-[9px] uppercase tracking-wider border-emerald-500/20 text-emerald-600 bg-emerald-500/5 font-semibold w-fit">
-                {t.role.label}
-              </Badge>
-              {brands.map((b) => (
-                <div key={b.id} className="flex justify-center">
-                  {isSuperAdmin ? (
-                    <Check className="w-3.5 h-3.5 text-emerald-500" />
+      ) : (
+        <div className="space-y-2">
+          {members.map((t) => {
+            const name = t.firstName ? `${t.firstName} ${t.lastName ?? ""}`.trim() : t.email;
+            return (
+              <div
+                key={t.id}
+                className="flex items-center justify-between gap-3 p-3.5 border border-neutral-200 dark:border-white/5 rounded-xl bg-white dark:bg-[#0A0A0E] shadow-sm"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  {t.avatarUrl ? (
+                    <img
+                      src={t.avatarUrl}
+                      alt={name}
+                      className="h-8 w-8 rounded-lg object-cover border border-neutral-200 dark:border-white/6 shrink-0"
+                    />
                   ) : (
-                    <span className="w-3.5 h-3.5 rounded-full bg-neutral-200 dark:bg-white/10 block" />
+                    <div className="h-8 w-8 rounded-lg bg-[#8B5CF6]/5 border border-[#8B5CF6]/20 flex items-center justify-center text-xs font-extrabold text-[#8B5CF6] shrink-0">
+                      {getInitials(t)}
+                    </div>
                   )}
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-foreground truncate leading-none">{name}</p>
+                    <p className="text-[10px] text-muted-foreground/60 truncate mt-0.5">{t.email}</p>
+                  </div>
                 </div>
-              ))}
-            </div>
-          );
-        })}
-      </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <Badge variant="outline" className="text-[9px] uppercase tracking-wider border-emerald-500/20 text-emerald-600 bg-emerald-500/5 font-semibold hidden sm:flex">
+                    {t.role.label}
+                  </Badge>
+                  <BrandAccessDropdown
+                    member={t}
+                    brands={brands}
+                    onSaved={handleBrandAccessSaved}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       <p className="text-[10px] text-muted-foreground/50 italic">
-        Super Admins have access to all brand workspaces. Per-member brand access is managed during invitation.
+        Super Admins have access to all brand workspaces. Changes take effect immediately.
       </p>
     </div>
   );
