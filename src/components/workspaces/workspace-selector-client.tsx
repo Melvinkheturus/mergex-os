@@ -44,6 +44,7 @@ interface Teammate {
   email: string;
   firstName: string | null;
   lastName: string | null;
+  avatarUrl: string | null;
   designation?: string | null;
   role: {
     name: string;
@@ -62,9 +63,9 @@ interface Props {
 type ActiveTab = "workspaces" | "team" | "settings";
 
 const SIDEBAR_TABS = [
-  { id: "workspaces" as ActiveTab, label: "Brand Workspaces",  icon: LayoutGrid, adminOnly: false },
-  { id: "team"       as ActiveTab, label: "Team & Access",     icon: Users,      adminOnly: true  },
-  { id: "settings"   as ActiveTab, label: "Platform Settings", icon: Building2,  adminOnly: true  },
+  { id: "workspaces" as ActiveTab, label: "Workspaces",           icon: LayoutGrid, adminOnly: false },
+  { id: "team"       as ActiveTab, label: "Team & Access",        icon: Users,      adminOnly: true  },
+  { id: "settings"   as ActiveTab, label: "Organization Settings", icon: Building2,  adminOnly: true  },
 ];
 
 export function WorkspaceSelectorClient({ brands, user, userRole, teammates }: Props) {
@@ -94,25 +95,7 @@ export function WorkspaceSelectorClient({ brands, user, userRole, teammates }: P
   const [defaultTimezone, setDefaultTimezone] = useState("Asia/Kolkata");
   const [defaultCurrency, setDefaultCurrency] = useState("INR");
 
-  // ── Team / invite state ───────────────────────────────────────────────
-  const [inviteEmail, setInviteEmail]       = useState("");
-  const [inviteRole, setInviteRole]         = useState("cx_executive");
-  const [sendingInvite, setSendingInvite]   = useState(false);
-  const [userTab, setUserTab]               = useState<"active" | "invited">("active");
-  const [pendingInvitesList, setPendingInvitesList] = useState([
-    { id: "p1", email: "marketing@mergex.in", role: "Admin",        invitedAt: "2h ago"    },
-    { id: "p2", email: "support@mergex.in",   role: "CX Executive", invitedAt: "1 day ago" },
-  ]);
 
-  // ── Roles state ───────────────────────────────────────────────────────
-  const [rolesList, setRolesList] = useState([
-    { role: "Super Admin",  perm: "Full access to platform, branding, billing, and logs." },
-    { role: "Admin",        perm: "Manage brand divisions, users and pipeline rules. Cannot view system logs." },
-    { role: "CX Executive", perm: "Create leads, update client workspaces, upload document templates." },
-    { role: "Viewer",       perm: "Read-only access to KPI strip and dashboard analytics widgets." },
-  ]);
-  const [newRoleTitle, setNewRoleTitle] = useState("");
-  const [newRoleDesc,  setNewRoleDesc]  = useState("");
 
   // ── Derived ───────────────────────────────────────────────────────────
   const displayName = user.firstName
@@ -195,46 +178,10 @@ export function WorkspaceSelectorClient({ brands, user, userRole, teammates }: P
     }
   };
 
-  const handleSendInvite = () => {
-    if (!inviteEmail.trim() || !inviteEmail.includes("@")) return;
-    setSendingInvite(true);
-    setTimeout(() => {
-      const roleLabel = rolesList.find(
-        (r) => r.role.toLowerCase().replace(/\s/g, "_") === inviteRole
-      )?.role ?? "CX Executive";
-      setPendingInvitesList((prev) => [
-        { id: Date.now().toString(), email: inviteEmail.trim(), role: roleLabel, invitedAt: "Just now" },
-        ...prev,
-      ]);
-      setInviteEmail("");
-      setSendingInvite(false);
-      toast.success("Email invitation sent successfully.", { description: `Invitation sent to ${inviteEmail}.` });
-    }, 1000);
-  };
+
 
   const handleDeactivate = (name: string) => {
     toast.success("Teammate account deactivated", { description: `${name} has been suspended from accessing MergeX OS.` });
-  };
-
-  const handleCancelInvite = (id: string, email: string) => {
-    setPendingInvitesList((prev) => prev.filter((p) => p.id !== id));
-    toast.error("Invitation cancelled", { description: `Pending invite for ${email} has been revoked.` });
-  };
-
-  const handleAddCustomRole = () => {
-    if (!newRoleTitle.trim() || !newRoleDesc.trim()) return;
-    if (rolesList.some((r) => r.role.toLowerCase() === newRoleTitle.toLowerCase().trim())) {
-      toast.error("Role already exists", { description: `A role named "${newRoleTitle.trim()}" is already configured.` });
-      return;
-    }
-    setRolesList((prev) => [...prev, { role: newRoleTitle.trim(), perm: newRoleDesc.trim() }]);
-    toast.success("Custom role created", { description: `"${newRoleTitle.trim()}" is now available for member invitations.` });
-    setNewRoleTitle(""); setNewRoleDesc("");
-  };
-
-  const handleRemoveCustomRole = (title: string) => {
-    setRolesList((prev) => prev.filter((r) => r.role !== title));
-    toast.success("Custom role deleted", { description: `"${title}" has been removed from permissions matrix.` });
   };
 
   // ── Render ────────────────────────────────────────────────────────────
@@ -286,7 +233,7 @@ export function WorkspaceSelectorClient({ brands, user, userRole, teammates }: P
           <div className="flex flex-col gap-5">
             <div>
               <span className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest font-mono select-none px-2 block mb-2">
-                Operations Centre
+                Organization
               </span>
               <nav className="flex flex-row md:flex-col gap-1 overflow-x-auto md:overflow-x-visible no-scrollbar">
                 {SIDEBAR_TABS.filter((t) => !t.adminOnly || canCreateBrand).map((tab) => {
@@ -374,24 +321,7 @@ export function WorkspaceSelectorClient({ brands, user, userRole, teammates }: P
             {activeTab === "team" && (
               <TeamTab
                 teammates={teammates}
-                inviteEmail={inviteEmail}
-                setInviteEmail={setInviteEmail}
-                inviteRole={inviteRole}
-                setInviteRole={setInviteRole}
-                sendingInvite={sendingInvite}
-                handleSendInvite={handleSendInvite}
-                userTab={userTab}
-                setUserTab={setUserTab}
-                pendingInvitesList={pendingInvitesList}
-                handleCancelInvite={handleCancelInvite}
-                handleDeactivate={handleDeactivate}
-                rolesList={rolesList}
-                newRoleTitle={newRoleTitle}
-                setNewRoleTitle={setNewRoleTitle}
-                newRoleDesc={newRoleDesc}
-                setNewRoleDesc={setNewRoleDesc}
-                handleAddCustomRole={handleAddCustomRole}
-                handleRemoveCustomRole={handleRemoveCustomRole}
+                brands={brandList.map((b) => ({ id: b.id, name: b.name, slug: b.slug }))}
               />
             )}
 

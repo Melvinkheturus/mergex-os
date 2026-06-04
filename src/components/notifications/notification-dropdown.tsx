@@ -13,6 +13,7 @@ import {
 import { NotificationBadge } from "./notification-badge";
 import { NotificationItem, type NotificationItemData } from "./notification-item";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -129,8 +130,16 @@ export function NotificationDropdown() {
         {/* Notification list */}
         <ScrollArea className="h-[360px]">
           {loading && notifications.length === 0 ? (
-            <div className="flex items-center justify-center h-32">
-              <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            <div className="p-4 space-y-4 animate-pulse">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="flex gap-3">
+                  <Skeleton className="w-8 h-8 rounded-full shrink-0" />
+                  <div className="space-y-1.5 flex-1">
+                    <Skeleton className="h-3.5 w-full rounded" />
+                    <Skeleton className="h-3 w-1/3 rounded" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : notifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-48 gap-3 text-center px-6">

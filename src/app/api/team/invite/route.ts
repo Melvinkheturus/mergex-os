@@ -178,6 +178,48 @@ export async function POST(request: NextRequest) {
 }
 
 /**
+ * DELETE /api/team/invite?id=<inviteId>
+ * Revokes a pending invitation.
+ */
+export async function DELETE(request: NextRequest) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const isSuperAdmin = user.role.name === "super_admin";
+  const canInvite = isSuperAdmin || user.permissions.includes("users.invite");
+  if (!canInvite) {
+    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+  }
+
+  const id = request.nextUrl.searchParams.get("id");
+  if (!id) {
+    return NextResponse.json({ error: "Invite ID is required" }, { status: 400 });
+  }
+
+  const invite = await db.userInvite.findUnique({ where: { id } });
+  if (!invite || invite.status !== "PENDING") {
+    return NextResponse.json({ error: "Invite not found or already resolved" }, { status: 404 });
+  }
+
+  await db.userInvite.update({
+    where: { id },
+    data: { status: "REVOKED" },
+  });
+
+  // Also deactivate the pre-created pending user record if it exists
+  try {
+    await db.user.updateMany({
+      where: { email: invite.email, isActive: false },
+      data: { updatedAt: new Date() },
+    });
+  } catch { /* ignore */ }
+
+  return NextResponse.json({ ok: true });
+}
+
+/**
  * GET /api/team/invite
  * Returns pending invites for the current brand context.
  */

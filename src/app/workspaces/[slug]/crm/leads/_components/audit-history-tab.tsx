@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
-import { History, Loader2 } from "lucide-react";
+import { History } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Lead, AuditLogEntry } from "./types";
 
 const ACTION_META: Record<string, { label: string; colorClass: string; dot: string }> = {
@@ -82,9 +83,20 @@ export function AuditHistoryTab({ leadId, lead }: AuditHistoryTabProps) {
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-16 gap-2 text-muted-foreground">
-            <Loader2 className="h-5 w-5 animate-spin text-[#8B5CF6]" />
-            <span className="text-xs">Loading history...</span>
+          <div className="divide-y divide-border/10">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="flex items-start gap-3 px-5 py-4">
+                <div className="relative flex flex-col items-center">
+                  <Skeleton className="h-7 w-7 rounded-full" />
+                  {i < 2 && <div className="w-px flex-1 bg-border/20 mt-1 min-h-[16px]" />}
+                </div>
+                <div className="min-w-0 flex-1 pb-2 space-y-2">
+                  <Skeleton className="h-3.5 w-32" />
+                  <Skeleton className="h-2.5 w-48" />
+                  <Skeleton className="h-2.5 w-24" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : logs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">

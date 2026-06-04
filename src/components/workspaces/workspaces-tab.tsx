@@ -197,7 +197,7 @@ export function WorkspacesTab({
                   {/* Brand creation date */}
                   <div className="w-full mt-4 flex items-center justify-between text-[9px] text-neutral-500 font-mono relative z-10">
                     <span>Created</span>
-                    <span>{new Date(brand.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                    <span>{new Date(brand.createdAt).toLocaleDateString("en-IN", { year: 'numeric', month: 'short', day: 'numeric' })}</span>
                   </div>
 
                 </button>

@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import {
   FileText,
-  Loader2,
   IndianRupee,
   Calendar,
   TrendingUp,
@@ -12,6 +11,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Proposal {
   id: string;
@@ -166,9 +166,20 @@ export function ProposalsPageClient() {
 
         <CardContent className="p-2 bg-card/5">
           {loading ? (
-            <div className="flex items-center justify-center py-16 gap-2 text-muted-foreground">
-              <Loader2 className="h-5 w-5 animate-spin text-[#8B5CF6]" />
-              <span className="text-xs">Loading proposals...</span>
+            <div className="divide-y divide-border/10">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="grid grid-cols-[80px_2fr_1.5fr_1fr_1fr_100px] items-center gap-4 px-4 py-3">
+                  <Skeleton className="h-4 w-14" />
+                  <div className="space-y-1.5">
+                    <Skeleton className="h-3.5 w-36" />
+                    <Skeleton className="h-2.5 w-28" />
+                  </div>
+                  <Skeleton className="h-3.5 w-24" />
+                  <Skeleton className="h-3.5 w-16" />
+                  <Skeleton className="h-3.5 w-16" />
+                  <Skeleton className="h-5 w-20 rounded-full" />
+                </div>
+              ))}
             </div>
           ) : proposals.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">

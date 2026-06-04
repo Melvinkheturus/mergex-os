@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -146,9 +147,43 @@ export function NewLeadClientPage() {
       </div>
 
       {loadingOptions ? (
-        <div className="flex flex-col items-center justify-center py-20 text-muted-foreground space-y-2 bg-card border border-border/80 rounded-md">
-          <Loader2 className="h-8 w-8 animate-spin text-[#8B5CF6]" />
-          <span className="text-xs">Loading form configuration options...</span>
+        <div className="bg-card border border-border/80 rounded-md shadow-xs overflow-hidden animate-pulse">
+          {/* Card Header Skeleton */}
+          <div className="flex items-center gap-3.5 p-6 border-b border-border/40 bg-muted/5">
+            <Skeleton className="h-10 w-10 rounded-md shrink-0" />
+            <div className="space-y-1.5 flex-1">
+              <Skeleton className="h-5 w-40 rounded" />
+              <Skeleton className="h-3 w-72 rounded" />
+            </div>
+          </div>
+
+          <div className="p-6 space-y-8">
+            {/* Section 1: Company Profile */}
+            <div className="space-y-4">
+              <Skeleton className="h-3 w-44 rounded" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="space-y-1.5">
+                    <Skeleton className="h-3.5 w-24 rounded" />
+                    <Skeleton className="h-10 w-full rounded-md" />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Section 2: Contact Details */}
+            <div className="space-y-4">
+              <Skeleton className="h-3 w-44 rounded" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="space-y-1.5">
+                    <Skeleton className="h-3.5 w-24 rounded" />
+                    <Skeleton className="h-10 w-full rounded-md" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       ) : (
         <div className="bg-card border border-border/80 rounded-md shadow-xs overflow-hidden">

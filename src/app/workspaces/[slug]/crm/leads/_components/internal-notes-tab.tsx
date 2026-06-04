@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { Note } from "./types";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface InternalNotesTabProps {
   leadId: string;
@@ -133,9 +134,22 @@ export function InternalNotesTab({ leadId }: InternalNotesTabProps) {
 
       {/* Notes list */}
       {loading ? (
-        <div className="flex items-center justify-center py-16 text-muted-foreground gap-2">
-          <Loader2 className="h-5 w-5 animate-spin text-[#8B5CF6]" />
-          <span className="text-xs">Loading notes...</span>
+        <div className="space-y-3">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <div key={i} className="rounded-xl border border-border/40 bg-card/50 p-4 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-6 w-6 rounded-full" />
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-3 w-16" />
+                </div>
+                <Skeleton className="h-4 w-12 rounded-full" />
+              </div>
+              <Skeleton className="h-3 w-full" />
+              <Skeleton className="h-3 w-3/4" />
+              <Skeleton className="h-3 w-1/2" />
+            </div>
+          ))}
         </div>
       ) : notes.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">

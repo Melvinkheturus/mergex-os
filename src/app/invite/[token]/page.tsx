@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useSignUp } from "@clerk/nextjs/legacy";
 import { useRouter } from "next/navigation";
 import { Loader2, CheckCircle2, ShieldCheck, Eye, EyeOff, Building2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type InviteData = {
   valid: boolean;
@@ -144,8 +145,45 @@ export default function InvitePage({ params }: { params: { token: string } }) {
 
   if (step === "loading") {
     return (
-      <div className="min-h-screen bg-[#F8F8FA] dark:bg-[#0B0B0F] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#8B5CF6]" />
+      <div className="min-h-screen bg-[#F8F8FA] dark:bg-[#0B0B0F] flex items-center justify-center p-4">
+        <div className="relative w-full max-w-[420px] bg-white dark:bg-[#111114] border border-[#E5E7EB] dark:border-[#26262C] rounded-2xl shadow-sm overflow-hidden animate-pulse">
+          {/* Header */}
+          <div className="px-8 pt-8 pb-6 border-b border-[#E5E7EB] dark:border-[#26262C] space-y-4">
+            <div className="flex items-center gap-3">
+              <Skeleton className="w-9 h-9 rounded-lg" />
+              <div className="space-y-2">
+                <Skeleton className="w-16 h-3 rounded" />
+                <Skeleton className="w-8 h-2 rounded" />
+              </div>
+            </div>
+            <div className="space-y-2 mt-6">
+              <Skeleton className="w-48 h-5 rounded" />
+              <Skeleton className="w-32 h-3.5 rounded" />
+            </div>
+          </div>
+
+          <div className="px-8 py-6 space-y-5">
+            {/* Info panel skeleton */}
+            <div className="bg-[#F8F8FA] dark:bg-[#0B0B0F] rounded-xl p-4 space-y-4 border border-[#E5E7EB] dark:border-[#26262C]">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="flex items-center justify-between">
+                  <Skeleton className="w-10 h-3 rounded" />
+                  <Skeleton className="w-28 h-3.5 rounded" />
+                </div>
+              ))}
+            </div>
+
+            {/* Inputs skeleton */}
+            {[...Array(2)].map((_, i) => (
+              <div key={i} className="space-y-2">
+                <Skeleton className="w-24 h-3 rounded" />
+                <Skeleton className="w-full h-12 rounded-xl" />
+              </div>
+            ))}
+
+            <Skeleton className="w-full h-12 rounded-xl" />
+          </div>
+        </div>
       </div>
     );
   }

@@ -47,6 +47,7 @@ export default async function WorkspacesPage() {
         email: t.email,
         firstName: t.firstName,
         lastName: t.lastName,
+        avatarUrl: t.avatarUrl,
         designation: t.designation,
         role: {
           name: t.Role.name,

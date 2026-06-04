@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 
 import { StageProgressBar } from "../_components/stage-progress-bar";
 import { LeadInfoPanel } from "../_components/lead-info-panel";
@@ -380,9 +381,71 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-40 space-y-3">
-        <Loader2 className="h-8 w-8 animate-spin text-[#8B5CF6]" />
-        <p className="text-sm text-muted-foreground">Loading Lead Profile...</p>
+      <div className="space-y-6 animate-pulse">
+        {/* Redesigned Premium Page Header Skeleton */}
+        <div className="flex flex-col gap-4 border border-border/30 rounded-2xl bg-card/30 p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-8 w-28 rounded-lg" />
+            <Skeleton className="h-8 w-24 rounded-lg" />
+          </div>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-7 w-48 rounded-lg" />
+                <Skeleton className="h-5 w-16 rounded-full" />
+              </div>
+              <Skeleton className="h-4 w-64 rounded-md" />
+            </div>
+            <Skeleton className="h-10 w-52 rounded-xl" />
+          </div>
+          <div className="border-t border-border/10 pt-4 flex flex-wrap gap-2">
+            <Skeleton className="h-8 w-20 rounded-lg" />
+            <Skeleton className="h-8 w-24 rounded-lg" />
+            <Skeleton className="h-8 w-20 rounded-lg" />
+            <Skeleton className="h-8 w-28 rounded-lg" />
+          </div>
+        </div>
+
+        {/* Stage Progress Bar Skeleton */}
+        <div className="border border-border/30 rounded-2xl p-5 bg-card/20">
+          <div className="flex justify-between items-center mb-4">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-4 w-24" />
+          </div>
+          <div className="grid grid-cols-5 gap-3">
+            {[...Array(5)].map((_, i) => (
+              <Skeleton key={i} className="h-10 rounded-xl" />
+            ))}
+          </div>
+        </div>
+
+        {/* Details Grid Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            {/* Tabs List */}
+            <div className="flex gap-2 border-b border-border/20 pb-2">
+              <Skeleton className="h-8 w-24 rounded-md" />
+              <Skeleton className="h-8 w-32 rounded-md" />
+              <Skeleton className="h-8 w-20 rounded-md" />
+              <Skeleton className="h-8 w-28 rounded-md" />
+            </div>
+            {/* Tab Content Panel */}
+            <div className="border border-border/20 rounded-2xl p-6 bg-card/10 space-y-4">
+              <Skeleton className="h-5 w-40 rounded" />
+              <div className="grid grid-cols-2 gap-4">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="space-y-1.5">
+                    <Skeleton className="h-3 w-16 rounded" />
+                    <Skeleton className="h-8 w-full rounded-md" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="space-y-6">
+            <Skeleton className="h-[400px] w-full rounded-2xl" />
+          </div>
+        </div>
       </div>
     );
   }

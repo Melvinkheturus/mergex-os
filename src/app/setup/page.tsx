@@ -495,8 +495,59 @@ export default function SetupPage() {
 
   if (checking) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-black">
-        <Loader2 className="h-6 w-6 animate-spin text-purple-500" />
+      <div className="min-h-screen max-h-screen h-screen bg-[#060608] text-white flex flex-col md:flex-row p-3 md:p-5 gap-5 relative overflow-hidden animate-pulse">
+        {/* Left Banner Skeleton */}
+        <div className="relative w-full md:w-[44%] lg:w-[42%] xl:w-[40%] rounded-[20px] overflow-hidden bg-[#0e0e12] p-6 md:p-8 flex flex-col justify-between min-h-[350px] md:min-h-0 md:h-full border border-white/5 shadow-sm shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded bg-white/10" />
+            <div className="w-20 h-4 rounded bg-white/10" />
+          </div>
+          <div className="space-y-4 my-auto py-6">
+            <div className="w-48 h-8 rounded bg-white/10" />
+            <div className="w-32 h-4 rounded bg-white/10" />
+            <div className="space-y-3 mt-6">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <div className="h-7 w-7 rounded-full bg-white/10" />
+                  <div className="space-y-1">
+                    <div className="w-28 h-3 rounded bg-white/10" />
+                    <div className="w-16 h-2 rounded bg-white/10" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="w-full h-3 rounded bg-white/5" />
+        </div>
+
+        {/* Right Form Space Skeleton */}
+        <div className="w-full md:flex-1 flex flex-col items-center py-4 px-4 h-full max-h-full">
+          <div className="w-full max-w-[420px] space-y-6 my-auto py-6">
+            <div className="space-y-2">
+              <div className="w-48 h-6 rounded bg-white/10" />
+              <div className="w-72 h-4 rounded bg-white/10" />
+            </div>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                {[...Array(2)].map((_, i) => (
+                  <div key={i} className="space-y-2">
+                    <div className="w-20 h-3 rounded bg-white/10" />
+                    <div className="w-full h-11 rounded-lg bg-white/5" />
+                  </div>
+                ))}
+              </div>
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="space-y-2">
+                  <div className="w-24 h-3 rounded bg-white/10" />
+                  <div className="w-full h-11 rounded-lg bg-white/5" />
+                </div>
+              ))}
+              <div className="flex justify-end pt-2">
+                <div className="w-44 h-10 rounded-lg bg-white/15" />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

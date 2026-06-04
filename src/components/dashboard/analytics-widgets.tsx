@@ -11,6 +11,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Teammate {
   id: string;
@@ -157,8 +158,22 @@ export function AnalyticsWidget({
 
   if (!mounted) {
     return (
-      <div className="h-full w-full flex items-center justify-center">
-        <div className="h-8 w-8 rounded-full border-2 border-[#8B5CF6]/20 border-t-[#8B5CF6] animate-spin" />
+      <div className="h-full w-full p-6 space-y-4 animate-pulse">
+        <div className="flex justify-between items-center">
+          <Skeleton className="h-4 w-32 rounded" />
+          <Skeleton className="h-8 w-24 rounded-lg" />
+        </div>
+        <div className="space-y-2.5">
+          <Skeleton className="h-4 w-full rounded" />
+          <Skeleton className="h-4 w-5/6 rounded" />
+          <Skeleton className="h-4 w-4/6 rounded" />
+        </div>
+        <div className="pt-4 flex items-end gap-2 h-32 justify-around">
+          <Skeleton className="h-[40%] w-10 rounded-t" />
+          <Skeleton className="h-[75%] w-10 rounded-t" />
+          <Skeleton className="h-[50%] w-10 rounded-t" />
+          <Skeleton className="h-[90%] w-10 rounded-t" />
+        </div>
       </div>
     );
   }

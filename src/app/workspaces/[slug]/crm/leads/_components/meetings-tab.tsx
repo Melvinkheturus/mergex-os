@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Calendar, Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -156,8 +157,19 @@ export function MeetingsTab({ leadId }: MeetingsTabProps) {
 
       <CardContent className="pt-4 pb-2">
         {loadingMeetings ? (
-          <div className="flex justify-center py-8">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          <div className="space-y-3 animate-pulse">
+            {[...Array(2)].map((_, i) => (
+              <div key={i} className="flex gap-3 p-3.5 rounded-xl border border-border/30 bg-muted/20">
+                <Skeleton className="shrink-0 w-7 h-7 rounded-full" />
+                <div className="flex-1 space-y-2">
+                  <div className="flex justify-between items-center">
+                    <Skeleton className="h-3.5 w-1/3 rounded" />
+                    <Skeleton className="h-3.5 w-16 rounded-full" />
+                  </div>
+                  <Skeleton className="h-3 w-1/4 rounded" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : meetings.length === 0 ? (
           <div className="py-10 text-center space-y-2">

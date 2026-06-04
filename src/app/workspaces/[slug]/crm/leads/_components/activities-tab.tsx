@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Plus, Loader2, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -145,8 +146,19 @@ export function ActivitiesTab({ leadId }: ActivitiesTabProps) {
 
       <CardContent className="pt-4 pb-2">
         {loadingActivities ? (
-          <div className="flex justify-center py-8">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          <div className="space-y-4 animate-pulse">
+            {[...Array(2)].map((_, i) => (
+              <div key={i} className="flex gap-3">
+                <Skeleton className="shrink-0 w-6 h-6 rounded-full" />
+                <div className="flex-1 space-y-2">
+                  <div className="flex justify-between items-center">
+                    <Skeleton className="h-3.5 w-1/4 rounded" />
+                    <Skeleton className="h-3 w-16 rounded" />
+                  </div>
+                  <Skeleton className="h-3 w-1/2 rounded" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : activities.length === 0 ? (
           <div className="py-10 text-center space-y-2">

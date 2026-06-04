@@ -3,10 +3,11 @@
 import { useRouter, useParams } from "next/navigation";
 import { format, formatDistanceToNow, isPast, isToday, isTomorrow } from "date-fns";
 import {
-  TrendingUp, Plus, MoreHorizontal, ExternalLink, Trash2, Loader2,
+  TrendingUp, Plus, MoreHorizontal, ExternalLink, Trash2,
   CalendarClock, IndianRupee, User,
 } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -78,9 +79,31 @@ export function LeadsTable({
 
       <CardContent className="p-2 bg-card/5">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 text-muted-foreground space-y-2">
-            <Loader2 className="h-6 w-6 animate-spin text-[#8B5CF6]" />
-            <span className="text-xs">Loading Leads...</span>
+          <div className="divide-y divide-border/20">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="grid grid-cols-[2fr_1.4fr_1.2fr_1.2fr_1fr_1.2fr_1fr_40px] items-center gap-3 px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-8 w-8 rounded-full shrink-0" />
+                  <div className="space-y-1.5 flex-1">
+                    <Skeleton className="h-3 w-28" />
+                    <Skeleton className="h-2.5 w-20" />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-2.5 w-16" />
+                </div>
+                <Skeleton className="h-5 w-20 rounded-full" />
+                <div className="flex items-center gap-1.5">
+                  <Skeleton className="h-5 w-5 rounded-full" />
+                  <Skeleton className="h-3 w-16" />
+                </div>
+                <Skeleton className="h-4 w-8" />
+                <Skeleton className="h-3 w-20" />
+                <Skeleton className="h-3 w-16" />
+                <Skeleton className="h-7 w-7 rounded-md" />
+              </div>
+            ))}
           </div>
         ) : leads.length === 0 ? (
           <EmptyState onAddClick={onAddClick} />
