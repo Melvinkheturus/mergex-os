@@ -8,7 +8,7 @@ import {
   Building2,
   LayoutGrid,
 } from "lucide-react";
-import { useClerk } from "@clerk/nextjs";
+import { useClerk, useUser } from "@clerk/nextjs";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
@@ -72,6 +72,23 @@ export function WorkspaceSelectorClient({ brands, user, userRole, teammates }: P
   const canCreateBrand = userRole === "super_admin" || userRole === "admin";
   const router = useRouter();
   const { signOut } = useClerk();
+  const { user: clerkUser } = useUser();
+
+  // Background sync Clerk avatar to DB if it's a Clerk URL and differs
+  useEffect(() => {
+    if (!clerkUser) return;
+    const isClerkAvatar = !user.avatarUrl || user.avatarUrl.startsWith("https://img.clerk.com");
+    if (isClerkAvatar && user.avatarUrl !== clerkUser.imageUrl) {
+      fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ avatarUrl: clerkUser.imageUrl }),
+      }).catch(console.error);
+    }
+  }, [clerkUser, user.avatarUrl]);
+
+  const isClerkAvatar = !user.avatarUrl || user.avatarUrl.startsWith("https://img.clerk.com");
+  const currentAvatarUrl = (isClerkAvatar && clerkUser?.imageUrl) ? clerkUser.imageUrl : (user.avatarUrl || clerkUser?.imageUrl || null);
 
   // ── UI state ──────────────────────────────────────────────────────────
   const [activeTab, setActiveTab]              = useState<ActiveTab>("workspaces");
@@ -206,9 +223,9 @@ export function WorkspaceSelectorClient({ brands, user, userRole, teammates }: P
           {/* Right actions */}
           <div className="flex items-center gap-3">
             <AnimatedThemeToggler />
-            {user.avatarUrl ? (
+            {currentAvatarUrl ? (
               <img
-                src={user.avatarUrl}
+                src={currentAvatarUrl}
                 alt={displayName}
                 className="w-8 h-8 rounded-full object-cover border border-neutral-200 dark:border-white/6 shrink-0"
               />
@@ -265,8 +282,8 @@ export function WorkspaceSelectorClient({ brands, user, userRole, teammates }: P
           {/* Sidebar footer - pushed to bottom */}
           <div className="hidden md:flex flex-col gap-3.5 pt-6 mt-auto border-t border-neutral-200 dark:border-white/5">
             <div className="flex items-center gap-3 px-1.5">
-              {user.avatarUrl ? (
-                <img src={user.avatarUrl} alt={displayName} className="w-8 h-8 rounded-full object-cover border border-neutral-200 dark:border-white/6 shrink-0" />
+              {currentAvatarUrl ? (
+                <img src={currentAvatarUrl} alt={displayName} className="w-8 h-8 rounded-full object-cover border border-neutral-200 dark:border-white/6 shrink-0" />
               ) : (
                 <div 
                   className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black text-white uppercase border border-white/10 shrink-0 select-none tracking-tight"

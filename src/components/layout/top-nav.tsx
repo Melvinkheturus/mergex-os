@@ -156,6 +156,16 @@ function ProfileMenu() {
         const data = await res.json();
         if (data.ok && data.user) {
           setDbProfile(data.user);
+          // Background sync Clerk avatarUrl to DB if it's a Clerk URL and has changed
+          const dbAvatar = data.user.avatarUrl;
+          const isClerkAvatar = !dbAvatar || dbAvatar.startsWith("https://img.clerk.com");
+          if (isClerkAvatar && user?.imageUrl && dbAvatar !== user.imageUrl) {
+            fetch("/api/profile", {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ avatarUrl: user.imageUrl }),
+            }).catch(console.error);
+          }
         }
       }
     } catch (err) {
@@ -205,7 +215,8 @@ function ProfileMenu() {
     return "Member";
   })();
 
-  const avatarSrc = dbProfile?.avatarUrl || user.imageUrl;
+  const isClerkAvatar = !dbProfile?.avatarUrl || dbProfile.avatarUrl.startsWith("https://img.clerk.com");
+  const avatarSrc = isClerkAvatar ? (user.imageUrl || dbProfile?.avatarUrl) : dbProfile.avatarUrl;
 
   return (
     <div ref={dropdownRef} className="relative">

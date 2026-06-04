@@ -94,7 +94,7 @@ export async function PATCH(req: Request) {
 
   try {
     const body = await req.json();
-    const { activeBrandId, theme } = body;
+    const { activeBrandId, theme, avatarUrl, firstName, lastName } = body;
 
     const dbUser = await db.user.findUnique({ where: { clerkId: userId } });
     if (!dbUser) {
@@ -104,6 +104,9 @@ export async function PATCH(req: Request) {
     const data: Record<string, unknown> = {};
     if (activeBrandId !== undefined) data.activeBrandId = activeBrandId;
     if (theme !== undefined) data.theme = theme;
+    if (avatarUrl !== undefined) data.avatarUrl = avatarUrl;
+    if (firstName !== undefined) data.firstName = firstName;
+    if (lastName !== undefined) data.lastName = lastName;
 
     const updated = await db.user.update({
       where: { id: dbUser.id },

@@ -215,6 +215,7 @@ export default function SignUpPage() {
                 <Field label="Email" type="email" value={inviteEmail ?? ""} onChange={() => {}} disabled />
                 <Field label="Set Password" type="password" value={password} onChange={setPassword} placeholder="Min. 8 characters" />
                 {error && <ErrorMsg message={error} />}
+                <div id="clerk-captcha" />
                 <PrimaryButton loading={loading} onClick={handleSignUp} disabled={!firstName || !lastName || password.length < 8}>
                   Create Account <ArrowRight className="w-4 h-4" />
                 </PrimaryButton>

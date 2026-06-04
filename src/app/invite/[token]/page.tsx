@@ -1,10 +1,20 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { use, useEffect, useState, useCallback } from "react";
 import { useSignUp } from "@clerk/nextjs/legacy";
 import { useRouter } from "next/navigation";
-import { Loader2, CheckCircle2, ShieldCheck, Eye, EyeOff, Building2 } from "lucide-react";
+import {
+  Loader2,
+  CheckCircle2,
+  ShieldCheck,
+  Eye,
+  EyeOff,
+  Building2,
+  Lock,
+  KeyRound,
+} from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { LiquidMetalButton } from "@/components/ui/liquid-metal-button";
 
 type InviteData = {
   valid: boolean;
@@ -18,81 +28,158 @@ type InviteData = {
 
 type Step = "loading" | "invalid" | "form" | "verify" | "success";
 
-function Logo() {
+// ── Error Message Component ───────────────────────────────────────────────────
+
+function ErrorMsg({ message }: { message: string }) {
   return (
-    <div className="flex items-center gap-3">
-      <img src="/logo/mergex-logo.png" alt="MergeX Logo" className="w-9 h-9 object-contain shrink-0" />
-      <div>
-        <p className="text-sm font-semibold text-foreground tracking-tight leading-none">MergeX</p>
-        <p className="text-xs text-muted-foreground mt-0.5">OS</p>
-      </div>
+    <div className="flex gap-2.5 rounded-lg border border-rose-500/20 bg-rose-500/5 px-3.5 py-2.5">
+      <p className="text-[10px] font-medium text-rose-400 leading-relaxed">
+        {message}
+      </p>
     </div>
   );
 }
 
+// ── Password Input Component ───────────────────────────────────────────────────
+
 function PasswordInput({
-  label, value, onChange, placeholder, disabled,
+  label,
+  value,
+  onChange,
+  placeholder,
+  disabled,
 }: {
-  label: string; value: string; onChange: (v: string) => void;
-  placeholder?: string; disabled?: boolean;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  disabled?: boolean;
 }) {
   const [show, setShow] = useState(false);
   return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-xs font-medium text-[#6B7280] uppercase tracking-wider">{label}</label>
+    <div className="space-y-1">
+      <label className="block text-[10px] font-bold text-zinc-400 tracking-wider uppercase">
+        {label}
+      </label>
       <div className="relative">
+        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500" />
         <input
           type={show ? "text" : "password"}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           disabled={disabled}
-          className="w-full h-12 px-4 pr-11 rounded-xl border border-[#E5E7EB] dark:border-[#26262C] bg-white dark:bg-[#111114] text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]/40 focus:border-[#8B5CF6] transition-all duration-150 disabled:opacity-50"
+          className="w-full rounded-lg border border-white/10 bg-transparent pl-9 pr-9 py-2.5 text-xs text-white placeholder:text-zinc-600 outline-none transition-all duration-200 focus:border-white/20 disabled:opacity-50 hover:border-white/15"
         />
         <button
           type="button"
           onClick={() => setShow(!show)}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
         >
-          {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          {show ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
         </button>
       </div>
     </div>
   );
 }
 
-function OtpInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+// ── OTP Input Component ────────────────────────────────────────────────────────
+
+function OtpInput({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  disabled?: boolean;
+}) {
   const digits = value.split("").slice(0, 6);
   while (digits.length < 6) digits.push("");
+
   const handleChange = (i: number, v: string) => {
-    const d = [...digits]; d[i] = v.slice(-1); onChange(d.join(""));
-    if (v && i < 5) (document.getElementById(`inv-${i + 1}`) as HTMLInputElement)?.focus();
+    const cleanValue = v.replace(/\D/g, "");
+    if (cleanValue.length > 1) {
+      const newDigits = [...digits];
+      for (let j = 0; j < cleanValue.length && i + j < 6; j++) {
+        newDigits[i + j] = cleanValue[j];
+      }
+      const newOtp = newDigits.join("").slice(0, 6);
+      onChange(newOtp);
+      const focusIndex = Math.min(i + cleanValue.length, 5);
+      (document.getElementById(`otp-inv-${focusIndex}`) as HTMLInputElement)?.focus();
+      return;
+    }
+
+    const d = [...digits];
+    d[i] = cleanValue.slice(-1);
+    onChange(d.join(""));
+    if (cleanValue && i < 5) {
+      (document.getElementById(`otp-inv-${i + 1}`) as HTMLInputElement)?.focus();
+    }
   };
-  const handleKeyDown = (i: number, e: React.KeyboardEvent) => {
-    if (e.key === "Backspace" && !digits[i] && i > 0)
-      (document.getElementById(`inv-${i - 1}`) as HTMLInputElement)?.focus();
+
+  const handleKeyDown = (i: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace") {
+      if (!digits[i] && i > 0) {
+        const d = [...digits];
+        d[i - 1] = "";
+        onChange(d.join(""));
+        (document.getElementById(`otp-inv-${i - 1}`) as HTMLInputElement)?.focus();
+        e.preventDefault();
+      } else if (digits[i]) {
+        const d = [...digits];
+        d[i] = "";
+        onChange(d.join(""));
+        e.preventDefault();
+      }
+    }
   };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pastedText = e.clipboardData.getData("text");
+    const cleanValue = pastedText.replace(/\D/g, "").slice(0, 6);
+    if (cleanValue.length > 0) {
+      onChange(cleanValue);
+      const focusIndex = Math.min(cleanValue.length, 5);
+      (document.getElementById(`otp-inv-${focusIndex}`) as HTMLInputElement)?.focus();
+    }
+  };
+
   return (
     <div className="flex gap-2 justify-center">
       {digits.map((d, i) => (
         <input
-          key={i} id={`inv-${i}`} type="text" inputMode="numeric" maxLength={1} value={d}
+          key={i}
+          id={`otp-inv-${i}`}
+          type="text"
+          inputMode="numeric"
+          maxLength={1}
+          value={d}
+          disabled={disabled}
           onChange={(e) => handleChange(i, e.target.value)}
           onKeyDown={(e) => handleKeyDown(i, e)}
+          onPaste={handlePaste}
           autoFocus={i === 0}
-          className="w-11 h-13 text-center text-lg font-semibold rounded-xl border border-[#E5E7EB] dark:border-[#26262C] bg-white dark:bg-[#111114] text-foreground focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]/40 focus:border-[#8B5CF6] transition-all"
+          className="w-10 h-12 text-center text-sm font-semibold rounded-lg border border-white/10 bg-white/5 text-white focus:outline-none focus:border-purple-500/60 focus:bg-purple-500/5 transition-all disabled:opacity-50"
         />
       ))}
     </div>
   );
 }
 
-export default function InvitePage({ params }: { params: { token: string } }) {
+// ── Main Page Component ────────────────────────────────────────────────────────
+
+export default function InvitePage({ params }: { params: Promise<{ token: string }> }) {
+  const { token } = use(params);
   const router = useRouter();
   const { signUp, isLoaded, setActive } = useSignUp();
 
   const [step, setStep] = useState<Step>("loading");
   const [invite, setInvite] = useState<InviteData | null>(null);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [otp, setOtp] = useState("");
@@ -100,183 +187,438 @@ export default function InvitePage({ params }: { params: { token: string } }) {
   const [error, setError] = useState("");
 
   const lookupInvite = useCallback(async () => {
-    const res = await fetch(`/api/auth/invite-lookup?token=${params.token}`);
-    const data: InviteData = await res.json();
-    setInvite(data);
-    setStep(data.valid ? "form" : "invalid");
-  }, [params.token]);
+    try {
+      const res = await fetch(`/api/auth/invite-lookup?token=${token}`);
+      const data: InviteData = await res.json();
+      setInvite(data);
+      setStep(data.valid ? "form" : "invalid");
+    } catch {
+      setStep("invalid");
+    }
+  }, [token]);
 
-  useEffect(() => { lookupInvite(); }, [lookupInvite]);
+  useEffect(() => {
+    lookupInvite();
+  }, [lookupInvite]);
+
+  useEffect(() => {
+    if (isLoaded && signUp && signUp.status === "complete") {
+      const sessionId = signUp.createdSessionId;
+      if (sessionId) {
+        setActive?.({ session: sessionId }).then(() => {
+          setStep("success");
+          setTimeout(() => router.push("/onboarding/profile"), 1500);
+        });
+      }
+    }
+  }, [isLoaded, signUp, setActive, router]);
 
   const handleActivate = async () => {
     if (!signUp || !invite) return;
-    if (password.length < 8) { setError("Password must be at least 8 characters"); return; }
-    if (password !== confirmPassword) { setError("Passwords do not match"); return; }
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
 
-    setLoading(true); setError("");
+    setLoading(true);
+    setError("");
     try {
-      await signUp.create({ emailAddress: invite.email, password });
+      // Note: firstName/lastName are profile-only fields in this Clerk instance,
+      // not sign-up attributes — so we do NOT pass them to signUp.create().
+      // We store them in unsafeMetadata so onboarding can pick them up.
+      await signUp.create({
+        emailAddress: invite.email,
+        password,
+        unsafeMetadata: {
+          firstName: firstName.trim() || undefined,
+          lastName: lastName.trim() || undefined,
+        },
+      });
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
       setStep("verify");
     } catch (err: unknown) {
       const clerkErr = err as { errors?: { message: string }[] };
       setError(clerkErr?.errors?.[0]?.message ?? "Activation failed. Please try again.");
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const activateAndRedirect = async (sessionId: string) => {
+    await setActive?.({ session: sessionId });
+    setStep("success");
+    setTimeout(() => router.push("/onboarding/profile"), 1500);
   };
 
   const handleVerify = async () => {
     if (!signUp || otp.length < 6) return;
-    setLoading(true); setError("");
+    setLoading(true);
+    setError("");
     try {
       const result = await signUp.attemptEmailAddressVerification({ code: otp });
-      if (result.status === "complete") {
-        await setActive?.({ session: result.createdSessionId });
-        setStep("success");
-        setTimeout(() => router.push("/onboarding/profile"), 1500);
+
+      if (result.status === "complete" && result.createdSessionId) {
+        await activateAndRedirect(result.createdSessionId);
+        return;
       }
+
+      // "missing_requirements" — email is verified, but Clerk needs more fields.
+      // Read signUp.missingFields to find out what's actually required and fill them in.
+      if (result.status === "missing_requirements") {
+        const missing: string[] = (signUp as unknown as { missingFields?: string[] }).missingFields ?? [];
+        console.log("[InvitePage] missing_requirements — missingFields:", missing);
+
+        const updatePayload: Record<string, string> = {};
+
+        for (const field of missing) {
+          if (field === "username") {
+            // Auto-generate a username from the email local part
+            const base = invite!.email.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "_");
+            updatePayload.username = `${base}_${Math.floor(Math.random() * 9000 + 1000)}`;
+          } else if (field === "first_name") {
+            updatePayload.firstName = firstName.trim() || "Member";
+          } else if (field === "last_name") {
+            updatePayload.lastName = lastName.trim() || "User";
+          }
+        }
+
+        console.log("[InvitePage] Attempting signUp.update with:", updatePayload);
+        let updated = result;
+        try {
+          updated = await signUp.update(updatePayload);
+        } catch (updateErr) {
+          console.error("[InvitePage] signUp.update() failed:", updateErr);
+        }
+
+        console.log("[InvitePage] After update — status:", updated.status, "sessionId:", updated.createdSessionId);
+
+        if (updated.status === "complete" && updated.createdSessionId) {
+          await activateAndRedirect(updated.createdSessionId);
+          return;
+        }
+
+        // If still missing_requirements but we have a sessionId, activate anyway
+        const sessionId = updated.createdSessionId ?? signUp.createdSessionId;
+        if (sessionId) {
+          await activateAndRedirect(sessionId);
+          return;
+        }
+
+        setError(`Sign-up incomplete (missing: ${missing.join(", ") || "unknown"}). Contact your admin.`);
+        return;
+      }
+
+      setError("Unexpected verification status. Please try again.");
     } catch (err: unknown) {
-      const clerkErr = err as { errors?: { message: string }[] };
-      setError(clerkErr?.errors?.[0]?.message ?? "Invalid code. Try again.");
-      setOtp("");
-    } finally { setLoading(false); }
+      const clerkErr = err as { errors?: { message: string; code?: string }[] };
+      const isAlreadyVerified = clerkErr?.errors?.some(
+        (e) => e.message?.includes("already verified") || e.code === "already_verified"
+      );
+
+      if (isAlreadyVerified && signUp.createdSessionId) {
+        await activateAndRedirect(signUp.createdSessionId);
+      } else {
+        setError(clerkErr?.errors?.[0]?.message ?? "Invalid code. Try again.");
+        setOtp("");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // ── Render states ──────────────────────────────────────────────────────────
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      if (step === "form" && password && confirmPassword) handleActivate();
+      else if (step === "verify" && otp.length === 6) handleVerify();
+    }
+  };
 
-  if (step === "loading") {
-    return (
-      <div className="min-h-screen bg-[#F8F8FA] dark:bg-[#0B0B0F] flex items-center justify-center p-4">
-        <div className="relative w-full max-w-[420px] bg-white dark:bg-[#111114] border border-[#E5E7EB] dark:border-[#26262C] rounded-2xl shadow-sm overflow-hidden animate-pulse">
-          {/* Header */}
-          <div className="px-8 pt-8 pb-6 border-b border-[#E5E7EB] dark:border-[#26262C] space-y-4">
-            <div className="flex items-center gap-3">
-              <Skeleton className="w-9 h-9 rounded-lg" />
-              <div className="space-y-2">
-                <Skeleton className="w-16 h-3 rounded" />
-                <Skeleton className="w-8 h-2 rounded" />
+  // ── Banner (shared left side) ─────────────────────────────────────────────
+  const Banner = (
+    <div className="relative w-full md:w-[44%] lg:w-[42%] xl:w-[40%] rounded-[20px] overflow-hidden bg-[#060608] p-6 md:p-8 flex flex-col justify-between min-h-[350px] md:min-h-0 md:h-full border border-white/5 border-b-transparent shadow-[0_0_50px_-12px_rgba(139,92,246,0.12)] shrink-0 select-none">
+      {/* Arch Shaped Violet/Purple Dome Gradient (Curved n-shape dome dropping on sides) */}
+      <div
+        className="absolute inset-0 pointer-events-none z-0"
+        style={{
+          background:
+            "radial-gradient(100% 60% at 50% 0%, #8b5cf6 0%, #6d28d9 35%, #3b0764 65%, #060608 100%)",
+        }}
+      />
+
+      {/* Textured SVG Grains Overlay */}
+      <div
+        className="absolute inset-0 opacity-[0.025] pointer-events-none mix-blend-overlay z-1"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+        }}
+      />
+
+      {/* Dissolve bottom card edge with page background color (#060608) */}
+      <div className="absolute inset-x-0 bottom-0 h-44 bg-linear-to-t from-[#060608] via-[#060608]/95 to-transparent pointer-events-none z-2" />
+
+      {/* Decorative ambient elements inside the card */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.08),transparent_60%)] pointer-events-none z-1" />
+
+      {/* Logo & Header using local brand assets */}
+      <div className="relative z-10 flex items-center gap-3">
+        <img
+          src="/logo/flat_logo.png"
+          alt="MergeX Logo"
+          className="h-6 w-auto object-contain brightness-200"
+        />
+        <div className="pl-1">
+          <span className="text-sm font-extrabold tracking-tight text-white leading-none block">
+            MergeX OS
+          </span>
+        </div>
+      </div>
+
+      {/* Core Content */}
+      <div className="relative z-10 my-auto py-6">
+        <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight leading-[1.15]">
+          Welcome to MergeX
+        </h1>
+        <p className="text-xs text-white/60 mt-2 max-w-[260px] leading-relaxed">
+          Set up your credentials to join your workspace platform.
+        </p>
+
+        {/* Stepper / Features Indicators */}
+        <div className="mt-6 space-y-3.5 max-w-[260px]">
+          {[
+            {
+              icon: ShieldCheck,
+              label: "Secure Sign Up",
+              desc: "Enterprise-grade protection by Clerk",
+            },
+            {
+              icon: KeyRound,
+              label: "Workspace Auditing",
+              desc: "Access & actions strictly logged",
+            },
+            {
+              icon: Lock,
+              label: "Encrypted Session",
+              desc: "End-to-end zero-trust architecture",
+            },
+          ].map(({ icon: Icon, label, desc }) => (
+            <div key={label} className="flex items-center gap-3">
+              <div className="h-7 w-7 rounded-full flex items-center justify-center bg-white/5 border border-white/10 text-white shrink-0">
+                <Icon className="h-3.5 w-3.5 text-purple-400" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-white">{label}</p>
+                <p className="text-[9px] text-white/30">{desc}</p>
               </div>
             </div>
-            <div className="space-y-2 mt-6">
-              <Skeleton className="w-48 h-5 rounded" />
-              <Skeleton className="w-32 h-3.5 rounded" />
-            </div>
-          </div>
+          ))}
+        </div>
+      </div>
 
-          <div className="px-8 py-6 space-y-5">
-            {/* Info panel skeleton */}
-            <div className="bg-[#F8F8FA] dark:bg-[#0B0B0F] rounded-xl p-4 space-y-4 border border-[#E5E7EB] dark:border-[#26262C]">
+      {/* Footer note */}
+      <div className="relative z-10 text-center text-[10px] text-white/30 select-none">
+        Access is invite-only. Contact your admin to request access.
+      </div>
+    </div>
+  );
+
+  // ── LOADING STATE ────────────────────────────────────────────────────────
+  if (step === "loading") {
+    return (
+      <div className="min-h-screen max-h-screen h-screen bg-[#060608] text-white flex flex-col md:flex-row p-3 md:p-5 gap-5 relative overflow-hidden animate-pulse">
+        {/* Ambient glows */}
+        <div className="absolute top-[-30%] left-[-10%] w-[800px] h-[800px] rounded-full bg-purple-600/5 blur-[180px] pointer-events-none" />
+        <div className="absolute bottom-[-30%] right-[-10%] w-[800px] h-[800px] rounded-full bg-indigo-600/5 blur-[180px] pointer-events-none" />
+
+        {Banner}
+
+        {/* Right Side Skeleton */}
+        <div className="w-full md:flex-1 flex flex-col items-center py-4 px-4 relative z-10 overflow-y-auto h-full max-h-full">
+          <div className="w-full max-w-[420px] space-y-6 my-auto py-6">
+            <div className="space-y-2">
+              <Skeleton className="w-48 h-6 bg-white/5 rounded" />
+              <Skeleton className="w-32 h-3.5 bg-white/5 rounded" />
+            </div>
+
+            <div className="rounded-xl border border-white/5 bg-white/5 p-4 space-y-3">
               {[...Array(3)].map((_, i) => (
                 <div key={i} className="flex items-center justify-between">
-                  <Skeleton className="w-10 h-3 rounded" />
-                  <Skeleton className="w-28 h-3.5 rounded" />
+                  <Skeleton className="w-10 h-3 bg-white/5 rounded" />
+                  <Skeleton className="w-28 h-3.5 bg-white/5 rounded" />
                 </div>
               ))}
             </div>
 
-            {/* Inputs skeleton */}
-            {[...Array(2)].map((_, i) => (
-              <div key={i} className="space-y-2">
-                <Skeleton className="w-24 h-3 rounded" />
-                <Skeleton className="w-full h-12 rounded-xl" />
-              </div>
-            ))}
+            <div className="space-y-4">
+              {[...Array(2)].map((_, i) => (
+                <div key={i} className="space-y-1.5">
+                  <Skeleton className="w-24 h-3 bg-white/5 rounded" />
+                  <Skeleton className="w-full h-10 bg-white/5 rounded-lg" />
+                </div>
+              ))}
+            </div>
 
-            <Skeleton className="w-full h-12 rounded-xl" />
+            <div className="pt-2 flex justify-end">
+              <Skeleton className="w-[140px] h-[42px] bg-white/5 rounded-lg" />
+            </div>
           </div>
         </div>
       </div>
     );
   }
 
+  // ── INVALID STEP ──────────────────────────────────────────────────────────
   if (step === "invalid") {
     return (
-      <div className="min-h-screen bg-[#F8F8FA] dark:bg-[#0B0B0F] flex items-center justify-center p-4">
-        <div className="bg-white dark:bg-[#111114] border border-[#E5E7EB] dark:border-[#26262C] rounded-2xl shadow-sm p-8 max-w-sm w-full text-center">
-          <Logo />
-          <div className="mt-6">
-            <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-              <ShieldCheck className="w-6 h-6 text-red-500" />
+      <div className="min-h-screen max-h-screen h-screen bg-[#060608] text-white flex flex-col md:flex-row p-3 md:p-5 gap-5 relative overflow-hidden">
+        {/* Ambient glows */}
+        <div className="absolute top-[-30%] left-[-10%] w-[800px] h-[800px] rounded-full bg-purple-600/5 blur-[180px] pointer-events-none" />
+        <div className="absolute bottom-[-30%] right-[-10%] w-[800px] h-[800px] rounded-full bg-indigo-600/5 blur-[180px] pointer-events-none" />
+
+        {Banner}
+
+        {/* Right Side */}
+        <div className="w-full md:flex-1 flex flex-col items-center py-4 px-4 relative z-10 overflow-y-auto h-full max-h-full">
+          <div className="w-full max-w-[420px] space-y-5 my-auto py-6 text-center">
+            <div className="w-12 h-12 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-rose-500/20">
+              <ShieldCheck className="w-6 h-6 text-rose-400" />
             </div>
-            <h1 className="text-lg font-semibold text-foreground">Invalid Invitation</h1>
-            <p className="text-sm text-muted-foreground mt-2">{invite?.error ?? "This invitation link is invalid or has expired."}</p>
+            <h1 className="text-xl font-bold tracking-tight text-white">Invalid Invitation</h1>
+            <p className="text-xs text-zinc-500 mt-2 leading-relaxed">
+              {invite?.error ?? "This invitation link is invalid or has expired."}
+            </p>
+            <div className="pt-4 flex justify-center">
+              <LiquidMetalButton
+                label="Go to Sign In"
+                width={200}
+                height={42}
+                onClick={() => {
+                  window.location.href = "/sign-in";
+                }}
+              />
+            </div>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              window.location.href = "/sign-in";
-            }}
-            className="mt-6 w-full h-11 rounded-xl bg-[#8B5CF6] text-white text-sm font-medium hover:bg-[#7C3AED] transition-colors"
-          >
-            Go to Sign In
-          </button>
         </div>
       </div>
     );
   }
 
+  // ── ACTIVE FLOW (FORM / VERIFY / SUCCESS) ───────────────────────────────
   return (
-    <div className="min-h-screen bg-[#F8F8FA] dark:bg-[#0B0B0F] flex items-center justify-center p-4">
-      {/* Background grid */}
-      <div className="fixed inset-0 pointer-events-none" style={{
-        backgroundImage: `linear-gradient(rgba(139,92,246,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(139,92,246,0.025) 1px, transparent 1px)`,
-        backgroundSize: "48px 48px",
-      }} />
-      <div className="relative w-full max-w-[420px]">
-        <div className="bg-white dark:bg-[#111114] border border-[#E5E7EB] dark:border-[#26262C] rounded-2xl shadow-sm overflow-hidden">
-          {/* Header */}
-          <div className="px-8 pt-8 pb-6 border-b border-[#E5E7EB] dark:border-[#26262C]">
-            <Logo />
-            <div className="mt-6">
-              <h1 className="text-lg font-semibold text-foreground tracking-tight">
-                {step === "success" ? "Account Activated!" : "Activate Your Account"}
-              </h1>
-              <p className="text-xs text-muted-foreground mt-1">
-                {step === "verify"
-                  ? `Enter the 6-digit code sent to ${invite?.email}`
-                  : "Set your password to complete account setup"}
+    <div className="min-h-screen max-h-screen h-screen bg-[#060608] text-white flex flex-col md:flex-row p-3 md:p-5 gap-5 relative overflow-hidden">
+      {/* Ambient glows */}
+      <div className="absolute top-[-30%] left-[-10%] w-[800px] h-[800px] rounded-full bg-purple-600/5 blur-[180px] pointer-events-none" />
+      <div className="absolute bottom-[-30%] right-[-10%] w-[800px] h-[800px] rounded-full bg-indigo-600/5 blur-[180px] pointer-events-none" />
+
+      {Banner}
+
+      {/* Right Side */}
+      <div className="w-full md:flex-1 flex flex-col items-center py-4 px-4 relative z-10 overflow-y-auto h-full max-h-full">
+        <div
+          className="w-full max-w-[420px] space-y-5 my-auto py-6"
+          onKeyDown={handleKeyDown}
+        >
+          {step === "success" && (
+            <div className="text-center py-6 space-y-4">
+              <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-500/20">
+                <CheckCircle2 className="w-8 h-8 text-emerald-400 animate-bounce" />
+              </div>
+              <h2 className="text-xl font-bold tracking-tight text-white">
+                Account Activated!
+              </h2>
+              <p className="text-xs text-zinc-500 leading-normal">
+                Setting up your environment. Redirecting to onboarding…
               </p>
             </div>
-          </div>
+          )}
 
-          <div className="px-8 py-6 space-y-4">
-            {step === "success" && (
-              <div className="text-center py-4">
-                <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <CheckCircle2 className="w-8 h-8 text-emerald-500" />
-                </div>
-                <p className="text-sm text-muted-foreground">Redirecting to onboarding…</p>
+          {step === "form" && invite && (
+            <>
+              <div>
+                <h2 className="text-xl font-bold tracking-tight text-white">
+                  Activate Your Account
+                </h2>
+                <p className="text-xs text-zinc-500 mt-1">
+                  Set your password to complete account setup
+                </p>
               </div>
-            )}
 
-            {step === "form" && invite && (
-              <>
-                {/* Invite details */}
-                <div className="bg-[#F8F8FA] dark:bg-[#0B0B0F] rounded-xl p-4 space-y-3 border border-[#E5E7EB] dark:border-[#26262C]">
+              {/* Invite details */}
+              <div className="rounded-xl border border-white/10 bg-[#09090c]/80 backdrop-blur-xl p-4 space-y-3 shadow-[0_4px_20px_-4px_rgba(139,92,246,0.1)]">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+                    Email
+                  </span>
+                  <span className="text-xs font-semibold text-zinc-300">
+                    {invite.email}
+                  </span>
+                </div>
+                {invite.employeeId && (
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground uppercase tracking-wider">Email</span>
-                    <span className="text-sm font-medium text-foreground">{invite.email}</span>
+                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+                      Employee ID
+                    </span>
+                    <span className="text-xs font-mono font-bold text-[#A78BFA]">
+                      {invite.employeeId}
+                    </span>
                   </div>
-                  {invite.employeeId && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground uppercase tracking-wider">Employee ID</span>
-                      <span className="text-sm font-mono font-semibold text-[#8B5CF6]">{invite.employeeId}</span>
-                    </div>
-                  )}
+                )}
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+                    Role
+                  </span>
+                  <span className="text-xs font-semibold text-zinc-300">
+                    {invite.roleLabel}
+                  </span>
+                </div>
+                {invite.brands.length > 0 && (
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground uppercase tracking-wider">Role</span>
-                    <span className="text-sm font-medium text-foreground">{invite.roleLabel}</span>
-                  </div>
-                  {invite.brands.length > 0 && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground uppercase tracking-wider">Access</span>
-                      <div className="flex items-center gap-1">
-                        <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
-                        <span className="text-sm font-medium text-foreground">
-                          {invite.brands.map(b => b.name).join(", ")}
-                        </span>
-                      </div>
+                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+                      Access
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <Building2 className="w-3.5 h-3.5 text-zinc-500" />
+                      <span className="text-xs font-semibold text-zinc-300">
+                        {invite.brands.map((b) => b.name).join(", ")}
+                      </span>
                     </div>
-                  )}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-4">
+                {/* Name fields */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold text-zinc-400 tracking-wider uppercase">
+                      First Name
+                    </label>
+                    <input
+                      type="text"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      placeholder="Alex"
+                      disabled={loading}
+                      autoFocus
+                      className="w-full rounded-lg border border-white/10 bg-transparent px-3 py-2.5 text-xs text-white placeholder:text-zinc-600 outline-none transition-all duration-200 focus:border-white/20 disabled:opacity-50 hover:border-white/15"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold text-zinc-400 tracking-wider uppercase">
+                      Last Name
+                    </label>
+                    <input
+                      type="text"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      placeholder="Johnson"
+                      disabled={loading}
+                      className="w-full rounded-lg border border-white/10 bg-transparent px-3 py-2.5 text-xs text-white placeholder:text-zinc-600 outline-none transition-all duration-200 focus:border-white/20 disabled:opacity-50 hover:border-white/15"
+                    />
+                  </div>
                 </div>
 
                 <PasswordInput
@@ -284,49 +626,80 @@ export default function InvitePage({ params }: { params: { token: string } }) {
                   value={password}
                   onChange={setPassword}
                   placeholder="Min. 8 characters"
+                  disabled={loading}
                 />
                 <PasswordInput
                   label="Confirm Password"
                   value={confirmPassword}
                   onChange={setConfirmPassword}
                   placeholder="Repeat password"
+                  disabled={loading}
                 />
 
-                {error && (
-                  <p className="text-xs text-red-500 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-lg">{error}</p>
-                )}
+                {error && <ErrorMsg message={error} />}
 
-                <button
-                  onClick={handleActivate}
-                  disabled={loading || !isLoaded || !password || !confirmPassword}
-                  className="w-full h-12 rounded-xl bg-[#8B5CF6] text-white text-sm font-medium hover:bg-[#7C3AED] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-                >
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                  Activate Account
-                </button>
-              </>
-            )}
+                <div id="clerk-captcha" />
 
-            {step === "verify" && (
-              <>
-                <OtpInput value={otp} onChange={setOtp} />
-                {error && (
-                  <p className="text-xs text-red-500 text-center">{error}</p>
-                )}
-                <button
-                  onClick={handleVerify}
-                  disabled={loading || otp.length < 6}
-                  className="w-full h-12 rounded-xl bg-[#8B5CF6] text-white text-sm font-medium hover:bg-[#7C3AED] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-                >
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                  Verify Email
-                </button>
-                <p className="text-xs text-muted-foreground text-center">
-                  Check your inbox at <strong>{invite?.email}</strong>
+                <div className="pt-2 flex justify-end">
+                  <LiquidMetalButton
+                    label={loading ? "Activating..." : "Activate Account"}
+                    width={180}
+                    height={42}
+                    onClick={handleActivate}
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
+          {step === "verify" && (
+            <div className="w-full rounded-2xl border border-white/10 bg-[#09090c]/85 backdrop-blur-xl p-6 md:p-8 shadow-[0_0_50px_-12px_rgba(139,92,246,0.15)] space-y-6">
+              <div className="space-y-1">
+                <h2 className="text-xl font-bold tracking-tight text-white">
+                  Verify your email
+                </h2>
+                <p className="text-xs text-zinc-500 leading-normal">
+                  A 6-digit code was sent to{" "}
+                  <span className="text-zinc-300 font-medium">
+                    {invite?.email}
+                  </span>
                 </p>
-              </>
-            )}
-          </div>
+              </div>
+
+              <div className="space-y-5">
+                <div className="flex justify-center py-2">
+                  <OtpInput value={otp} onChange={setOtp} disabled={loading} />
+                </div>
+
+                {error && <ErrorMsg message={error} />}
+
+                <div className="pt-1 flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStep("form");
+                      setError("");
+                      setOtp("");
+                    }}
+                    className="h-[42px] px-5 flex items-center justify-center rounded-lg border border-white/10 bg-white/5 text-xs font-semibold text-zinc-300 hover:bg-white/10 hover:text-white transition-all duration-200 active:scale-95 cursor-pointer"
+                  >
+                    ← Back
+                  </button>
+                  <LiquidMetalButton
+                    label={loading ? "Verifying..." : "Verify"}
+                    width={140}
+                    height={42}
+                    onClick={handleVerify}
+                  />
+                </div>
+
+                <p className="text-center text-[10px] text-zinc-600">
+                  Didn&apos;t receive the code? Check your spam folder or wait a
+                  moment.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

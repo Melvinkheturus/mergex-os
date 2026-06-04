@@ -172,31 +172,60 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
           }
 
           if (roleId) {
-            // employeeId is pre-assigned on the User record created during invite.
-            // Do not auto-generate — it is a manually assigned organizational identifier.
-            const createdUser = await db.user.upsert({
-              where: { clerkId: userId },
-              create: {
-                id: crypto.randomUUID(),
-                clerkId: userId,
-                email: primaryEmail,
-                firstName: clerkUser.firstName,
-                lastName: clerkUser.lastName,
-                avatarUrl: clerkUser.imageUrl,
-                roleId,
-                isActive: true,
-                onboardingState,
-                updatedAt: new Date(),
-              },
-              update: {
-                isActive: true,
-                email: primaryEmail,
-                firstName: clerkUser.firstName,
-                lastName: clerkUser.lastName,
-                avatarUrl: clerkUser.imageUrl,
-                updatedAt: new Date(),
-              }
+            // ── Check for a pre-created invite User record ──────────────────────
+            // When an invite is sent, the User row is pre-created with the invitee's
+            // email but no clerkId (or a placeholder). After Clerk signup completes,
+            // we must link that existing row to the new Clerk user rather than
+            // attempting to create a second row (which would violate the email unique constraint).
+            const existingByEmail = await db.user.findUnique({
+              where: { email: primaryEmail },
             });
+
+            let createdUser: { id: string };
+
+            if (existingByEmail && existingByEmail.clerkId !== userId) {
+              // Found pre-created invite row — patch it with the real Clerk user ID
+              createdUser = await db.user.update({
+                where: { id: existingByEmail.id },
+                data: {
+                  clerkId: userId,
+                  firstName: clerkUser.firstName ?? existingByEmail.firstName,
+                  lastName: clerkUser.lastName ?? existingByEmail.lastName,
+                  avatarUrl: clerkUser.imageUrl ?? existingByEmail.avatarUrl,
+                  isActive: true,
+                  roleId: existingByEmail.roleId ?? roleId,
+                  onboardingState: existingByEmail.onboardingState ?? "PROFILE_SETUP",
+                  updatedAt: new Date(),
+                },
+              });
+              console.log(`[auth-auto-provision] Linked invite User row to Clerk ID for ${primaryEmail}`);
+            } else {
+              // No pre-created row — create from scratch (normal auto-provision path)
+              createdUser = await db.user.upsert({
+                where: { clerkId: userId },
+                create: {
+                  id: crypto.randomUUID(),
+                  clerkId: userId,
+                  email: primaryEmail,
+                  firstName: clerkUser.firstName,
+                  lastName: clerkUser.lastName,
+                  avatarUrl: clerkUser.imageUrl,
+                  roleId,
+                  isActive: true,
+                  onboardingState,
+                  updatedAt: new Date(),
+                },
+                update: {
+                  isActive: true,
+                  email: primaryEmail,
+                  firstName: clerkUser.firstName,
+                  lastName: clerkUser.lastName,
+                  avatarUrl: clerkUser.imageUrl,
+                  updatedAt: new Date(),
+                },
+              });
+              console.log(`[auth-auto-provision] Provisioned invited user ${primaryEmail} with roleId=${roleId}`);
+            }
 
             // Set Clerk publicMetadata so the proxy redirects correctly
             const client = await clerkClient();
