@@ -21,7 +21,8 @@ const isOnboardingRoute = createRouteMatcher([
   "/onboarding(.*)",
 ]);
 
-export default clerkMiddleware(async (auth, request) => {
+export default clerkMiddleware(
+  async (auth, request) => {
   const url = request.nextUrl;
   const pathname = url.pathname;
 
@@ -49,8 +50,19 @@ export default clerkMiddleware(async (auth, request) => {
   }
   // ─────────────────────────────────────────────────────────────────────────
 
-  // Retrieve current auth state
-  const { userId, sessionClaims } = await auth();
+  // Retrieve current auth state.
+  // Wrapped in try/catch: if the JWT has clock-skew issues (nbf slightly in the
+  // future) and Clerk throws instead of tolerating it, we treat the user as
+  // unauthenticated rather than crashing into an infinite sign-in redirect loop.
+  let userId: string | null = null;
+  let sessionClaims: Record<string, unknown> | null = null;
+  try {
+    const authState = await auth();
+    userId = authState.userId;
+    sessionClaims = authState.sessionClaims as Record<string, unknown> | null;
+  } catch {
+    // Clock-skew or other transient Clerk error — treat as signed-out for routing
+  }
 
   // Block /sign-up for unauthenticated users — invite link is the only entry point
   if (!userId && pathname.startsWith("/sign-up")) {
@@ -116,7 +128,14 @@ export default clerkMiddleware(async (auth, request) => {
   if (pathname === "/workspaces" || pathname === "/workspaces/") {
     return;
   }
-});
+  },
+  {
+    // Allow up to 60 seconds of clock skew when validating JWT nbf/exp claims.
+    // This prevents the infinite redirect loop that occurs when the system clock
+    // is slightly behind the Clerk token issuance time.
+    clockSkewInMs: 60_000,
+  }
+);
 
 // ── Resolve post-login destination from DB activeBrandId ──────────────────
 // Returns the specific workspace URL if the user has an active brand,
