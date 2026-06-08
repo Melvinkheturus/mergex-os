@@ -90,6 +90,14 @@ export function LeadSidebar({ lead, owners, onLeadUpdate, currentStep }: LeadSid
   const [refreshKey, setRefreshKey] = useState(0);
   const triggerRefresh = () => setRefreshKey((prev) => prev + 1);
 
+  // Listen for any CRM activity event (outreach, note, stage change, etc.)
+  // and force timeline + SLA/escalation cards to re-fetch
+  useEffect(() => {
+    const handler = () => triggerRefresh();
+    window.addEventListener("crm-activity-logged", handler);
+    return () => window.removeEventListener("crm-activity-logged", handler);
+  }, []);
+
   const stageIndex = currentStep - 1;
   const activeStageKey = stageKeys[stageIndex] || "lead_intake";
   const config = stageConfig[activeStageKey];
@@ -98,17 +106,17 @@ export function LeadSidebar({ lead, owners, onLeadUpdate, currentStep }: LeadSid
     <div className="space-y-4">
       {/* 1. SLA Card */}
       {config.showSLA && (
-        <SlaCard lead={lead} />
+        <SlaCard key={`sla-${refreshKey}`} lead={lead} />
       )}
 
-      {/* 2. Escalation Card — self-manages visibility (returns null when not breached) but only mounted in stages that support it */}
+      {/* 2. Escalation Card */}
       {config.showEscalation && (
-        <EscalationCard lead={lead} />
+        <EscalationCard key={`esc-${refreshKey}`} lead={lead} />
       )}
 
       {/* 3. Tasks Card */}
       {config.showTasks && (
-        <TasksCard leadId={lead.id} owners={owners} />
+        <TasksCard key={`tasks-${refreshKey}`} leadId={lead.id} owners={owners} />
       )}
 
       {/* 4. Reopen Logic Card */}
@@ -116,11 +124,16 @@ export function LeadSidebar({ lead, owners, onLeadUpdate, currentStep }: LeadSid
         <ReopenLogicCard lead={lead} onLeadUpdate={onLeadUpdate} />
       )}
 
-      {/* 5. Notes Card (Persistent - Always True) */}
-      <NotesCard leadId={lead.id} owners={owners} onNoteAdded={triggerRefresh} />
+      {/* 5. Notes Card (Persistent) */}
+      <NotesCard
+        key={`notes-${refreshKey}`}
+        leadId={lead.id}
+        owners={owners}
+        onNoteAdded={triggerRefresh}
+      />
 
-      {/* 6. Timeline Card (Persistent - Always True, read-only) */}
-      <TimelineCard leadId={lead.id} key={refreshKey} />
+      {/* 6. Timeline Card (Persistent) */}
+      <TimelineCard leadId={lead.id} key={`timeline-${refreshKey}`} />
     </div>
   );
 }
@@ -216,6 +229,9 @@ export function LeadUtilityGrid({ lead }: { lead: Lead }) {
       setDocuments(updatedDocs);
       localStorage.setItem(`lead-${leadId}-documents`, JSON.stringify(updatedDocs));
       toast.success(`${file.name} uploaded!`);
+
+      // Dispatch to notify sidebar cards (timeline) to refresh
+      window.dispatchEvent(new CustomEvent("crm-activity-logged"));
     } catch {
       toast.error("Failed to upload document.");
     } finally {

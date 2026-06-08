@@ -1,12 +1,32 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { MessageSquare, Plus, Send, Loader2, AtSign } from "lucide-react";
+import { MessageSquare, Plus, Send, Loader2, AtSign, X, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { OptionUser, Activity as LeadActivity } from "../../types";
+import { OptionUser } from "../../types";
+
+// ─── Note type matching the Note Prisma model ─────────────────────────────────
+interface Note {
+  id: string;
+  leadId: string;
+  brandId: string;
+  title: string | null;
+  content: string;
+  visibility: string;
+  createdBy: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  User: {
+    id: string;
+    firstName: string | null;
+    lastName: string | null;
+    avatarUrl: string | null;
+  } | null;
+}
 
 interface NotesCardProps {
   leadId: string;
@@ -31,11 +51,12 @@ function getRelativeTime(dateStr: string): string {
 }
 
 export function NotesCard({ leadId, owners, onNoteAdded }: NotesCardProps) {
-  const [notes, setNotes] = useState<LeadActivity[]>([]);
+  const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [content, setContent] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Mentions
   const [showMentions, setShowMentions] = useState(false);
@@ -43,13 +64,14 @@ export function NotesCard({ leadId, owners, onNoteAdded }: NotesCardProps) {
   const [mentionIndex, setMentionIndex] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // ─── Load notes from the dedicated /notes endpoint ───────────────────────────
   const loadNotes = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/crm/leads/${leadId}/activities`);
+      const res = await fetch(`/api/crm/leads/${leadId}/notes`);
       if (res.ok) {
-        const data: LeadActivity[] = await res.json();
-        setNotes(data.filter((a) => a.type === "NOTE"));
+        const data: Note[] = await res.json();
+        setNotes(data);
       }
     } catch { /* silent */ }
     finally { setLoading(false); }
@@ -57,6 +79,7 @@ export function NotesCard({ leadId, owners, onNoteAdded }: NotesCardProps) {
 
   useEffect(() => { loadNotes(); }, [leadId]);
 
+  // ─── Mentions handling ────────────────────────────────────────────────────────
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
     setContent(val);
@@ -89,23 +112,45 @@ export function NotesCard({ leadId, owners, onNoteAdded }: NotesCardProps) {
     else if (e.key === "Escape") setShowMentions(false);
   };
 
+  // ─── Submit note ──────────────────────────────────────────────────────────────
   const handleSubmit = async () => {
     if (!content.trim()) { toast.error("Note cannot be empty"); return; }
     setSubmitting(true);
     try {
-      const res = await fetch(`/api/crm/leads/${leadId}/activities`, {
+      const res = await fetch(`/api/crm/leads/${leadId}/notes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "NOTE", content: content.trim() }),
+        body: JSON.stringify({ content: content.trim() }),
       });
       if (!res.ok) throw new Error();
       toast.success("Note added");
       setContent("");
       setShowForm(false);
+      // Notify sidebar cards to refresh (timeline will pick up the new NOTE activity)
+      window.dispatchEvent(new CustomEvent("crm-activity-logged"));
       await loadNotes();
       onNoteAdded?.();
     } catch { toast.error("Failed to add note"); }
     finally { setSubmitting(false); }
+  };
+
+  // ─── Delete note (soft delete) ────────────────────────────────────────────────
+  const handleDelete = async (noteId: string) => {
+    setDeletingId(noteId);
+    // Optimistic removal
+    setNotes((prev) => prev.filter((n) => n.id !== noteId));
+    try {
+      const res = await fetch(`/api/crm/leads/${leadId}/notes?noteId=${encodeURIComponent(noteId)}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error();
+      toast.success("Note deleted");
+    } catch {
+      toast.error("Failed to delete note");
+      await loadNotes(); // restore on error
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   return (
@@ -187,14 +232,15 @@ export function NotesCard({ leadId, owners, onNoteAdded }: NotesCardProps) {
         ) : (
           <div className="space-y-0 divide-y divide-border/10">
             {notes.map((note) => {
-              const authorName = note.user
-                ? `${note.user.firstName || ""} ${note.user.lastName || ""}`.trim() || "Team"
+              const authorName = note.User
+                ? `${note.User.firstName || ""} ${note.User.lastName || ""}`.trim() || "Team"
                 : "System";
               const initials = authorName.charAt(0).toUpperCase();
-              const relTime = getRelativeTime(note.performedAt);
+              const relTime = getRelativeTime(note.createdAt);
+              const isDeleting = deletingId === note.id;
 
               return (
-                <div key={note.id} className="py-3 space-y-1.5">
+                <div key={note.id} className={`group py-3 space-y-1.5 transition-opacity ${isDeleting ? "opacity-40" : ""}`}>
                   {/* Author row */}
                   <div className="flex items-center gap-2">
                     <span className="h-5 w-5 rounded-full bg-[#8B5CF6]/15 flex items-center justify-center text-[9px] font-bold text-[#8B5CF6] shrink-0">
@@ -202,6 +248,16 @@ export function NotesCard({ leadId, owners, onNoteAdded }: NotesCardProps) {
                     </span>
                     <span className="text-[10px] font-bold text-foreground">{authorName}</span>
                     <span className="text-[9px] text-muted-foreground/50 ml-auto">{relTime}</span>
+                    {/* Delete button — visible on hover */}
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(note.id)}
+                      disabled={isDeleting}
+                      className="opacity-0 group-hover:opacity-100 text-muted-foreground/40 hover:text-red-400 transition-all ml-1 shrink-0 disabled:pointer-events-none"
+                      title="Delete note"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
                   </div>
                   {/* Content */}
                   <p className="text-[10px] text-foreground/80 leading-relaxed pl-7 break-words">

@@ -263,6 +263,8 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
     if (!res.ok) throw new Error("Failed to save");
     const updated: Lead = await res.json();
     setLead(updated);
+    // Notify sidebar cards (timeline, SLA, escalation) to re-fetch
+    window.dispatchEvent(new CustomEvent("crm-activity-logged"));
     return updated;
   };
 
@@ -410,6 +412,7 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
       if (!res.ok) throw new Error("Failed to update stage");
       toast.success("Stage updated");
       setLead(await res.json());
+      window.dispatchEvent(new CustomEvent("crm-activity-logged"));
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to update stage");
     } finally {
