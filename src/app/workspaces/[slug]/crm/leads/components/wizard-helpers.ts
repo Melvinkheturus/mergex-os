@@ -7,7 +7,7 @@ export function getStep1Complete(lead: Lead) {
 }
 
 export function getStep2Complete(lead: Lead) {
-  return !!(lead.businessModel || lead.teamSize) && (lead.painPoints?.length ?? 0) > 0;
+  return !!(lead.businessAge || lead.teamSize) && (lead.painPoints?.length ?? 0) > 0;
 }
 
 export function getStep3Complete(lead: Lead) {

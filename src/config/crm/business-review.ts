@@ -1,31 +1,24 @@
 export const PAIN_POINTS = [
   "No Website",
-  "No Ecommerce",
-  "Poor Branding",
-  "Low Conversion",
-  "Poor Lead Generation",
   "No CRM",
-  "No Automation",
-  "Weak Online Presence",
+  "No Ecommerce",
+  "Poor Lead Tracking",
+  "Low Conversion",
+  "Weak Branding",
+  "Poor Automation",
   "No Analytics",
-  "Manual Processes",
-  "Poor Customer Retention",
-  "No Social Media",
+  "Other"
 ] as const;
 
 export const OPPORTUNITIES = [
   "Website Development",
-  "Ecommerce Setup",
-  "CRM Implementation",
-  "Business Automation",
-  "Brand Strategy",
-  "Marketing Support",
-  "SEO / Content",
-  "Paid Ads",
-  "Social Media Management",
+  "CRM Setup",
+  "Ecommerce",
+  "Marketing",
+  "Automation",
+  "Branding",
   "AI Solutions",
-  "Consulting",
-  "Training",
+  "Other"
 ] as const;
 
 export const BUSINESS_AGE_OPTIONS = [
@@ -46,24 +39,27 @@ export const TEAM_SIZE_OPTIONS = [
 ] as const;
 
 export const REVENUE_RANGE_OPTIONS = [
-  "₹0 – ₹50K / mo",
-  "₹50K – ₹2L / mo",
-  "₹2L – ₹10L / mo",
-  "₹10L – ₹50L / mo",
-  "₹50L+ / mo",
-  "Not Disclosed",
+  "Pre-Revenue",
+  "Early Revenue",
+  "Growing",
+  "Established",
+  "Scaling",
 ] as const;
 
 export const PRIMARY_CHANNEL_OPTIONS = [
   "Instagram",
-  "Facebook",
-  "LinkedIn",
-  "YouTube",
-  "Google Search",
   "WhatsApp",
-  "Referrals",
-  "Offline / Walk-in",
-  "None",
+  "Website",
+  "Marketplace",
+  "Referral",
+  "Offline",
+  "Other",
+] as const;
+
+export const BUSINESS_CONFIDENCE_OPTIONS = [
+  "Strong",
+  "Moderate",
+  "Weak",
 ] as const;
 
 export const DECISION_MAKER_OPTIONS = [

@@ -53,9 +53,8 @@ function getChecklistForStage(stageName: string, lead: Lead): ChecklistItem[] {
   
   if (name.includes("REVIEW")) {
     return [
-      { label: "Current Systems", isFilled: !!lead.currentSituation },
+      { label: "Current Situation", isFilled: !!lead.currentSituation },
       { label: "Pain Points", isFilled: !!(lead.painPoints && lead.painPoints.length > 0) },
-      { label: "Opportunities", isFilled: !!lead.opportunityNotes },
     ];
   }
   
@@ -154,13 +153,23 @@ export function LeadCommandCenter({
     }
   };
 
-  // Filter terminal stages out for flow progress
-  const workflowStages = stages.filter(
-    (s) => !TERMINAL_STAGE_NAMES.includes(s.name)
-  );
+  // Filter terminal stages out and deduplicate by name (DB may have duplicate rows per workspace)
+  const workflowStages = stages
+    .filter((s) => !TERMINAL_STAGE_NAMES.includes(s.name))
+    .filter((s, idx, arr) => arr.findIndex((x) => x.name === s.name) === idx);
 
   const currentIndex = workflowStages.findIndex((s) => s.id === lead.stageId);
-  const currentStage = workflowStages[currentIndex];
+  // If stageId matched a deduplicated-out duplicate, fall back to matching by name
+  const currentStage =
+    currentIndex >= 0
+      ? workflowStages[currentIndex]
+      : workflowStages.find(
+          (s) => s.name === stages.find((st) => st.id === lead.stageId)?.name
+        );
+  const resolvedIndex =
+    currentIndex >= 0
+      ? currentIndex
+      : workflowStages.findIndex((s) => s.id === currentStage?.id);
 
   // Requirements checklist for current stage
   const checklist = lead && currentStage
@@ -172,8 +181,8 @@ export function LeadCommandCenter({
 
   // Smart recommended action computation
   const currentStageName = currentStage?.name || "";
-  const nextStage = currentIndex >= 0 && currentIndex < workflowStages.length - 1
-    ? workflowStages[currentIndex + 1]
+  const nextStage = resolvedIndex >= 0 && resolvedIndex < workflowStages.length - 1
+    ? workflowStages[resolvedIndex + 1]
     : null;
 
   let recActionTitle = "";

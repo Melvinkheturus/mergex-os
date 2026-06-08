@@ -180,6 +180,7 @@ model Lead {
   outreachAngle    String?
   relevantServices String?
   valueProposition String?
+  businessConfidence String?
 
   // Step 3 — Qualification (6-dimension model replacing BANT)
   qualIcpFit              Int             @default(0)  // 0=not set, 25=Strong, 15=Moderate, 5=Weak

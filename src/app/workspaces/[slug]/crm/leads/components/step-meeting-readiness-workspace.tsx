@@ -28,7 +28,7 @@ interface StepMeetingReadinessWorkspaceProps {
 // ─── Step Completion Helpers (align with lead-details-client.tsx) ──────────────
 
 function getStep2Complete(lead: Lead) {
-  return !!(lead.businessModel || lead.teamSize) && (lead.painPoints?.length ?? 0) > 0;
+  return !!(lead.businessAge || lead.teamSize) && (lead.painPoints?.length ?? 0) > 0;
 }
 
 function getStep3Complete(lead: Lead) {

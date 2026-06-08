@@ -260,7 +260,7 @@ export function NotesCard({ leadId, owners, onNoteAdded }: NotesCardProps) {
                     </button>
                   </div>
                   {/* Content */}
-                  <p className="text-[10px] text-foreground/80 leading-relaxed pl-7 break-words">
+                  <p className="text-[10px] text-foreground/80 leading-relaxed pl-7 wrap-break-word">
                     {note.content}
                   </p>
                 </div>

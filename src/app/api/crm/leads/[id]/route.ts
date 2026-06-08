@@ -127,6 +127,7 @@ export async function PUT(
       outreachAngle,
       relevantServices,
       valueProposition,
+      businessConfidence,
       // Step 3 — Qualification (6-dimension)
       qualIcpFit,
       qualBudgetLikelihood,
@@ -212,9 +213,30 @@ export async function PUT(
         website: website !== undefined ? (website || null) : lead.website,
         industry: industry !== undefined ? (industry || null) : lead.industry,
         location: location !== undefined ? (location || null) : lead.location,
-        sourceId: sourceId !== undefined ? (sourceId || null) : lead.sourceId,
-        stageId: stageId !== undefined ? (stageId || null) : lead.stageId,
-        ownerId: ownerId !== undefined ? (ownerId || null) : lead.ownerId,
+        // Prisma v7: sourceId must be set via relation connect/disconnect, not scalar
+        ...(sourceId !== undefined
+          ? {
+              LeadSource: sourceId
+                ? { connect: { id: sourceId } }
+                : { disconnect: true },
+            }
+          : {}),
+        // Prisma v7: stageId must be set via relation connect/disconnect, not scalar
+        ...(stageId !== undefined
+          ? {
+              LeadStage: stageId
+                ? { connect: { id: stageId } }
+                : { disconnect: true },
+            }
+          : {}),
+        // Prisma v7: ownerId must be set via relation connect/disconnect, not scalar
+        ...(ownerId !== undefined
+          ? {
+              User: ownerId
+                ? { connect: { id: ownerId } }
+                : { disconnect: true },
+            }
+          : {}),
         avatarUrl: avatarUrl !== undefined ? (avatarUrl || null) : lead.avatarUrl,
         icpScore: icpScore !== undefined ? icpScore : lead.icpScore,
         temperature: temperature !== undefined ? temperature : lead.temperature,
@@ -283,6 +305,7 @@ export async function PUT(
         outreachAngle: outreachAngle !== undefined ? (outreachAngle || null) : (lead as any).outreachAngle,
         relevantServices: relevantServices !== undefined ? (relevantServices || null) : (lead as any).relevantServices,
         valueProposition: valueProposition !== undefined ? (valueProposition || null) : (lead as any).valueProposition,
+        businessConfidence: businessConfidence !== undefined ? (businessConfidence || null) : (lead as any).businessConfidence,
         // Step 3 — Qualification (6-dimension)
         qualIcpFit: qualIcpFit !== undefined ? qualIcpFit : (lead as any).qualIcpFit,
         qualBudgetLikelihood: qualBudgetLikelihood !== undefined ? qualBudgetLikelihood : (lead as any).qualBudgetLikelihood,
@@ -367,7 +390,8 @@ export async function PUT(
     const brFields = [
       "businessModel", "businessAge", "teamSize", "revenueRange",
       "primaryChannel", "opportunities", "outreachAngle", "relevantServices",
-      "valueProposition", "currentSituation", "painPoints", "opportunityNotes"
+      "valueProposition", "currentSituation", "painPoints", "opportunityNotes",
+      "businessConfidence"
     ];
     const hasBrChanges = brFields.some((field) => body[field] !== undefined && body[field] !== (lead as any)[field]);
     if (hasBrChanges) {

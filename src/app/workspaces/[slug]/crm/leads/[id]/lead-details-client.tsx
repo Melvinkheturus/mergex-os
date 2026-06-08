@@ -165,12 +165,19 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
         temperature: (data.temperature as "HOT" | "WARM" | "COLD") || "COLD",
       });
 
+      const knownChannels = ["Instagram", "WhatsApp", "Website", "Marketplace", "Referral", "Offline"];
+      const rawChannel = data.primaryChannel || "";
+      const isKnown = knownChannels.includes(rawChannel);
+      const primaryChannelValue = rawChannel === "" ? "" : (isKnown ? rawChannel : "Other");
+      const primaryChannelOtherValue = isKnown ? "" : rawChannel;
+
       businessReviewForm.reset({
         businessModel: data.businessModel || "",
         businessAge: data.businessAge || "",
         teamSize: data.teamSize || "",
         revenueRange: data.revenueRange || "",
-        primaryChannel: data.primaryChannel || "",
+        primaryChannel: primaryChannelValue,
+        primaryChannelOther: primaryChannelOtherValue,
         hasWebsite: data.hasWebsite ?? false,
         hasEcommerce: data.hasEcommerce ?? false,
         hasInstagram: data.hasInstagram ?? false,
@@ -184,6 +191,7 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
         valueProposition: data.valueProposition || "",
         opportunityNotes: data.opportunityNotes || "",
         currentSituation: data.currentSituation || "",
+        businessConfidence: data.businessConfidence || "",
       });
 
       qualificationForm.reset({
@@ -297,7 +305,12 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
   const onBusinessReviewSubmit = async (values: BusinessReviewV2FormValues) => {
     setIsSaving(true);
     try {
-      await patchLead({ ...values });
+      const { primaryChannel, primaryChannelOther, ...rest } = values;
+      const finalChannel = primaryChannel === "Other" ? (primaryChannelOther || "Other") : primaryChannel;
+      await patchLead({
+        ...rest,
+        primaryChannel: finalChannel,
+      });
       toast.success("Business Review saved");
     } catch {
       toast.error("Failed to save Business Review");
@@ -411,8 +424,22 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
       });
       if (!res.ok) throw new Error("Failed to update stage");
       toast.success("Stage updated");
-      setLead(await res.json());
+      const updatedLead = await res.json();
+      setLead(updatedLead);
       window.dispatchEvent(new CustomEvent("crm-activity-logged"));
+
+      // Update active wizard step to match the new stage
+      const newStage = stages.find((s) => s.id === stageId);
+      if (newStage) {
+        const name = (newStage.name || "").toUpperCase();
+        let targetStep = 1;
+        if (name.includes("REVIEW")) targetStep = 2;
+        else if (name.includes("QUALIFICATION") && !name.includes("AUDIT")) targetStep = 3;
+        else if (name.includes("CLASSIFICATION")) targetStep = 4;
+        else if (name.includes("NURTURING")) targetStep = 5;
+        else if (name.includes("MEETING")) targetStep = 6;
+        setCurrentStep(targetStep);
+      }
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to update stage");
     } finally {

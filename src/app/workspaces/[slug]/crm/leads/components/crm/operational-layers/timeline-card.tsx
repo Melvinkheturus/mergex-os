@@ -89,7 +89,7 @@ export function TimelineCard({ leadId }: TimelineCardProps) {
           Timeline
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-4 pt-1">
+      <CardContent className="p-4 pt-1 pr-2">
         {loading && activities.length === 0 ? (
           <div className="flex justify-center py-6">
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground/50" />
@@ -99,7 +99,7 @@ export function TimelineCard({ leadId }: TimelineCardProps) {
             No events logged yet.
           </p>
         ) : (
-          <div className="space-y-5 max-h-[360px] overflow-y-auto pr-1">
+          <div className="space-y-5 max-h-[360px] overflow-y-auto pr-2 scrollbar-thin-timeline">
             {groups.map((group) => (
               <div key={group.label}>
                 {/* Date header */}
@@ -122,7 +122,7 @@ export function TimelineCard({ leadId }: TimelineCardProps) {
                     return (
                       <div key={act.id} className="relative flex gap-2.5">
                         {/* Timeline dot */}
-                        <div className={`absolute -left-[23px] top-0.5 w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${cfg.color}`}>
+                        <div className={`absolute left-[-23px] top-0.5 w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${cfg.color}`}>
                           <Icon className="h-2.5 w-2.5" />
                         </div>
 
@@ -144,7 +144,7 @@ export function TimelineCard({ leadId }: TimelineCardProps) {
 
                           {/* Content */}
                           {act.content && (
-                            <p className="text-[10px] text-muted-foreground/75 leading-relaxed break-words">
+                            <p className="text-[10px] text-muted-foreground/75 leading-relaxed wrap-break-word">
                               {act.content}
                             </p>
                           )}

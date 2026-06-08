@@ -107,6 +107,7 @@ export interface Lead {
   outreachAngle: string | null;
   relevantServices: string | null;
   valueProposition: string | null;
+  businessConfidence: string | null;
   // Step 3 — Qualification (6-dimension)
   qualIcpFit: number;
   qualBudgetLikelihood: number;
@@ -360,6 +361,7 @@ export const businessReviewV2Schema = z.object({
   teamSize: z.string().optional().or(z.literal("")),
   revenueRange: z.string().optional().or(z.literal("")),
   primaryChannel: z.string().optional().or(z.literal("")),
+  primaryChannelOther: z.string().optional().or(z.literal("")),
   // Section B: Digital Presence (booleans)
   hasWebsite: z.boolean().default(false),
   hasEcommerce: z.boolean().default(false),
@@ -376,6 +378,7 @@ export const businessReviewV2Schema = z.object({
   valueProposition: z.string().optional().or(z.literal("")),
   opportunityNotes: z.string().optional().or(z.literal("")),
   currentSituation: z.string().optional().or(z.literal("")),
+  businessConfidence: z.string().optional().or(z.literal("")),
 });
 export type BusinessReviewV2FormValues = z.infer<typeof businessReviewV2Schema>;
 

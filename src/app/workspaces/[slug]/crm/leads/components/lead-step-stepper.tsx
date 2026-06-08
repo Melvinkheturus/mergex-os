@@ -1,6 +1,9 @@
 "use client";
 
-import { Check, Lock, ChevronRight, ChevronLeft, Save } from "lucide-react";
+import { 
+  Check, Lock, ChevronRight, ChevronLeft, Save,
+  PlusCircle, Building2, ShieldCheck, Tag, Heart, CalendarCheck 
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -25,6 +28,15 @@ interface LeadStepStepperProps {
   children: React.ReactNode;
 }
 
+const STEP_ICONS: Record<number, React.ComponentType<{ className?: string }>> = {
+  1: PlusCircle,
+  2: Building2,
+  3: ShieldCheck,
+  4: Tag,
+  5: Heart,
+  6: CalendarCheck,
+};
+
 export function LeadStepStepper({
   steps,
   currentStep,
@@ -45,6 +57,7 @@ export function LeadStepStepper({
             const isCurrent = s.id === currentStep;
             const isCompleted = s.isComplete || s.id < currentStep;
             const isClickable = !s.isLocked && (isCompleted || isCurrent);
+            const StepIcon = STEP_ICONS[s.id];
  
             return (
               <div key={s.id} className="flex items-center justify-between flex-1 shrink-0 min-w-[140px] last:flex-none last:min-w-0">
@@ -61,9 +74,14 @@ export function LeadStepStepper({
                       : "text-muted-foreground/50 font-normal"
                   )}
                 >
-                  {s.isLocked && (
-                    <Lock className="h-3 w-3 text-muted-foreground/30 shrink-0" />
-                  )}
+                  {s.isLocked ? (
+                    <Lock className="h-3.5 w-3.5 text-muted-foreground/30 shrink-0" />
+                  ) : StepIcon ? (
+                    <StepIcon className={cn(
+                      "h-3.5 w-3.5 shrink-0",
+                      isCurrent ? "text-[#8B5CF6]" : isCompleted ? "text-[#8B5CF6]/75" : "text-muted-foreground/50"
+                    )} />
+                  ) : null}
                   <span>{s.label}</span>
                   {s.badge && !s.isLocked && (
                     <span className="text-[9px] opacity-60 ml-0.5">({s.badge})</span>

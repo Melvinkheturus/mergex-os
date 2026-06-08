@@ -138,6 +138,8 @@ export function LeadSidebar({ lead, owners, onLeadUpdate, currentStep }: LeadSid
   );
 }
 
+const DEMO_FILES = ["Proposal.pdf", "NDA.pdf", "Requirements.docx"];
+
 // ─── Component 2: Documents, Meeting, and Proposal Row ──────────────────────
 export function LeadUtilityGrid({ lead }: { lead: Lead }) {
   const params = useParams();
@@ -185,17 +187,27 @@ export function LeadUtilityGrid({ lead }: { lead: Lead }) {
     }
   }, [leadId]);
 
-  // Load Documents from LocalStorage
+
   useEffect(() => {
     const timer = setTimeout(() => {
       const stored = localStorage.getItem(`lead-${leadId}-documents`);
       if (stored) {
-        setDocuments(JSON.parse(stored));
+        try {
+          const parsed: string[] = JSON.parse(stored);
+          // Filter out known demo placeholder files
+          const cleaned = parsed.filter((f) => !DEMO_FILES.includes(f));
+          if (cleaned.length !== parsed.length) {
+            // Write back cleaned list (removes stale seed data permanently)
+            localStorage.setItem(`lead-${leadId}-documents`, JSON.stringify(cleaned));
+          }
+          setDocuments(cleaned);
+        } catch {
+          localStorage.removeItem(`lead-${leadId}-documents`);
+        }
       }
-      // No fallback demo data — documents start empty
     }, 0);
     return () => clearTimeout(timer);
-  }, [leadId]);
+  }, [leadId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -274,25 +286,41 @@ export function LeadUtilityGrid({ lead }: { lead: Lead }) {
           />
         </CardHeader>
         <CardContent className="p-4 pt-0 space-y-2 flex-1">
-          {documents.map((doc, idx) => (
-            <div
-              key={`${doc}-${idx}`}
-              className="flex items-center justify-between p-2 rounded-lg border border-border/30 bg-background/30 hover:bg-background/60 transition-colors"
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                <span className="text-xs font-semibold text-foreground truncate">{doc}</span>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-5 w-5 hover:bg-[#8B5CF6]/10 text-muted-foreground hover:text-[#8B5CF6]"
-                onClick={() => toast.success(`Viewing file: ${doc}`)}
+          {documents.length > 0 ? (
+            documents.map((doc, idx) => (
+              <div
+                key={`${doc}-${idx}`}
+                className="flex items-center justify-between p-2 rounded-lg border border-border/30 bg-background/30 hover:bg-background/60 transition-colors"
               >
-                <ExternalLink className="h-3 w-3" />
+                <div className="flex items-center gap-2 min-w-0">
+                  <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <span className="text-xs font-semibold text-foreground truncate">{doc}</span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5 hover:bg-[#8B5CF6]/10 text-muted-foreground hover:text-[#8B5CF6]"
+                  onClick={() => toast.success(`Viewing file: ${doc}`)}
+                >
+                  <ExternalLink className="h-3 w-3" />
+                </Button>
+              </div>
+            ))
+          ) : (
+            <div className="space-y-3 pt-2">
+              <p className="text-[11px] text-muted-foreground/75 italic">No documents uploaded</p>
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full h-8 text-xs font-bold border-border/40 mt-auto"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingDoc}
+              >
+                <Upload className="h-3.5 w-3.5 mr-1.5" />
+                Upload Document
               </Button>
             </div>
-          ))}
+          )}
         </CardContent>
       </Card>
 
