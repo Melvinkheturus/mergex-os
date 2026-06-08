@@ -71,7 +71,22 @@ export async function PATCH(
           content: `Task completed: ${updated.name}`,
         },
       });
+    } else if (isComplete === false && existing.isComplete) {
+      await db.activity.create({
+        data: {
+          leadId: id,
+          userId: result.user.id,
+          type: "TASK",
+          content: `Task reactivated: ${updated.name}`,
+        },
+      });
     }
+
+    // Update parent lead's lastActivityAt
+    await db.lead.update({
+      where: { id },
+      data: { lastActivityAt: new Date() },
+    });
 
     return NextResponse.json(updated);
   } catch (error) {
@@ -98,6 +113,13 @@ export async function DELETE(
     }
 
     await db.task.delete({ where: { id: taskId } });
+
+    // Update parent lead's lastActivityAt
+    await db.lead.update({
+      where: { id },
+      data: { lastActivityAt: new Date() },
+    });
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Failed to delete task:", error);

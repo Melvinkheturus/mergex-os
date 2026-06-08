@@ -92,6 +92,12 @@ export async function POST(
       },
     });
 
+    // Update parent lead's lastActivityAt
+    await db.lead.update({
+      where: { id },
+      data: { lastActivityAt: new Date() },
+    });
+
     return NextResponse.json(task, { status: 201 });
   } catch (error) {
     console.error("Failed to create task:", error);

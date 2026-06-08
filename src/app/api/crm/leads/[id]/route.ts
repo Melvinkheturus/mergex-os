@@ -141,6 +141,7 @@ export async function PUT(
       nurturingStatus,
       nurturingChannel,
       conversationNotes,
+      reopenAt,
     } = body;
 
     // Calculate BANT score if any slider changes
@@ -298,6 +299,7 @@ export async function PUT(
         nurturingStatus: nurturingStatus !== undefined ? (nurturingStatus || null) : (lead as any).nurturingStatus,
         nurturingChannel: nurturingChannel !== undefined ? (nurturingChannel || null) : (lead as any).nurturingChannel,
         conversationNotes: conversationNotes !== undefined ? (conversationNotes || null) : (lead as any).conversationNotes,
+        reopenAt: reopenAt !== undefined ? (reopenAt ? new Date(reopenAt) : null) : (lead as any).reopenAt,
         // Always bump lastActivityAt
         lastActivityAt: new Date(),
       },
@@ -328,6 +330,142 @@ export async function PUT(
           changedBy: user.id,
           changedAt: now,
         })),
+      });
+    }
+
+    // ─── System-Generated Timeline Activity Logging ──────────────────────────
+    // 1. Stage Changed
+    if (stageId !== undefined && stageId !== lead.stageId) {
+      const oldStageLabel = lead.LeadStage?.label ?? "Intake";
+      const newStage = stageId ? await db.leadStage.findUnique({ where: { id: stageId } }) : null;
+      const newStageLabel = newStage?.label ?? "Unknown";
+      await db.activity.create({
+        data: {
+          leadId: id,
+          userId: user.id,
+          type: "STAGE",
+          content: `Stage changed: ${oldStageLabel} → ${newStageLabel}`,
+        },
+      });
+    }
+
+    // 2. Owner Changed
+    if (ownerId !== undefined && ownerId !== lead.ownerId) {
+      const newOwner = ownerId ? await db.user.findUnique({ where: { id: ownerId } }) : null;
+      const newOwnerName = newOwner ? `${newOwner.firstName || ""} ${newOwner.lastName || ""}`.trim() : "Unassigned";
+      await db.activity.create({
+        data: {
+          leadId: id,
+          userId: user.id,
+          type: "OWNER",
+          content: `Owner assigned: ${newOwnerName}`,
+        },
+      });
+    }
+
+    // 3. Business Review Saved
+    const brFields = [
+      "businessModel", "businessAge", "teamSize", "revenueRange",
+      "primaryChannel", "opportunities", "outreachAngle", "relevantServices",
+      "valueProposition", "currentSituation", "painPoints", "opportunityNotes"
+    ];
+    const hasBrChanges = brFields.some((field) => body[field] !== undefined && body[field] !== (lead as any)[field]);
+    if (hasBrChanges) {
+      await db.activity.create({
+        data: {
+          leadId: id,
+          userId: user.id,
+          type: "DEFAULT",
+          content: "Business Review saved",
+        },
+      });
+    }
+
+    // 4. Qualification Completed
+    const qualFieldsList = [
+      "qualIcpFit", "qualBudgetLikelihood", "qualDecisionMakerAccess",
+      "qualOperationalFeasibility", "qualServiceAlignment", "qualGrowthPotential"
+    ];
+    const hasQualChanges = qualFieldsList.some((field) => body[field] !== undefined && body[field] !== (lead as any)[field]);
+    if (hasQualChanges) {
+      await db.activity.create({
+        data: {
+          leadId: id,
+          userId: user.id,
+          type: "DEFAULT",
+          content: `Qualification completed (Score: ${finalQualScore ?? lead.qualScore ?? 0})`,
+        },
+      });
+    }
+
+    // 5. Classification Updated
+    if (
+      (classification !== undefined && classification !== lead.classification) ||
+      (nurturingDirection !== undefined && nurturingDirection !== lead.nurturingDirection)
+    ) {
+      const val = classification || lead.classification || "None";
+      await db.activity.create({
+        data: {
+          leadId: id,
+          userId: user.id,
+          type: "DEFAULT",
+          content: `Classification updated: ${val}`,
+        },
+      });
+    }
+
+    // 6. Nurturing Updated
+    if (
+      (nurturingStatus !== undefined && nurturingStatus !== lead.nurturingStatus) ||
+      (nurturingChannel !== undefined && nurturingChannel !== lead.nurturingChannel)
+    ) {
+      const statusVal = nurturingStatus || lead.nurturingStatus || "None";
+      const channelVal = nurturingChannel || lead.nurturingChannel || "None";
+      await db.activity.create({
+        data: {
+          leadId: id,
+          userId: user.id,
+          type: "DEFAULT",
+          content: `Nurturing updated: Status: ${statusVal.replace(/_/g, " ")}, Channel: ${channelVal}`,
+        },
+      });
+    }
+
+    // 7. Lead Closed
+    if (winLossStatus !== undefined && winLossStatus !== lead.winLossStatus) {
+      await db.activity.create({
+        data: {
+          leadId: id,
+          userId: user.id,
+          type: "DEFAULT",
+          content: `Lead Closed: ${winLossStatus}`,
+        },
+      });
+    }
+
+    // 8. Lead Reopened / Scheduled
+    if (reopenAt === null && lead.reopenAt !== null) {
+      await db.activity.create({
+        data: {
+          leadId: id,
+          userId: user.id,
+          type: "DEFAULT",
+          content: "Lead Reopened",
+        },
+      });
+    } else if (reopenAt !== undefined && reopenAt !== lead.reopenAt) {
+      const formattedDate = new Date(reopenAt).toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+      await db.activity.create({
+        data: {
+          leadId: id,
+          userId: user.id,
+          type: "DEFAULT",
+          content: `Reactivation scheduled for ${formattedDate}`,
+        },
       });
     }
 

@@ -239,6 +239,16 @@ export async function POST(req: Request) {
       },
     });
 
+    // Log "Lead Created" activity
+    await db.activity.create({
+      data: {
+        leadId: lead.id,
+        userId: user.id,
+        type: "LEAD",
+        content: "Lead Created",
+      },
+    });
+
     if (initialNotes && typeof initialNotes === "string" && initialNotes.trim()) {
       await db.note.create({
         data: {
@@ -249,6 +259,16 @@ export async function POST(req: Request) {
           createdBy: user.id,
           visibility: "TEAM",
           updatedAt: new Date(),
+        },
+      });
+
+      // Also log as NOTE activity so it shows on notes-card and timeline
+      await db.activity.create({
+        data: {
+          leadId: lead.id,
+          userId: user.id,
+          type: "NOTE",
+          content: initialNotes.trim(),
         },
       });
     }

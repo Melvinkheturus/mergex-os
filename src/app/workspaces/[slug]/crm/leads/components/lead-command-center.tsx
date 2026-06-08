@@ -129,6 +129,31 @@ export function LeadCommandCenter({
   const params = useParams();
   const slug = params?.slug as string;
 
+  const logOutreach = async (type: "CALL" | "WHATSAPP" | "EMAIL", content: string) => {
+    try {
+      const res = await fetch(`/api/crm/leads/${lead.id}/activities`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type, content }),
+      });
+      if (!res.ok) throw new Error("Failed to log outreach");
+      
+      // Dispatch custom event to notify sidebar cards to refresh
+      window.dispatchEvent(new CustomEvent("crm-activity-logged"));
+      
+      // Update lastActivityAt on parent lead (optimistic)
+      if (onLeadUpdate) {
+        onLeadUpdate({
+          ...lead,
+          lastActivityAt: new Date().toISOString(),
+        });
+      }
+      toast.success(`${type} activity logged`);
+    } catch (error) {
+      console.error("Outreach logging error:", error);
+    }
+  };
+
   // Filter terminal stages out for flow progress
   const workflowStages = stages.filter(
     (s) => !TERMINAL_STAGE_NAMES.includes(s.name)
@@ -345,8 +370,11 @@ export function LeadCommandCenter({
                   size="sm"
                   variant="outline"
                   disabled={!lead.phone}
-                  onClick={() => {
-                    if (lead.phone) window.location.href = `tel:${lead.phone}`;
+                  onClick={async () => {
+                    if (lead.phone) {
+                      window.location.href = `tel:${lead.phone}`;
+                      await logOutreach("CALL", "Call outreach initiated");
+                    }
                   }}
                   className="h-8 text-xs border-border/40 hover:border-[#8B5CF6]/30 hover:bg-[#8B5CF6]/5 hover:text-[#8B5CF6] font-semibold flex items-center gap-1.5 transition-all active:scale-95 duration-100"
                 >
@@ -358,10 +386,11 @@ export function LeadCommandCenter({
                   size="sm"
                   variant="outline"
                   disabled={!lead.phone}
-                  onClick={() => {
+                  onClick={async () => {
                     if (lead.phone) {
                       const clean = lead.phone.replace(/\D/g, "");
                       window.open(`https://wa.me/${clean}`, "_blank");
+                      await logOutreach("WHATSAPP", "WhatsApp outreach initiated");
                     }
                   }}
                   className="h-8 text-xs border-border/40 hover:border-[#8B5CF6]/30 hover:bg-[#8B5CF6]/5 hover:text-[#8B5CF6] font-semibold flex items-center gap-1.5 transition-all active:scale-95 duration-100"
@@ -374,8 +403,11 @@ export function LeadCommandCenter({
                   size="sm"
                   variant="outline"
                   disabled={!lead.email}
-                  onClick={() => {
-                    if (lead.email) window.location.href = `mailto:${lead.email}`;
+                  onClick={async () => {
+                    if (lead.email) {
+                      window.location.href = `mailto:${lead.email}`;
+                      await logOutreach("EMAIL", "Email outreach initiated");
+                    }
                   }}
                   className="h-8 text-xs border-border/40 hover:border-[#8B5CF6]/30 hover:bg-[#8B5CF6]/5 hover:text-[#8B5CF6] font-semibold flex items-center gap-1.5 transition-all active:scale-95 duration-100"
                 >

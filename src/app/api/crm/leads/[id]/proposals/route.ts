@@ -78,6 +78,22 @@ export async function POST(
       },
     });
 
+    // Log Proposal created activity
+    await db.activity.create({
+      data: {
+        leadId: id,
+        userId: result.user.id,
+        type: "PROPOSAL",
+        content: `Proposal created: ${proposal.proposalNumber} - ${proposal.title} (Value: ₹${Number(proposal.value).toLocaleString("en-IN")})`,
+      },
+    });
+
+    // Update parent lead's lastActivityAt
+    await db.lead.update({
+      where: { id },
+      data: { lastActivityAt: new Date() },
+    });
+
     return NextResponse.json(proposal, { status: 201 });
   } catch (error) {
     console.error("Failed to create proposal:", error);

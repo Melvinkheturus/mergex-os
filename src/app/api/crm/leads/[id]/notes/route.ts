@@ -77,7 +77,17 @@ export async function POST(
       },
     });
 
-    // Bump lead activity
+    // Log to activity timeline
+    await db.activity.create({
+      data: {
+        leadId: id,
+        userId: result.user.id,
+        type: "NOTE",
+        content: `Note added: ${content.trim().slice(0, 80)}${content.trim().length > 80 ? "…" : ""}`,
+      },
+    });
+
+    // Bump lead's lastActivityAt
     await db.lead.update({
       where: { id },
       data: { lastActivityAt: new Date() },
@@ -86,6 +96,44 @@ export async function POST(
     return NextResponse.json(note, { status: 201 });
   } catch (error) {
     console.error("Note create error:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const { searchParams } = new URL(req.url);
+  const noteId = searchParams.get("noteId");
+
+  if (!noteId) {
+    return NextResponse.json({ error: "noteId is required" }, { status: 400 });
+  }
+
+  const result = await verifyAccess(id);
+  if (!result.lead || !result.user) {
+    return NextResponse.json({ error: result.error }, { status: result.status });
+  }
+
+  try {
+    const note = await db.note.findFirst({
+      where: { id: noteId, leadId: id, isActive: true },
+    });
+
+    if (!note) {
+      return NextResponse.json({ error: "Note not found" }, { status: 404 });
+    }
+
+    await db.note.update({
+      where: { id: noteId },
+      data: { isActive: false },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Note delete error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
