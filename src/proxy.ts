@@ -1,3 +1,11 @@
+/**
+ * !!!!!!!!!!!!!!!! ATTENTION AI AGENT !!!!!!!!!!!!!!!!
+ * DO NOT DELETE THIS FILE AND DO NOT CREATE MIDDLEWARE.TS.
+ * In Next.js 16+, middleware.ts is DEPRECATED and officially replaced by proxy.ts.
+ * * Target Function: export function proxy(request: NextRequest) { ... }
+ * Leave this file named proxy.ts.
+ */
+
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 

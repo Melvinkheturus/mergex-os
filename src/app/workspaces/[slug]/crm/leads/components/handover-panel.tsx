@@ -25,7 +25,7 @@ export function HandoverPanel({
   onConvert,
 }: HandoverPanelProps) {
   return (
-    <Card className="border border-emerald-500/30 shadow-none rounded-2xl bg-emerald-500/5">
+    <Card className="border border-emerald-500/30 shadow-sm rounded-2xl bg-emerald-500/5">
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-bold text-emerald-600 flex items-center gap-2">
           <UserCheck className="h-4 w-4" />

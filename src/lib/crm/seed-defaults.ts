@@ -67,7 +67,7 @@ export async function seedBrandDefaults(brandId: string) {
     },
     {
       name: "MEETING",
-      label: "Meeting",
+      label: "Meeting Readiness",
       order: 6,
       color: "text-purple-500 bg-purple-500/10 border-purple-500/20",
     },

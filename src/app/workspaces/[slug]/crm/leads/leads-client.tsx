@@ -1,22 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { LayoutList, Columns3, Plus, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-import { LeadsStats } from "./_components/leads-stats";
-import { LeadFilters } from "./_components/lead-filters";
-import { LeadsTable } from "./_components/leads-table";
-import { LeadsPipelineView } from "./_components/leads-pipeline-view";
+import { LeadsStats } from "./components/leads-stats";
+import { LeadFilters } from "./components/lead-filters";
+import { LeadsTable } from "./components/leads-table";
+import { LeadsPipelineView } from "./components/leads-pipeline-view";
 import {
   Lead,
   OptionStage,
   OptionSource,
   OptionUser,
   LeadFormValues,
-} from "./_components/types";
+} from "./components/types";
 
 type ViewMode = "list" | "pipeline";
 
@@ -45,7 +45,7 @@ export function LeadsPage() {
   const [showStats, setShowStats] = useState(true);
 
   // Fetch Options & Leads
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       const optRes = await fetch(`/api/crm/options?brandSlug=${slug}`);
@@ -67,11 +67,14 @@ export function LeadsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [slug]);
 
   useEffect(() => {
-    fetchData();
-  }, [slug]);
+    const timer = setTimeout(() => {
+      fetchData();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [fetchData]);
 
   // Handle Delete Lead
   const handleDeleteLead = async (leadId: string) => {

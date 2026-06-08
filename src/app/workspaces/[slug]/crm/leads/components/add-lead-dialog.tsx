@@ -134,7 +134,7 @@ export function AddLeadDialog({
                 <Label htmlFor="dlg-website" className="text-xs font-semibold">Website</Label>
                 <Input
                   id="dlg-website"
-                  placeholder="https://example.com"
+                  placeholder="example.com"
                   {...register("website")}
                   className="h-9 text-sm rounded-md border-border/80"
                 />

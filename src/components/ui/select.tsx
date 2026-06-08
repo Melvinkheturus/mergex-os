@@ -39,6 +39,9 @@ export function Select({
     }
   };
 
+  const propsAny = props as any;
+  const fallbackAriaLabel = props["aria-label"] || propsAny.label || placeholder || "Select option";
+
   return (
     <SelectPlaceholderContext.Provider value={{ placeholder, setPlaceholder }}>
       <HeroSelect
@@ -46,6 +49,7 @@ export function Select({
         onSelectionChange={handleSelectionChange}
         placeholder={placeholder}
         isDisabled={disabled || isDisabled}
+        aria-label={typeof fallbackAriaLabel === "string" ? fallbackAriaLabel : "Select option"}
         {...props}
       >
         {children as React.ComponentProps<typeof HeroSelect>["children"]}

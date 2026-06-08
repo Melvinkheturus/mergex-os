@@ -62,7 +62,7 @@ export function LeadsTable({
   const slug = params?.slug as string;
 
   return (
-    <Card className="border border-border/40 shadow-none overflow-hidden rounded-xl">
+    <Card className="border border-border/40 shadow-sm overflow-hidden rounded-xl">
       {/* Header row */}
       <CardHeader className="px-5 py-3.5 border-b border-border bg-card/10">
         <div className="grid grid-cols-[2fr_1.4fr_1.2fr_1.2fr_1fr_1.2fr_1fr_40px] gap-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">

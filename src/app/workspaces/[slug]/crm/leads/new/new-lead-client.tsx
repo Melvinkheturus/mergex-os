@@ -18,7 +18,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { type Resolver } from "react-hook-form";
-import { leadFormSchema, LeadFormValues, OptionSource, OptionUser } from "../_components/types";
+import { leadFormSchema, LeadFormValues, OptionSource, OptionUser } from "../components/types";
 
 export function NewLeadClientPage() {
   const params = useParams();
@@ -229,7 +229,7 @@ export function NewLeadClientPage() {
                     <Label htmlFor="website" className="text-xs font-semibold text-foreground">Website</Label>
                     <Input
                       id="website"
-                      placeholder="https://example.com"
+                      placeholder="example.com"
                       {...register("website")}
                       className="h-10 text-sm focus-visible:ring-1 focus-visible:ring-[#8B5CF6]/50 rounded-md border-border/80"
                     />

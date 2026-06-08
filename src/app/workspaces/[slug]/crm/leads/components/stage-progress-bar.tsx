@@ -52,11 +52,11 @@ function getChecklistForStage(stageName: string, lead: Lead): ChecklistItem[] {
   }
   
   if (name.includes("CLASSIFICATION")) {
+    const hasReadiness = typeof window !== "undefined" && !!localStorage.getItem(`proposal-readiness-${lead.id}`);
     return [
-      { label: "ICP Status", isFilled: lead.icpScore > 0 },
       { label: "Services Selected", isFilled: !!(lead.services && lead.services.length > 0) },
-      { label: "Priority Assigned", isFilled: !!lead.priority },
       { label: "Expected Value", isFilled: !!lead.expectedValue },
+      { label: "Proposal Readiness", isFilled: hasReadiness },
     ];
   }
   
@@ -182,8 +182,8 @@ export function StageProgressBar({
         <div className={cn(
           "relative overflow-hidden rounded-xl border p-5 transition-all duration-300",
           isStageComplete
-            ? "bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent border-emerald-500/20 shadow-xs"
-            : "bg-gradient-to-br from-[#8B5CF6]/10 via-[#8B5CF6]/5 to-transparent border-[#8B5CF6]/15 shadow-xs"
+            ? "bg-linear-to-br from-emerald-500/10 via-emerald-500/5 to-transparent border-emerald-500/20 shadow-xs"
+            : "bg-linear-to-br from-[#8B5CF6]/10 via-[#8B5CF6]/5 to-transparent border-[#8B5CF6]/15 shadow-xs"
         )}>
           {/* Subtle background glow */}
           <div className={cn(

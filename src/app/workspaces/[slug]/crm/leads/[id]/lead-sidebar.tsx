@@ -1,17 +1,17 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef, ElementType } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { format, formatDistanceToNowStrict, isToday, isTomorrow, isPast } from "date-fns";
+import { format } from "date-fns";
 import {
   Phone, Mail, MessageCircle, Calendar, FileText, Clock,
-  ArrowRight, Activity, ChevronDown, ChevronUp, IndianRupee,
-  CalendarClock, Zap, Plus, Loader2, StickyNote, ClipboardList,
-  ExternalLink, FileSignature, Receipt, FileBarChart2
+  Activity, IndianRupee,
+  Plus, Loader2, StickyNote, ClipboardList,
+  ExternalLink, FileSignature, Upload
 } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -20,66 +20,127 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Lead, NEXT_ACTION_LABELS, NextActionType, Meeting, Proposal, Activity as LeadActivity } from "../_components/types";
+import { Lead, Meeting, Proposal, OptionUser, Activity as LeadActivity } from "../components/types";
 
 interface LeadSidebarProps {
   lead: Lead;
-  activeAction: "CALL" | "EMAIL" | "WHATSAPP" | "NOTE" | null;
-  onActiveActionChange: (action: "CALL" | "EMAIL" | "WHATSAPP" | "NOTE" | null) => void;
+  owners: OptionUser[];
+  onLeadUpdate: (updated: Lead) => void;
+  currentStep: number;
 }
 
-const ACTIVITY_ICONS: Record<string, any> = {
-  CALL: Phone,
-  EMAIL: Mail,
-  WHATSAPP: MessageCircle,
-  NOTE: StickyNote,
-  TASK: ClipboardList,
+import { TasksCard } from "../components/crm/operational-layers/tasks-card";
+import { SlaCard } from "../components/crm/operational-layers/sla-card";
+import { EscalationCard } from "../components/crm/operational-layers/escalation-card";
+import { ReopenLogicCard } from "../components/crm/operational-layers/reopen-logic-card";
+import { NotesCard } from "../components/crm/operational-layers/notes-card";
+import { TimelineCard } from "../components/crm/operational-layers/timeline-card";
+
+// ─── Stage Configuration and Mapping ──────────────────────────────────────────
+const stageKeys = [
+  "lead_intake",        // Step 1
+  "business_review",    // Step 2
+  "qualification",      // Step 3
+  "classification",     // Step 4
+  "nurturing",          // Step 5
+  "meeting_readiness",  // Step 6
+] as const;
+
+const stageConfig = {
+  lead_intake: {
+    showTasks: true,
+    showSLA: true,
+    showEscalation: true,
+    showReopenLogic: false,
+  },
+  business_review: {
+    showTasks: true,
+    showSLA: true,
+    showEscalation: false,
+    showReopenLogic: false,
+  },
+  qualification: {
+    showTasks: true,
+    showSLA: false,
+    showEscalation: false,
+    showReopenLogic: false,
+  },
+  classification: {
+    showTasks: false,
+    showSLA: false,
+    showEscalation: false,
+    showReopenLogic: false,
+  },
+  nurturing: {
+    showTasks: true,
+    showSLA: true,
+    showEscalation: true,
+    showReopenLogic: true,
+  },
+  meeting_readiness: {
+    showTasks: false,
+    showSLA: false,
+    showEscalation: false,
+    showReopenLogic: false,
+  },
 };
 
-const ACTIVITY_LABELS: Record<string, string> = {
-  CALL: "Logged a Call",
-  EMAIL: "Sent an Email",
-  WHATSAPP: "Sent WhatsApp message",
-  NOTE: "Added a Note",
-  TASK: "Created a Task",
-};
+// ─── Component 1: Operational Layer Cards ────────────────────────────────────
+export function LeadSidebar({ lead, owners, onLeadUpdate, currentStep }: LeadSidebarProps) {
+  const [refreshKey, setRefreshKey] = useState(0);
+  const triggerRefresh = () => setRefreshKey((prev) => prev + 1);
 
-export function LeadSidebar({ lead, activeAction, onActiveActionChange }: LeadSidebarProps) {
+  const stageIndex = currentStep - 1;
+  const activeStageKey = stageKeys[stageIndex] || "lead_intake";
+  const config = stageConfig[activeStageKey];
+
+  return (
+    <div className="space-y-4">
+      {/* 1. SLA Card */}
+      {config.showSLA && (
+        <SlaCard lead={lead} />
+      )}
+
+      {/* 2. Escalation Card — self-manages visibility (returns null when not breached) but only mounted in stages that support it */}
+      {config.showEscalation && (
+        <EscalationCard lead={lead} />
+      )}
+
+      {/* 3. Tasks Card */}
+      {config.showTasks && (
+        <TasksCard leadId={lead.id} owners={owners} />
+      )}
+
+      {/* 4. Reopen Logic Card */}
+      {config.showReopenLogic && (
+        <ReopenLogicCard lead={lead} onLeadUpdate={onLeadUpdate} />
+      )}
+
+      {/* 5. Notes Card (Persistent - Always True) */}
+      <NotesCard leadId={lead.id} owners={owners} onNoteAdded={triggerRefresh} />
+
+      {/* 6. Timeline Card (Persistent - Always True, read-only) */}
+      <TimelineCard leadId={lead.id} key={refreshKey} />
+    </div>
+  );
+}
+
+// ─── Component 2: Documents, Meeting, and Proposal Row ──────────────────────
+export function LeadUtilityGrid({ lead }: { lead: Lead }) {
   const params = useParams();
   const router = useRouter();
   const leadId = lead.id;
   const slug = params?.slug as string;
 
-  // States
-  const [activities, setActivities] = useState<LeadActivity[]>([]);
-  const [loadingActivities, setLoadingActivities] = useState(false);
-  
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [loadingMeetings, setLoadingMeetings] = useState(false);
 
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loadingProposals, setLoadingProposals] = useState(false);
 
-  // Inline Log Activity form state
-  const [showLogForm, setShowLogForm] = useState(false);
-  const [logType, setLogType] = useState<"CALL" | "EMAIL" | "WHATSAPP" | "NOTE" | "TASK">("CALL");
-  const [logContent, setLogContent] = useState("");
-  const [submittingLog, setSubmittingLog] = useState(false);
-
-  // Load Activities
-  const loadActivities = useCallback(async () => {
-    setLoadingActivities(true);
-    try {
-      const res = await fetch(`/api/crm/leads/${leadId}/activities`);
-      if (res.ok) {
-        setActivities(await res.json());
-      }
-    } catch {
-      // silent
-    } finally {
-      setLoadingActivities(false);
-    }
-  }, [leadId]);
+  const [documents, setDocuments] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
 
   // Load Meetings
   const loadMeetings = useCallback(async () => {
@@ -111,368 +172,210 @@ export function LeadSidebar({ lead, activeAction, onActiveActionChange }: LeadSi
     }
   }, [leadId]);
 
+  // Load Documents from LocalStorage
   useEffect(() => {
-    loadActivities();
-    loadMeetings();
-    loadProposals();
-  }, [loadActivities, loadMeetings, loadProposals]);
+    const timer = setTimeout(() => {
+      const stored = localStorage.getItem(`lead-${leadId}-documents`);
+      if (stored) {
+        setDocuments(JSON.parse(stored));
+      }
+      // No fallback demo data — documents start empty
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [leadId]);
 
-  // Listen to parent quick actions
   useEffect(() => {
-    if (activeAction) {
-      setLogType(activeAction === "CALL" ? "CALL" : activeAction === "EMAIL" ? "EMAIL" : activeAction === "WHATSAPP" ? "WHATSAPP" : "NOTE");
-      setShowLogForm(true);
-      
-      // Focus textarea
-      setTimeout(() => {
-        const textarea = document.getElementById("activity-log-textarea");
-        if (textarea) textarea.focus();
-      }, 100);
-    }
-  }, [activeAction]);
+    const timer = setTimeout(() => {
+      loadMeetings();
+      loadProposals();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [loadMeetings, loadProposals]);
 
-  // Submit Activity log
-  const handleLogSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!logContent.trim()) {
-      toast.error("Please enter activity details");
-      return;
-    }
+  // Upload Document
+  const handleDocUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingDoc(true);
+    const formData = new FormData();
+    formData.append("file", file);
 
     try {
-      setSubmittingLog(true);
-      const res = await fetch(`/api/crm/leads/${leadId}/activities`, {
+      const res = await fetch("/api/upload", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: logType,
-          content: logContent,
-        }),
+        body: formData,
       });
-
-      if (!res.ok) throw new Error("Failed to log activity");
-      toast.success("Activity logged successfully");
-      setLogContent("");
-      setShowLogForm(false);
-      onActiveActionChange(null);
-      loadActivities();
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to log activity");
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? "Failed to upload document.");
+        return;
+      }
+      
+      const updatedDocs = [...documents, file.name];
+      setDocuments(updatedDocs);
+      localStorage.setItem(`lead-${leadId}-documents`, JSON.stringify(updatedDocs));
+      toast.success(`${file.name} uploaded!`);
+    } catch {
+      toast.error("Failed to upload document.");
     } finally {
-      setSubmittingLog(false);
+      setUploadingDoc(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
-  // Group activities by date
-  const getGroupedActivities = () => {
-    const todayList: LeadActivity[] = [];
-    const yesterdayList: LeadActivity[] = [];
-    const earlierList: LeadActivity[] = [];
-
-    const now = new Date();
-    const todayStr = format(now, "yyyy-MM-dd");
-    const yesterday = new Date();
-    yesterday.setDate(now.getDate() - 1);
-    const yesterdayStr = format(yesterday, "yyyy-MM-dd");
-
-    activities.forEach((act) => {
-      const dateStr = format(new Date(act.performedAt), "yyyy-MM-dd");
-      if (dateStr === todayStr) todayList.push(act);
-      else if (dateStr === yesterdayStr) yesterdayList.push(act);
-      else earlierList.push(act);
-    });
-
-    return [
-      { title: "Today", items: todayList },
-      { title: "Yesterday", items: yesterdayList },
-      { title: "Earlier", items: earlierList },
-    ].filter((group) => group.items.length > 0);
-  };
-
-  const groupedActivities = getGroupedActivities();
-
-  // Meetings Calculations
-  const upcomingMeetings = meetings.filter(m => m.status === "SCHEDULED" && new Date(m.scheduledAt) > new Date());
-  const completedMeetings = meetings.filter(m => m.status === "COMPLETED" || (m.status === "SCHEDULED" && new Date(m.scheduledAt) <= new Date()));
-
-  // Proposals Calculations
+  const upcomingMeeting = meetings.find(m => m.status === "SCHEDULED" && new Date(m.scheduledAt) > new Date());
   const latestProposal = proposals[0] || null;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
-      {/* Column 1: Next Action & Log Activity */}
-      <div className="space-y-4">
-        {/* ── Section 1: Next Action ────────────────────────────────── */}
-        <div className="rounded-xl border border-border/40 bg-card/50 overflow-hidden shadow-xs">
-          <div className="px-4 py-3 border-b border-border/20 bg-muted/5 flex items-center justify-between">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
-              <Zap className="h-3 w-3 text-amber-500" />
-              Next Action
-            </p>
-          </div>
-          <div className="p-4">
-            {lead.nextAction ? (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <ArrowRight className="h-3.5 w-3.5 text-violet-500 shrink-0" />
-                  <span className="text-sm font-semibold text-foreground">
-                    {NEXT_ACTION_LABELS[lead.nextAction as NextActionType] ?? lead.nextAction}
-                  </span>
-                </div>
-                {lead.nextActionDate && (
-                  <p className="text-[10px] text-muted-foreground ml-5.5">
-                    Due: <span className="font-semibold text-foreground">
-                      {format(new Date(lead.nextActionDate), "d MMM yyyy")}
-                    </span>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+      {/* 1. DOCUMENTS CARD */}
+      <Card className="border border-border/40 shadow-sm rounded-2xl bg-card/45 backdrop-blur-xs flex flex-col justify-between">
+        <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between">
+          <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+            <FileSignature className="h-3 w-3 text-[#8B5CF6]" /> Documents
+          </CardTitle>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploadingDoc}
+            className="h-6 text-[10px] font-bold px-2 text-[#8B5CF6] hover:bg-[#8B5CF6]/5"
+          >
+            {uploadingDoc ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <>
+                <Upload className="h-3 w-3 mr-1" /> Upload
+              </>
+            )}
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            onChange={handleDocUpload}
+          />
+        </CardHeader>
+        <CardContent className="p-4 pt-0 space-y-2 flex-1">
+          {documents.map((doc, idx) => (
+            <div
+              key={`${doc}-${idx}`}
+              className="flex items-center justify-between p-2 rounded-lg border border-border/30 bg-background/30 hover:bg-background/60 transition-colors"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <span className="text-xs font-semibold text-foreground truncate">{doc}</span>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-5 w-5 hover:bg-[#8B5CF6]/10 text-muted-foreground hover:text-[#8B5CF6]"
+                onClick={() => toast.success(`Viewing file: ${doc}`)}
+              >
+                <ExternalLink className="h-3 w-3" />
+              </Button>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      {/* 2. UPCOMING MEETING CARD */}
+      <Card className="border border-border/40 shadow-sm rounded-2xl bg-card/45 backdrop-blur-xs flex flex-col">
+        <CardHeader className="p-4 pb-2">
+          <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+            <Calendar className="h-3 w-3 text-blue-500" /> Upcoming Meeting
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-4 pt-0 flex flex-col justify-between flex-1">
+          {loadingMeetings ? (
+            <div className="h-10 rounded-xl bg-muted/20 animate-pulse" />
+          ) : upcomingMeeting ? (
+            <div className="space-y-2.5">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-foreground leading-tight truncate">{upcomingMeeting.title}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    {format(new Date(upcomingMeeting.scheduledAt), "d MMM yyyy, h:mm a")}
                   </p>
+                </div>
+                {upcomingMeeting.meetingUrl && (
+                  <Button
+                    size="sm"
+                    className="h-7 text-[10px] font-bold bg-blue-600 hover:bg-blue-700 text-white shrink-0"
+                    onClick={() => window.open(upcomingMeeting.meetingUrl!, "_blank")}
+                  >
+                    Join
+                  </Button>
                 )}
               </div>
-            ) : (
-              <p className="text-xs text-muted-foreground/60 italic">No next action set</p>
-            )}
-          </div>
-        </div>
-
-        {/* ── Section 2: Log Activity (Inline Form) ───────────────────── */}
-        <div className="rounded-xl border border-border/40 bg-card/50 overflow-hidden shadow-xs">
-          <div className="px-4 py-3 border-b border-border/20 bg-muted/5 flex items-center justify-between">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              Log Activity
-            </p>
-            {!showLogForm && (
+            </div>
+          ) : (
+            <div className="space-y-3 pt-2">
+              <p className="text-[11px] text-muted-foreground/75 italic">No meeting scheduled</p>
               <Button
                 size="sm"
-                variant="ghost"
-                onClick={() => setShowLogForm(true)}
-                className="h-6 text-[10px] font-bold px-2 text-[#8B5CF6] hover:bg-[#8B5CF6]/5"
+                variant="outline"
+                className="w-full h-8 text-xs font-bold border-border/40"
+                onClick={() => router.push(`/workspaces/${slug}/crm/meetings`)}
               >
-                <Plus className="h-3 w-3 mr-1" /> Log
+                Schedule Meeting
               </Button>
-            )}
-          </div>
-
-          {showLogForm && (
-            <form onSubmit={handleLogSubmit} className="p-3.5 space-y-3">
-              <div className="flex items-center gap-2">
-                <div className="flex-1">
-                  <Select
-                    value={logType}
-                    onValueChange={(v: string) => setLogType(v as typeof logType)}
-                  >
-                    <SelectTrigger className="h-7 text-[10px] font-semibold bg-background/50 border-border/40">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="CALL" className="text-xs">Call</SelectItem>
-                      <SelectItem value="EMAIL" className="text-xs">Email</SelectItem>
-                      <SelectItem value="WHATSAPP" className="text-xs">WhatsApp</SelectItem>
-                      <SelectItem value="NOTE" className="text-xs">Internal Note</SelectItem>
-                      <SelectItem value="TASK" className="text-xs">Task</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <textarea
-                id="activity-log-textarea"
-                placeholder="What details did you discuss?"
-                value={logContent}
-                onChange={(e) => setLogContent(e.target.value)}
-                className="flex min-h-[70px] w-full rounded-lg border border-border/40 bg-background/50 px-3 py-2 text-xs placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#8B5CF6]/50 focus-visible:border-[#8B5CF6]/50 disabled:cursor-not-allowed disabled:opacity-50"
-              />
-
-              <div className="flex items-center justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => {
-                    setShowLogForm(false);
-                    onActiveActionChange(null);
-                  }}
-                  className="h-7 text-[10px] font-semibold"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={submittingLog}
-                  className="h-7 text-[10px] font-bold bg-[#8B5CF6] hover:bg-[#7C3AED] text-white"
-                >
-                  {submittingLog ? <Loader2 className="h-3 w-3 animate-spin" /> : "Log Activity"}
-                </Button>
-              </div>
-            </form>
+            </div>
           )}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      {/* Column 2: Live Activity Feed */}
-      <div className="space-y-4">
-        {/* ── Section 3: Live Activity Feed ─────────────────────────── */}
-        <div className="rounded-xl border border-border/40 bg-card/50 overflow-hidden shadow-xs h-full flex flex-col">
-          <div className="px-4 py-3 border-b border-border/20 bg-muted/5 shrink-0">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
-              <Activity className="h-3 w-3 text-[#8B5CF6]" />
-              Live Activity Feed
-            </p>
-          </div>
-
-          <div className="flex-1 min-h-[220px]">
-            {loadingActivities && activities.length === 0 ? (
-              <div className="flex items-center justify-center h-full py-8">
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+      {/* 3. LATEST PROPOSAL CARD */}
+      <Card className="border border-border/40 shadow-sm rounded-2xl bg-card/45 backdrop-blur-xs flex flex-col">
+        <CardHeader className="p-4 pb-2">
+          <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+            <FileText className="h-3 w-3 text-amber-500" /> Latest Proposal
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-4 pt-0 flex flex-col justify-between flex-1">
+          {loadingProposals ? (
+            <div className="h-10 rounded-xl bg-muted/20 animate-pulse" />
+          ) : latestProposal ? (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-bold text-foreground truncate max-w-[170px]">
+                  {latestProposal.proposalNumber} - {latestProposal.title}
+                </span>
+                <Badge className="text-[9px] border bg-amber-500/10 text-amber-500 border-amber-500/25 shrink-0 px-1 py-0">
+                  {latestProposal.status}
+                </Badge>
               </div>
-            ) : activities.length === 0 ? (
-              <div className="flex items-center justify-center h-full p-5 text-center text-xs text-muted-foreground/50 italic">
-                No activities logged yet
-              </div>
-            ) : (
-              <div className="p-3.5 max-h-[350px] overflow-y-auto space-y-4">
-                {groupedActivities.map((group) => (
-                  <div key={group.title} className="space-y-2">
-                    <h5 className="text-[9px] font-black uppercase tracking-wider text-muted-foreground/50">
-                      {group.title}
-                    </h5>
-                    <div className="relative border-l border-border/20 ml-2.5 pl-4 space-y-3.5">
-                      {group.items.map((act) => {
-                        const Icon = ACTIVITY_ICONS[act.type] || StickyNote;
-                        const actorName = act.user
-                          ? `${act.user.firstName ?? ""} ${act.user.lastName ?? ""}`.trim()
-                          : "System";
-
-                        return (
-                          <div key={act.id} className="relative flex gap-2.5">
-                            {/* Timeline node icon */}
-                            <div className="absolute -left-[23px] top-0.5 w-4 h-4 rounded-full border border-border bg-card flex items-center justify-center shrink-0">
-                              <Icon className="h-2 w-2 text-muted-foreground" />
-                            </div>
-                            <div className="flex-1 min-w-0 space-y-0.5">
-                              <div className="flex items-center justify-between gap-2">
-                                <span className="text-[10px] font-bold text-foreground">
-                                  {ACTIVITY_LABELS[act.type] || act.type}
-                                </span>
-                                <span className="text-[9px] text-muted-foreground/60">
-                                  {format(new Date(act.performedAt), "HH:mm")}
-                                </span>
-                              </div>
-                              <p className="text-[10px] text-muted-foreground leading-relaxed break-words">
-                                {act.content}
-                              </p>
-                              <p className="text-[8px] text-muted-foreground/40 font-semibold">
-                                by {actorName}
-                              </p>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Column 3: Meetings, Proposals, Documents */}
-      <div className="space-y-4">
-        {/* ── Section 4: Meetings Summary Card ────────────────────────── */}
-        <div className="rounded-xl border border-border/40 bg-card/50 overflow-hidden shadow-xs">
-          <div className="px-4 py-3 border-b border-border/20 bg-muted/5 flex items-center justify-between">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
-              <Calendar className="h-3 w-3 text-blue-500" />
-              Meetings
-            </p>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => router.push(`/workspaces/${slug}/crm/meetings`)}
-              className="h-6 text-[9px] font-bold px-2 text-[#8B5CF6] hover:bg-[#8B5CF6]/5"
-            >
-              <ExternalLink className="h-2.5 w-2.5 mr-1" /> Open
-            </Button>
-          </div>
-          <div className="p-4 space-y-2">
-            {loadingMeetings ? (
-              <div className="h-8 rounded-lg bg-muted/20 animate-pulse" />
-            ) : (
-              <div className="flex items-center justify-between text-xs">
-                <div className="space-y-0.5">
-                  <p className="text-muted-foreground text-[10px]">Upcoming Meetings</p>
-                  <p className="font-extrabold text-foreground text-sm">{upcomingMeetings.length}</p>
-                </div>
-                <div className="w-[1px] h-8 bg-border/20" />
-                <div className="space-y-0.5 text-right">
-                  <p className="text-muted-foreground text-[10px]">Completed Meetings</p>
-                  <p className="font-extrabold text-muted-foreground text-sm">{completedMeetings.length}</p>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* ── Section 5: Proposals Summary Card ───────────────────────── */}
-        <div className="rounded-xl border border-border/40 bg-card/50 overflow-hidden shadow-xs">
-          <div className="px-4 py-3 border-b border-border/20 bg-muted/5 flex items-center justify-between">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
-              <FileText className="h-3 w-3 text-amber-500" />
-              Proposals
-            </p>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => router.push(`/workspaces/${slug}/crm/proposals`)}
-              className="h-6 text-[9px] font-bold px-2 text-[#8B5CF6] hover:bg-[#8B5CF6]/5"
-            >
-              <ExternalLink className="h-2.5 w-2.5 mr-1" /> Open
-            </Button>
-          </div>
-          <div className="p-4">
-            {loadingProposals ? (
-              <div className="h-8 rounded-lg bg-muted/20 animate-pulse" />
-            ) : latestProposal ? (
-              <div className="space-y-1.5 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-foreground truncate max-w-[150px]">
-                    {latestProposal.proposalNumber} - {latestProposal.title}
-                  </span>
-                  <Badge className="text-[9px] border bg-amber-500/10 text-amber-500 border-amber-500/25">
-                    {latestProposal.status}
-                  </Badge>
-                </div>
+              <div className="flex items-center justify-between mt-2 text-[11px]">
                 <p className="font-extrabold text-emerald-600 dark:text-emerald-400 flex items-center">
                   <IndianRupee className="h-3 w-3 mr-0.5" />
                   {Number(latestProposal.value).toLocaleString("en-IN")}
                 </p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-[10px] font-semibold px-2 text-[#8B5CF6] hover:bg-[#8B5CF6]/5"
+                  onClick={() => router.push(`/workspaces/${slug}/crm/proposals`)}
+                >
+                  View
+                </Button>
               </div>
-            ) : (
-              <p className="text-xs text-muted-foreground/60 italic text-center py-1">No active proposals</p>
-            )}
-          </div>
-        </div>
-
-        {/* ── Section 6: Documents Summary Card ───────────────────────── */}
-        <div className="rounded-xl border border-border/40 bg-card/50 overflow-hidden shadow-xs">
-          <div className="px-4 py-3 border-b border-border/20 bg-muted/5 flex items-center justify-between">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
-              <FileSignature className="h-3 w-3 text-emerald-500" />
-              Documents
-            </p>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => router.push(`/workspaces/${slug}/crm/documents`)}
-              className="h-6 text-[9px] font-bold px-2 text-[#8B5CF6] hover:bg-[#8B5CF6]/5"
-            >
-              <ExternalLink className="h-2.5 w-2.5 mr-1" /> Open
-            </Button>
-          </div>
-          <div className="p-4 text-xs flex items-center justify-between">
-            <span className="text-muted-foreground font-semibold">Linked Documents</span>
-            <span className="font-black text-foreground">{proposals.length + meetings.length} Files</span>
-          </div>
-        </div>
-      </div>
+            </div>
+          ) : (
+            <div className="space-y-3 pt-2">
+              <p className="text-[11px] text-muted-foreground/75 italic">No proposal created</p>
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full h-8 text-xs font-bold border-border/40"
+                onClick={() => router.push(`/workspaces/${slug}/crm/proposals`)}
+              >
+                Create Proposal
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

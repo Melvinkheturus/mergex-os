@@ -58,6 +58,8 @@ export interface Lead {
   services: string[];
   leadCategory: string | null;
   createdAt: string;
+  updatedAt: string;
+  avatarUrl: string | null;
   // Tracking dates
   lastActivityAt: string | null;
   lastContactAt: string | null;
@@ -87,7 +89,43 @@ export interface Lead {
   influencer: string | null;
   champion: string | null;
   financeContact: string | null;
+  // Step 1 — Intake
+  sourceNotes: string | null;
+  // Step 2 — Business Review (new fields)
+  businessModel: string | null;
+  businessAge: string | null;
+  teamSize: string | null;
+  revenueRange: string | null;
+  primaryChannel: string | null;
+  hasWebsite: boolean;
+  hasEcommerce: boolean;
+  hasInstagram: boolean;
+  hasFacebook: boolean;
+  hasLinkedIn: boolean;
+  hasGoogleBiz: boolean;
+  opportunities: string[];
+  outreachAngle: string | null;
+  relevantServices: string | null;
+  valueProposition: string | null;
+  // Step 3 — Qualification (6-dimension)
+  qualIcpFit: number;
+  qualBudgetLikelihood: number;
+  qualDecisionMakerAccess: number;
+  qualOperationalFeasibility: number;
+  qualServiceAlignment: number;
+  qualGrowthPotential: number;
+  qualScore: number;
+  qualStatus: string | null;
+  // Step 4 — Classification
+  classification: string | null;
+  nurturingDirection: string | null;
+  // Step 5 — Nurturing
+  nurturingStatus: string | null;
+  nurturingChannel: string | null;
+  conversationNotes: string | null;
+  reopenAt: string | null; // Scheduled reactivation date
 }
+
 
 export interface BusinessReview {
   id: string;
@@ -216,9 +254,27 @@ export const overviewSchema = z.object({
 export type OverviewFormValues = z.infer<typeof overviewSchema>;
 
 export const businessReviewSchema = z.object({
-  currentSituation: z.string().optional().or(z.literal("")),
+  // Section 1 – Business Snapshot (dropdowns)
+  businessAge: z.string().optional().or(z.literal("")),
+  teamSize: z.string().optional().or(z.literal("")),
+  revenueRange: z.string().optional().or(z.literal("")),
+  primaryChannel: z.string().optional().or(z.literal("")),
+  // Section 2 – Current Situation (structured)
+  hasWebsite: z.string().optional().or(z.literal("")),         // "Yes" | "No"
+  leadManagement: z.string().optional().or(z.literal("")),     // "Manual" | "CRM" | "Mixed"
+  currentSituation: z.string().optional().or(z.literal("")),  // free-text notes
+  // Section 3 – Pain Points (comma-separated)
   painPoints: z.string().optional().or(z.literal("")),
+  // Section 4 – Growth Opportunities (comma-separated)
   opportunityNotes: z.string().optional().or(z.literal("")),
+  // Section 5 – Decision Maker (dropdown)
+  decisionMaker: z.string().optional().or(z.literal("")),
+  // Section 6 – Urgency (chips)
+  urgency: z.string().optional().or(z.literal("")),
+  // Section 7 – Budget Readiness (chips)
+  budgetReadiness: z.string().optional().or(z.literal("")),
+  // Section 8 – Review Notes
+  reviewNotes: z.string().optional().or(z.literal("")),
 });
 export type BusinessReviewFormValues = z.infer<typeof businessReviewSchema>;
 
@@ -227,6 +283,7 @@ export const bantSchema = z.object({
   bantAuthority: z.coerce.number().min(0).max(100).default(0),
   bantNeed: z.coerce.number().min(0).max(100).default(0),
   bantTimeline: z.coerce.number().min(0).max(100).default(0),
+  temperature: z.enum(["HOT", "WARM", "COLD"]).default("COLD"),
 });
 export type BantFormValues = z.infer<typeof bantSchema>;
 
@@ -254,3 +311,109 @@ export const proposalSchema = z.object({
   notes: z.string().optional().or(z.literal("")),
 });
 export type ProposalFormValues = z.infer<typeof proposalSchema>;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 6-STEP WIZARD SCHEMAS
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Step 1 — Lead Intake
+export const intakeSchema = z.object({
+  companyName: z.string().min(1, "Company name is required"),
+  contactPerson: z.string().min(1, "Contact person is required"),
+  designation: z.string().optional().or(z.literal("")),
+  phone: z.string().optional().or(z.literal("")),
+  email: z.string().optional().or(z.literal("")).superRefine((val, ctx) => {
+    if (val && val.trim().length > 0) {
+      const parsed = z.string().email().safeParse(val);
+      if (!parsed.success) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Invalid email",
+        });
+      }
+    }
+  }),
+  website: z.string().optional().or(z.literal("")),
+  location: z.string().optional().or(z.literal("")),
+  industry: z.string().optional().or(z.literal("")),
+  sourceId: z.string().min(1, "Lead Source is required"),
+  ownerId: z.string().optional().or(z.literal("")),
+  sourceNotes: z.string().optional().or(z.literal("")),
+  leadNotes: z.string().optional().or(z.literal("")),
+  priority: z.enum(["HIGH", "MEDIUM", "LOW"]).default("MEDIUM"),
+  temperature: z.enum(["HOT", "WARM", "COLD"]).default("COLD"),
+}).refine((data) => {
+  const hasPhone = !!data.phone && data.phone.trim().length > 0;
+  const hasEmail = !!data.email && data.email.trim().length > 0;
+  return hasPhone || hasEmail;
+}, {
+  message: "Either Phone or Email is required",
+  path: ["phone"],
+});
+export type IntakeFormValues = z.infer<typeof intakeSchema>;
+
+// Step 2 — Business Review (updated schema)
+export const businessReviewV2Schema = z.object({
+  // Section A: Business Profile
+  businessModel: z.string().optional().or(z.literal("")),
+  businessAge: z.string().optional().or(z.literal("")),
+  teamSize: z.string().optional().or(z.literal("")),
+  revenueRange: z.string().optional().or(z.literal("")),
+  primaryChannel: z.string().optional().or(z.literal("")),
+  // Section B: Digital Presence (booleans)
+  hasWebsite: z.boolean().default(false),
+  hasEcommerce: z.boolean().default(false),
+  hasInstagram: z.boolean().default(false),
+  hasFacebook: z.boolean().default(false),
+  hasLinkedIn: z.boolean().default(false),
+  hasGoogleBiz: z.boolean().default(false),
+  // Section C: Opportunity Analysis (multi-select chip values)
+  opportunities: z.array(z.string()).default([]),
+  // Section D: Strategic Positioning
+  painPoints: z.array(z.string()).default([]),
+  outreachAngle: z.string().optional().or(z.literal("")),
+  relevantServices: z.string().optional().or(z.literal("")),
+  valueProposition: z.string().optional().or(z.literal("")),
+  opportunityNotes: z.string().optional().or(z.literal("")),
+  currentSituation: z.string().optional().or(z.literal("")),
+});
+export type BusinessReviewV2FormValues = z.infer<typeof businessReviewV2Schema>;
+
+// Step 3 — Qualification (6-dimension model)
+export const qualificationSchema = z.object({
+  qualIcpFit: z.number().min(0).max(25).default(0),
+  qualBudgetLikelihood: z.number().min(0).max(25).default(0),
+  qualDecisionMakerAccess: z.number().min(0).max(25).default(0),
+  qualOperationalFeasibility: z.number().min(0).max(15).default(0),
+  qualServiceAlignment: z.number().min(0).max(10).default(0),
+  qualGrowthPotential: z.number().min(0).max(10).default(0),
+  qualificationNotes: z.string().optional().or(z.literal("")),
+});
+export type QualificationFormValues = z.infer<typeof qualificationSchema>;
+
+// Step 4 — Classification
+export const classificationSchema = z.object({
+  classification: z.enum(["HOT", "WARM", "COLD", "ARCHIVE"]).nullable().default(null),
+  nurturingDirection: z.enum(["IMMEDIATE_SALES", "SHORT_TERM", "LONG_TERM", "ARCHIVE"]).nullable().default(null),
+  services: z.array(z.string()).default([]),
+  expectedValue: z.string().optional().or(z.literal("")),
+  classificationNotes: z.string().optional().or(z.literal("")),
+});
+export type ClassificationFormValues = z.infer<typeof classificationSchema>;
+
+export const nurturingSchema = z.object({
+  nurturingStatus: z.enum(["NO_RESPONSE", "ENGAGED", "INTERESTED", "MEETING_REQUESTED"]).nullable().default(null),
+  nurturingChannel: z.enum(["WHATSAPP", "EMAIL", "CALL", "MEETING", "LINKEDIN"]).nullable().default(null),
+  nextFollowUpAt: z.string().optional().or(z.literal("")),
+  conversationNotes: z.string().optional().or(z.literal("")),
+});
+export type NurturingFormValues = z.infer<typeof nurturingSchema>;
+
+export const meetingReadinessSchema = z.object({
+  meetingObjective: z.enum(["DISCOVERY", "QUALIFICATION", "SOLUTION_DISCUSSION", "BUDGET_DISCUSSION"]).default("DISCOVERY"),
+  meetingTopics: z.string().optional().or(z.literal("")),
+  meetingQuestions: z.string().optional().or(z.literal("")),
+});
+export type MeetingReadinessFormValues = z.infer<typeof meetingReadinessSchema>;
+
+

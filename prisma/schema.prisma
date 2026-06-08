@@ -20,6 +20,24 @@ model Activity {
   @@index([leadId])
 }
 
+model Task {
+  id          String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  leadId      String
+  name        String
+  priority    String    @default("MEDIUM") // LOW | MEDIUM | HIGH
+  isComplete  Boolean   @default(false)
+  dueDate     DateTime?
+  completedAt DateTime?
+  assigneeId  String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now())
+  Lead        Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  Assignee    User?     @relation("TaskAssignee", fields: [assigneeId], references: [id], onUpdate: NoAction)
+
+  @@index([leadId])
+  @@index([assigneeId])
+}
+
 model AuditLog {
   id        String   @id @default(dbgenerated("(gen_random_uuid())::text"))
   leadId    String
@@ -119,6 +137,7 @@ model Lead {
   priority         String          @default("MEDIUM")
   services         String[]        @default([])
   leadCategory     String?
+  avatarUrl        String?
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @default(now())
   lastActivityAt   DateTime?
@@ -141,7 +160,49 @@ model Lead {
   influencer       String?
   champion         String?
   financeContact   String?
+
+  // Step 1 — Lead Intake
+  sourceNotes      String?
+
+  // Step 2 — Business Review (new enrichment fields)
+  businessModel    String?
+  businessAge      String?
+  teamSize         String?
+  revenueRange     String?
+  primaryChannel   String?
+  hasWebsite       Boolean         @default(false)
+  hasEcommerce     Boolean         @default(false)
+  hasInstagram     Boolean         @default(false)
+  hasFacebook      Boolean         @default(false)
+  hasLinkedIn      Boolean         @default(false)
+  hasGoogleBiz     Boolean         @default(false)
+  opportunities    String[]        @default([])
+  outreachAngle    String?
+  relevantServices String?
+  valueProposition String?
+
+  // Step 3 — Qualification (6-dimension model replacing BANT)
+  qualIcpFit              Int             @default(0)  // 0=not set, 25=Strong, 15=Moderate, 5=Weak
+  qualBudgetLikelihood    Int             @default(0)  // 0=Unknown, 25=High, 15=Medium, 5=Low
+  qualDecisionMakerAccess Int             @default(0)  // 0=Unknown, 25=Direct, 15=Indirect
+  qualOperationalFeasibility Int          @default(0)  // 0=not set, 15=High, 10=Medium, 5=Low
+  qualServiceAlignment    Int             @default(0)  // 0=not set, 10=Strong, 6=Moderate, 2=Weak
+  qualGrowthPotential     Int             @default(0)  // 0=not set, 10=High, 6=Medium, 2=Low
+  qualScore               Int             @default(0)  // auto-sum of above
+  qualStatus              String?                      // "QUALIFIED" | "DISQUALIFIED" | null
+
+  // Step 4 — Classification
+  classification      String?   // "HOT" | "WARM" | "COLD" | "ARCHIVE"
+  nurturingDirection  String?   // "IMMEDIATE_SALES" | "SHORT_TERM" | "LONG_TERM" | "ARCHIVE"
+
+  // Step 5 — Nurturing
+  nurturingStatus     String?   // "NO_RESPONSE" | "ENGAGED" | "INTERESTED" | "MEETING_REQUESTED"
+  nurturingChannel    String?   // "WHATSAPP" | "EMAIL" | "CALL" | "MEETING" | "LINKEDIN"
+  conversationNotes   String?
+  reopenAt            DateTime? // Scheduled reactivation date (Reopen Logic Card)
+
   Activity         Activity[]
+  Task             Task[]
   AuditLog         AuditLog[]
   BusinessReview   BusinessReview?
   Brand            Brand           @relation(fields: [brandId], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -157,6 +218,7 @@ model Lead {
   @@index([ownerId])
   @@index([stageId])
 }
+
 
 model LeadSource {
   id        String   @id @default(dbgenerated("(gen_random_uuid())::text"))
@@ -353,6 +415,7 @@ model User {
   RecoveryCode           RecoveryCode[]
   Role                   Role                    @relation(fields: [roleId], references: [id])
   UserBrandAccess        UserBrandAccess[]
+  AssignedTasks          Task[]                  @relation("TaskAssignee")
 
   @@index([clerkId])
   @@index([roleId])

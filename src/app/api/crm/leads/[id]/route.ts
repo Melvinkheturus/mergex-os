@@ -108,6 +108,39 @@ export async function PUT(
       influencer,
       champion,
       financeContact,
+      avatarUrl,
+      // Step 1 — Intake
+      sourceNotes,
+      // Step 2 — Business Review (new fields)
+      businessModel,
+      businessAge,
+      teamSize,
+      revenueRange,
+      primaryChannel,
+      hasWebsite,
+      hasEcommerce,
+      hasInstagram,
+      hasFacebook,
+      hasLinkedIn,
+      hasGoogleBiz,
+      opportunities,
+      outreachAngle,
+      relevantServices,
+      valueProposition,
+      // Step 3 — Qualification (6-dimension)
+      qualIcpFit,
+      qualBudgetLikelihood,
+      qualDecisionMakerAccess,
+      qualOperationalFeasibility,
+      qualServiceAlignment,
+      qualGrowthPotential,
+      // Step 4 — Classification
+      classification,
+      nurturingDirection,
+      // Step 5 — Nurturing
+      nurturingStatus,
+      nurturingChannel,
+      conversationNotes,
     } = body;
 
     // Calculate BANT score if any slider changes
@@ -123,6 +156,24 @@ export async function PUT(
       const n = bantNeed !== undefined ? bantNeed : lead.bantNeed;
       const t = bantTimeline !== undefined ? bantTimeline : lead.bantTimeline;
       finalBantScore = Math.round((b + a + n + t) / 4);
+    }
+
+    // Calculate qualification score from 6 dimensions
+    let finalQualScore: number | undefined = undefined;
+    let finalQualStatus: string | undefined = undefined;
+    const qualFields = { qualIcpFit, qualBudgetLikelihood, qualDecisionMakerAccess, qualOperationalFeasibility, qualServiceAlignment, qualGrowthPotential };
+    const hasQualChange = Object.values(qualFields).some((v) => v !== undefined);
+    if (hasQualChange) {
+      const f = (key: keyof typeof qualFields, fallback: number) =>
+        qualFields[key] !== undefined ? (qualFields[key] as number) : fallback;
+      finalQualScore =
+        f("qualIcpFit",              (lead as any).qualIcpFit              || 0) +
+        f("qualBudgetLikelihood",    (lead as any).qualBudgetLikelihood    || 0) +
+        f("qualDecisionMakerAccess",(lead as any).qualDecisionMakerAccess || 0) +
+        f("qualOperationalFeasibility", (lead as any).qualOperationalFeasibility || 0) +
+        f("qualServiceAlignment",   (lead as any).qualServiceAlignment   || 0) +
+        f("qualGrowthPotential",    (lead as any).qualGrowthPotential    || 0);
+      finalQualStatus = finalQualScore >= 60 ? "QUALIFIED" : "DISQUALIFIED";
     }
 
     // Detect auditable changes
@@ -163,6 +214,7 @@ export async function PUT(
         sourceId: sourceId !== undefined ? (sourceId || null) : lead.sourceId,
         stageId: stageId !== undefined ? (stageId || null) : lead.stageId,
         ownerId: ownerId !== undefined ? (ownerId || null) : lead.ownerId,
+        avatarUrl: avatarUrl !== undefined ? (avatarUrl || null) : lead.avatarUrl,
         icpScore: icpScore !== undefined ? icpScore : lead.icpScore,
         temperature: temperature !== undefined ? temperature : lead.temperature,
         expectedValue:
@@ -212,6 +264,40 @@ export async function PUT(
         influencer: influencer !== undefined ? (influencer || null) : lead.influencer,
         champion: champion !== undefined ? (champion || null) : lead.champion,
         financeContact: financeContact !== undefined ? (financeContact || null) : lead.financeContact,
+        // Step 1 — Intake
+        sourceNotes: sourceNotes !== undefined ? (sourceNotes || null) : (lead as any).sourceNotes,
+        // Step 2 — Business Review (new fields)
+        businessModel: businessModel !== undefined ? (businessModel || null) : (lead as any).businessModel,
+        businessAge: businessAge !== undefined ? (businessAge || null) : (lead as any).businessAge,
+        teamSize: teamSize !== undefined ? (teamSize || null) : (lead as any).teamSize,
+        revenueRange: revenueRange !== undefined ? (revenueRange || null) : (lead as any).revenueRange,
+        primaryChannel: primaryChannel !== undefined ? (primaryChannel || null) : (lead as any).primaryChannel,
+        hasWebsite: hasWebsite !== undefined ? hasWebsite : (lead as any).hasWebsite,
+        hasEcommerce: hasEcommerce !== undefined ? hasEcommerce : (lead as any).hasEcommerce,
+        hasInstagram: hasInstagram !== undefined ? hasInstagram : (lead as any).hasInstagram,
+        hasFacebook: hasFacebook !== undefined ? hasFacebook : (lead as any).hasFacebook,
+        hasLinkedIn: hasLinkedIn !== undefined ? hasLinkedIn : (lead as any).hasLinkedIn,
+        hasGoogleBiz: hasGoogleBiz !== undefined ? hasGoogleBiz : (lead as any).hasGoogleBiz,
+        opportunities: opportunities !== undefined ? opportunities : (lead as any).opportunities,
+        outreachAngle: outreachAngle !== undefined ? (outreachAngle || null) : (lead as any).outreachAngle,
+        relevantServices: relevantServices !== undefined ? (relevantServices || null) : (lead as any).relevantServices,
+        valueProposition: valueProposition !== undefined ? (valueProposition || null) : (lead as any).valueProposition,
+        // Step 3 — Qualification (6-dimension)
+        qualIcpFit: qualIcpFit !== undefined ? qualIcpFit : (lead as any).qualIcpFit,
+        qualBudgetLikelihood: qualBudgetLikelihood !== undefined ? qualBudgetLikelihood : (lead as any).qualBudgetLikelihood,
+        qualDecisionMakerAccess: qualDecisionMakerAccess !== undefined ? qualDecisionMakerAccess : (lead as any).qualDecisionMakerAccess,
+        qualOperationalFeasibility: qualOperationalFeasibility !== undefined ? qualOperationalFeasibility : (lead as any).qualOperationalFeasibility,
+        qualServiceAlignment: qualServiceAlignment !== undefined ? qualServiceAlignment : (lead as any).qualServiceAlignment,
+        qualGrowthPotential: qualGrowthPotential !== undefined ? qualGrowthPotential : (lead as any).qualGrowthPotential,
+        qualScore: finalQualScore !== undefined ? finalQualScore : (lead as any).qualScore,
+        qualStatus: finalQualStatus !== undefined ? finalQualStatus : (lead as any).qualStatus,
+        // Step 4 — Classification
+        classification: classification !== undefined ? (classification || null) : (lead as any).classification,
+        nurturingDirection: nurturingDirection !== undefined ? (nurturingDirection || null) : (lead as any).nurturingDirection,
+        // Step 5 — Nurturing
+        nurturingStatus: nurturingStatus !== undefined ? (nurturingStatus || null) : (lead as any).nurturingStatus,
+        nurturingChannel: nurturingChannel !== undefined ? (nurturingChannel || null) : (lead as any).nurturingChannel,
+        conversationNotes: conversationNotes !== undefined ? (conversationNotes || null) : (lead as any).conversationNotes,
         // Always bump lastActivityAt
         lastActivityAt: new Date(),
       },
