@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { ImageCropperModal } from "@/components/ui/image-cropper";
 
 function slugify(str: string) {
   return str
@@ -58,6 +59,8 @@ export function CreateBrandView({ onBack, onCreated }: CreateBrandViewProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [cropperSrc, setCropperSrc] = useState<string | null>(null);
 
   // Saving State
   const [saving, setSaving] = useState(false);
@@ -106,25 +109,36 @@ export function CreateBrandView({ onBack, onCreated }: CreateBrandViewProps) {
       setUploadError("Invalid type. Accepted: JPG, PNG, SVG, WebP");
       return;
     }
-    if (file.size > 2 * 1024 * 1024) {
-      setUploadError("File too large. Max 2 MB.");
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadError("File too large. Max 10 MB.");
       return;
     }
 
+    setUploadError(null);
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setCropperSrc(reader.result as string);
+      setCropperOpen(true);
+    };
+    reader.readAsDataURL(file);
+  }, []);
+
+  const uploadCroppedLogo = useCallback(async (croppedFile: File) => {
     setUploadError(null);
     setLogoUrl(null);
 
     // Show local preview immediately
     const reader = new FileReader();
     reader.onloadend = () => setLogoPreview(reader.result as string);
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(croppedFile);
 
     setIsUploading(true);
     setUploadProgress(20);
 
     try {
       const form = new FormData();
-      form.append("file", file);
+      form.append("file", croppedFile);
       setUploadProgress(50);
 
       const res = await fetch("/api/upload", {
@@ -149,6 +163,7 @@ export function CreateBrandView({ onBack, onCreated }: CreateBrandViewProps) {
     } finally {
       setIsUploading(false);
       setTimeout(() => setUploadProgress(0), 600);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }, []);
 
@@ -335,6 +350,17 @@ export function CreateBrandView({ onBack, onCreated }: CreateBrandViewProps) {
                   </>
                 )}
               </div>
+              <ImageCropperModal
+                isOpen={cropperOpen}
+                onClose={() => {
+                  setCropperOpen(false);
+                  if (fileInputRef.current) fileInputRef.current.value = "";
+                }}
+                imageSrc={cropperSrc}
+                cropShape="square"
+                title="Crop Brand Logo"
+                onCropComplete={uploadCroppedLogo}
+              />
               <p className="text-[10px] text-muted-foreground">
                 Optional. If no logo is uploaded, the workspace initials will be used automatically. (e.g. MergeX → M, OVRN Studios → OS, MergeX Academy → MA)
               </p>

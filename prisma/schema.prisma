@@ -183,14 +183,24 @@ model Lead {
   businessConfidence String?
 
   // Step 3 — Qualification (6-dimension model replacing BANT)
-  qualIcpFit              Int             @default(0)  // 0=not set, 25=Strong, 15=Moderate, 5=Weak
+  qualIcpFit              Int             @default(0)  // 0=Unknown, 25=Strong, 15=Moderate, 5=Weak
+  qualIcpFitDesc          String?                      // Custom ICP Fit description
   qualBudgetLikelihood    Int             @default(0)  // 0=Unknown, 25=High, 15=Medium, 5=Low
-  qualDecisionMakerAccess Int             @default(0)  // 0=Unknown, 25=Direct, 15=Indirect
-  qualOperationalFeasibility Int          @default(0)  // 0=not set, 15=High, 10=Medium, 5=Low
-  qualServiceAlignment    Int             @default(0)  // 0=not set, 10=Strong, 6=Moderate, 2=Weak
-  qualGrowthPotential     Int             @default(0)  // 0=not set, 10=High, 6=Medium, 2=Low
-  qualScore               Int             @default(0)  // auto-sum of above
+  qualBudgetLikelihoodDesc String?                     // Custom Budget description
+  qualDecisionMakerAccess Int             @default(0)  // 0=Unknown, 25=Owner/Founder, 20=Director, 15=Manager, 10=Staff
+  qualDecisionMakerAccessDesc String?                  // Custom Authority description
+  qualOperationalFeasibility Int          @default(0)  // legacy
+  qualServiceAlignment    Int             @default(0)  // legacy
+  qualGrowthPotential     Int             @default(0)  // legacy
+  qualNeed                Int             @default(0)  // 0=Unknown, 25=Critical, 20=High, 15=Medium, 5=Low
+  qualNeedDesc            String?                      // Custom Need description
+  qualTimeline            Int             @default(0)  // 0=Unknown, 25=Immediate, 20=Within30Days, 15=Within90Days, 5=Future
+  qualTimelineDesc        String?                      // Custom Timeline description
+  qualScore               Int             @default(0)  // auto-sum
   qualStatus              String?                      // "QUALIFIED" | "DISQUALIFIED" | null
+  qualRisks               String[]        @default([])
+  qualOtherRisk           String?
+  qualOutcome             String?                      // "Qualified" | "Partially Qualified" | "Not Qualified" | null
 
   // Step 4 — Classification
   classification      String?   // "HOT" | "WARM" | "COLD" | "ARCHIVE"

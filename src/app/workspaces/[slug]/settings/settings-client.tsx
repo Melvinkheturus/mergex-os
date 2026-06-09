@@ -35,6 +35,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useSearchParams } from "next/navigation";
 import { useTheme } from "next-themes";
+import { ImageCropperModal } from "@/components/ui/image-cropper";
 
 interface Teammate {
   id: string;
@@ -131,6 +132,8 @@ function ProfileSection({ user, brands }: { user: SettingsPageProps["user"]; bra
   const [designation, setDesignation] = useState(user?.designation ?? "");
   const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl ?? "");
   const [uploading, setUploading] = useState(false);
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [cropperSrc, setCropperSrc] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -145,14 +148,23 @@ function ProfileSection({ user, brands }: { user: SettingsPageProps["user"]; bra
       toast.error("Invalid file type. Accepted: JPG, PNG, WebP");
       return;
     }
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("File too large. Maximum size is 2MB.");
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("File too large. Maximum size for raw upload is 10MB.");
       return;
     }
 
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCropperSrc(reader.result as string);
+      setCropperOpen(true);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const uploadCroppedAvatar = async (croppedFile: File) => {
     setUploading(true);
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("file", croppedFile);
 
     try {
       const res = await fetch("/api/upload", {
@@ -170,6 +182,7 @@ function ProfileSection({ user, brands }: { user: SettingsPageProps["user"]; bra
       toast.error("Failed to upload profile picture. Please try again.");
     } finally {
       setUploading(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = "";
     }
   };
 
@@ -223,7 +236,8 @@ function ProfileSection({ user, brands }: { user: SettingsPageProps["user"]; bra
           {/* Avatar Upload Block */}
           <div className="flex flex-col sm:flex-row items-center gap-6 pb-6 border-b border-border/10">
             <div 
-              className="relative group shrink-0 h-20 w-20 rounded-full border border-white/10 overflow-hidden flex items-center justify-center shadow-inner"
+              onClick={() => !uploading && avatarInputRef.current?.click()}
+              className="relative group shrink-0 h-20 w-20 rounded-full border border-white/10 overflow-hidden flex items-center justify-center shadow-inner cursor-pointer"
               style={{ background: "radial-gradient(circle at 30% 107%, #7819f6 0%, #000000 90%)" }}
             >
               {avatarUrl ? (
@@ -243,14 +257,12 @@ function ProfileSection({ user, brands }: { user: SettingsPageProps["user"]; bra
 
               {/* Hover overlay trigger */}
               {!uploading && (
-                <button
-                  type="button"
-                  onClick={() => avatarInputRef.current?.click()}
-                  className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-1 text-[10px] font-bold text-white transition-opacity duration-150 cursor-pointer"
+                <div
+                  className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-1 text-[10px] font-bold text-white transition-opacity duration-150 pointer-events-none"
                 >
                   <Camera className="h-4 w-4" />
                   <span>Update</span>
-                </button>
+                </div>
               )}
             </div>
 
@@ -290,6 +302,17 @@ function ProfileSection({ user, brands }: { user: SettingsPageProps["user"]; bra
                 accept="image/jpeg,image/png,image/webp"
                 className="hidden"
                 onChange={handleAvatarChange}
+              />
+              <ImageCropperModal
+                isOpen={cropperOpen}
+                onClose={() => {
+                  setCropperOpen(false);
+                  if (avatarInputRef.current) avatarInputRef.current.value = "";
+                }}
+                imageSrc={cropperSrc}
+                cropShape="circle"
+                title="Crop Profile Picture"
+                onCropComplete={uploadCroppedAvatar}
               />
             </div>
           </div>
@@ -424,6 +447,8 @@ function BrandSettingsSection({ brands }: { brands: Brand[] }) {
   const [brandDesc,  setBrandDesc]  = useState(brands[0]?.description ?? "");
   const [logoUrl,    setLogoUrl]    = useState<string>(brands[0]?.logoUrl ?? "");
   const [uploading,  setUploading]  = useState(false);
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [cropperSrc, setCropperSrc] = useState<string | null>(null);
   const [saving,     setSaving]     = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
@@ -443,14 +468,23 @@ function BrandSettingsSection({ brands }: { brands: Brand[] }) {
       toast.error("Invalid file type. Accepted: JPG, PNG, WebP");
       return;
     }
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("File too large. Maximum size is 2 MB.");
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("File too large. Maximum size for raw upload is 10MB.");
       return;
     }
 
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCropperSrc(reader.result as string);
+      setCropperOpen(true);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const uploadCroppedLogo = async (croppedFile: File) => {
     setUploading(true);
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("file", croppedFile);
 
     try {
       const res  = await fetch("/api/upload", { method: "POST", body: formData });
@@ -573,6 +607,17 @@ function BrandSettingsSection({ brands }: { brands: Brand[] }) {
                 accept="image/jpeg,image/png,image/webp"
                 className="hidden"
                 onChange={handleLogoChange}
+              />
+              <ImageCropperModal
+                isOpen={cropperOpen}
+                onClose={() => {
+                  setCropperOpen(false);
+                  if (logoInputRef.current) logoInputRef.current.value = "";
+                }}
+                imageSrc={cropperSrc}
+                cropShape="square"
+                title="Crop Brand Logo"
+                onCropComplete={uploadCroppedLogo}
               />
             </div>
           </div>

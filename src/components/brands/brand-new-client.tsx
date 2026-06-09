@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { ImageCropperModal } from "@/components/ui/image-cropper";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -63,6 +64,8 @@ export function BrandNewClient() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [cropperSrc, setCropperSrc] = useState<string | null>(null);
 
   // Submit state
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -134,19 +137,30 @@ export function BrandNewClient() {
       setUploadError("Invalid type. Accepted: JPG, PNG, SVG, WebP");
       return;
     }
-    if (file.size > 2 * 1024 * 1024) {
-      setUploadError("File too large. Max 2 MB.");
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadError("File too large. Max 10 MB.");
       return;
     }
 
     setUploadError(null);
-    setLogoFile(file);
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setCropperSrc(reader.result as string);
+      setCropperOpen(true);
+    };
+    reader.readAsDataURL(file);
+  }, []);
+
+  const uploadCroppedLogo = useCallback(async (croppedFile: File) => {
+    setUploadError(null);
+    setLogoFile(croppedFile);
     setLogoUrl(null);
 
     // Show local preview immediately
     const reader = new FileReader();
     reader.onloadend = () => setLogoPreview(reader.result as string);
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(croppedFile);
 
     // Upload to Cloudinary via our API
     setIsUploading(true);
@@ -154,7 +168,7 @@ export function BrandNewClient() {
 
     try {
       const form = new FormData();
-      form.append("file", file);
+      form.append("file", croppedFile);
 
       setUploadProgress(50);
 
@@ -183,6 +197,7 @@ export function BrandNewClient() {
     } finally {
       setIsUploading(false);
       setTimeout(() => setUploadProgress(0), 600);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }, []);
 
@@ -415,6 +430,17 @@ export function BrandNewClient() {
                           const f = e.target.files?.[0];
                           if (f) handleFileSelect(f);
                         }}
+                      />
+                      <ImageCropperModal
+                        isOpen={cropperOpen}
+                        onClose={() => {
+                          setCropperOpen(false);
+                          if (fileInputRef.current) fileInputRef.current.value = "";
+                        }}
+                        imageSrc={cropperSrc}
+                        cropShape="square"
+                        title="Crop Brand Logo"
+                        onCropComplete={uploadCroppedLogo}
                       />
 
                       {uploadError ? (

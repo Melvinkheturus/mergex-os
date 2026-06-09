@@ -43,10 +43,11 @@ function getChecklistForStage(stageName: string, lead: Lead): ChecklistItem[] {
   
   if (name.includes("QUALIFICATION") && !name.includes("AUDIT")) {
     return [
-      { label: "Budget Set", isFilled: lead.bantBudget > 0 },
-      { label: "Authority Set", isFilled: lead.bantAuthority > 0 },
-      { label: "Need Set", isFilled: lead.bantNeed > 0 },
-      { label: "Timeline Set", isFilled: lead.bantTimeline > 0 },
+      { label: "ICP Fit Set", isFilled: lead.qualIcpFit > 0 },
+      { label: "Budget Set", isFilled: lead.qualBudgetLikelihood > 0 },
+      { label: "Authority Set", isFilled: lead.qualDecisionMakerAccess > 0 },
+      { label: "Need Set", isFilled: lead.qualNeed > 0 },
+      { label: "Timeline Set", isFilled: lead.qualTimeline > 0 },
     ];
   }
   

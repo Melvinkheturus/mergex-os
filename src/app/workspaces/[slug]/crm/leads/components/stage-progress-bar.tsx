@@ -44,27 +44,42 @@ function getChecklistForStage(stageName: string, lead: Lead): ChecklistItem[] {
   
   if (name.includes("QUALIFICATION") && !name.includes("AUDIT")) {
     return [
-      { label: "Budget Set", isFilled: lead.bantBudget > 0 },
-      { label: "Authority Set", isFilled: lead.bantAuthority > 0 },
-      { label: "Need Set", isFilled: lead.bantNeed > 0 },
-      { label: "Timeline Set", isFilled: lead.bantTimeline > 0 },
+      { label: "ICP Fit Set", isFilled: lead.qualIcpFit > 0 },
+      { label: "Budget Set", isFilled: lead.qualBudgetLikelihood > 0 },
+      { label: "Authority Set", isFilled: lead.qualDecisionMakerAccess > 0 },
+      { label: "Need Set", isFilled: lead.qualNeed > 0 },
+      { label: "Timeline Set", isFilled: lead.qualTimeline > 0 },
     ];
   }
   
   if (name.includes("CLASSIFICATION")) {
-    const hasReadiness = typeof window !== "undefined" && !!localStorage.getItem(`proposal-readiness-${lead.id}`);
     return [
+      { label: "Classification Set", isFilled: !!(lead.classification) },
       { label: "Services Selected", isFilled: !!(lead.services && lead.services.length > 0) },
       { label: "Expected Value", isFilled: !!lead.expectedValue },
-      { label: "Proposal Readiness", isFilled: hasReadiness },
     ];
   }
-  
-  // Default checklist for subsequent/other stages
-  return [
-    { label: "Decision Maker Set", isFilled: !!lead.decisionMaker },
-    { label: "BANT Complete", isFilled: lead.bantScore > 0 },
-  ];
+
+  if (name.includes("NURTURING")) {
+    return [
+      { label: "Nurturing Status", isFilled: !!(lead.nurturingStatus) },
+      { label: "Follow-up Scheduled", isFilled: !!(lead.nextFollowUpAt) },
+    ];
+  }
+
+  if (name.includes("MEETING")) {
+    return [
+      { label: "Business Review Complete", isFilled: !!(lead.businessAge || lead.teamSize) && (lead.painPoints?.length ?? 0) > 0 },
+      { label: "Qualification Complete", isFilled: !!(lead.qualIcpFit > 0 && lead.qualBudgetLikelihood > 0 && lead.qualDecisionMakerAccess > 0 && lead.qualNeed > 0 && lead.qualTimeline > 0) },
+      { label: "Pain Point Identified", isFilled: (lead.painPoints?.length ?? 0) > 0 },
+      { label: "Outreach Performed", isFilled: !!lead.lastContactAt || !!lead.nextFollowUpAt || !!lead.lastActivityAt },
+      { label: "Lead Classified HOT", isFilled: lead.classification === "HOT" },
+      { label: "Decision Maker Identified", isFilled: lead.qualDecisionMakerAccess > 0 },
+    ];
+  }
+
+  // Default: no specific requirements
+  return [];
 }
 
 export function StageProgressBar({
@@ -74,10 +89,16 @@ export function StageProgressBar({
   saving,
   lead,
 }: StageProgressBarProps) {
+  const needsNurturing = lead?.classification === "WARM" || lead?.classification === "COLD";
   // Only show the active workflow stages
-  const workflowStages = stages.filter(
-    (s) => !TERMINAL_STAGE_NAMES.includes(s.name)
-  );
+  const workflowStages = stages
+    .filter((s) => !TERMINAL_STAGE_NAMES.includes(s.name) && s.name !== "QUALIFICATION_AUDIT")
+    .filter((s) => {
+      if ((s.name || "").toUpperCase().includes("NURTURING")) {
+        return needsNurturing;
+      }
+      return true;
+    });
 
   const currentIndex = workflowStages.findIndex((s) => s.id === currentStageId);
   const currentStage = workflowStages[currentIndex];

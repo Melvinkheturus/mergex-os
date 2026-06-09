@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/select";
 import { IntakeFormValues, OptionSource, OptionUser, Lead } from "./types";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { cn } from "@/lib/utils";
 
 interface StepIntakeFormProps {
   form: UseFormReturn<IntakeFormValues>;
@@ -16,9 +17,10 @@ interface StepIntakeFormProps {
   owners: OptionUser[];
   lead?: Lead;
   onSubmit: (values: IntakeFormValues) => Promise<void>;
+  shake?: boolean;
 }
 
-export function StepIntakeForm({ form, sources, owners, lead, onSubmit }: StepIntakeFormProps) {
+export function StepIntakeForm({ form, sources, owners, lead, onSubmit, shake }: StepIntakeFormProps) {
   const { register, watch, setValue, formState: { errors } } = form;
   const { user: currentUser } = useCurrentUser();
 
@@ -30,6 +32,13 @@ export function StepIntakeForm({ form, sources, owners, lead, onSubmit }: StepIn
   const assignedDate = lead?.createdAt
     ? new Date(lead.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
     : new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+
+  const getErrorClass = (fieldName: keyof IntakeFormValues) => {
+    return cn(
+      errors[fieldName] && "border-red-500 focus-visible:ring-red-500!",
+      shake && errors[fieldName] && "animate-shake"
+    );
+  };
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 text-xs">
@@ -47,7 +56,10 @@ export function StepIntakeForm({ form, sources, owners, lead, onSubmit }: StepIn
               id="companyName"
               placeholder="Enter company name..."
               {...register("companyName")}
-              className="h-9 text-sm focus-visible:ring-1 focus-visible:ring-[#8B5CF6]/50 rounded-md border-border/80"
+              className={cn(
+                "h-9 text-sm focus-visible:ring-1 focus-visible:ring-[#8B5CF6]/50 rounded-md border-border/80",
+                getErrorClass("companyName")
+              )}
             />
             {errors.companyName && (
               <p className="text-[10px] text-red-500 font-medium">{errors.companyName.message}</p>
@@ -59,7 +71,10 @@ export function StepIntakeForm({ form, sources, owners, lead, onSubmit }: StepIn
               id="website"
               placeholder="example.com"
               {...register("website")}
-              className="h-9 text-sm focus-visible:ring-1 focus-visible:ring-[#8B5CF6]/50 rounded-md border-border/80"
+              className={cn(
+                "h-9 text-sm focus-visible:ring-1 focus-visible:ring-[#8B5CF6]/50 rounded-md border-border/80",
+                getErrorClass("website")
+              )}
             />
             {errors.website && (
               <p className="text-[10px] text-red-500 font-medium">{errors.website.message}</p>
@@ -75,7 +90,10 @@ export function StepIntakeForm({ form, sources, owners, lead, onSubmit }: StepIn
               id="industry"
               placeholder="e.g. Retail, Healthcare"
               {...register("industry")}
-              className="h-9 text-sm focus-visible:ring-1 focus-visible:ring-[#8B5CF6]/50 rounded-md border-border/80"
+              className={cn(
+                "h-9 text-sm focus-visible:ring-1 focus-visible:ring-[#8B5CF6]/50 rounded-md border-border/80",
+                getErrorClass("industry")
+              )}
             />
             {errors.industry && (
               <p className="text-[10px] text-red-500 font-medium">{errors.industry.message}</p>
@@ -87,7 +105,10 @@ export function StepIntakeForm({ form, sources, owners, lead, onSubmit }: StepIn
               id="location"
               placeholder="e.g. Bangalore, KA"
               {...register("location")}
-              className="h-9 text-sm focus-visible:ring-1 focus-visible:ring-[#8B5CF6]/50 rounded-md border-border/80"
+              className={cn(
+                "h-9 text-sm focus-visible:ring-1 focus-visible:ring-[#8B5CF6]/50 rounded-md border-border/80",
+                getErrorClass("location")
+              )}
             />
             {errors.location && (
               <p className="text-[10px] text-red-500 font-medium">{errors.location.message}</p>
@@ -110,7 +131,10 @@ export function StepIntakeForm({ form, sources, owners, lead, onSubmit }: StepIn
               id="contactPerson"
               placeholder="John Doe"
               {...register("contactPerson")}
-              className="h-9 text-sm focus-visible:ring-1 focus-visible:ring-[#8B5CF6]/50 rounded-md border-border/80"
+              className={cn(
+                "h-9 text-sm focus-visible:ring-1 focus-visible:ring-[#8B5CF6]/50 rounded-md border-border/80",
+                getErrorClass("contactPerson")
+              )}
             />
             {errors.contactPerson && (
               <p className="text-[10px] text-red-500 font-medium">{errors.contactPerson.message}</p>
@@ -122,7 +146,10 @@ export function StepIntakeForm({ form, sources, owners, lead, onSubmit }: StepIn
               id="designation"
               placeholder="e.g. CEO, Founder, Manager"
               {...register("designation")}
-              className="h-9 text-sm focus-visible:ring-1 focus-visible:ring-[#8B5CF6]/50 rounded-md border-border/80"
+              className={cn(
+                "h-9 text-sm focus-visible:ring-1 focus-visible:ring-[#8B5CF6]/50 rounded-md border-border/80",
+                getErrorClass("designation")
+              )}
             />
             {errors.designation && (
               <p className="text-[10px] text-red-500 font-medium">{errors.designation.message}</p>
@@ -137,7 +164,10 @@ export function StepIntakeForm({ form, sources, owners, lead, onSubmit }: StepIn
               type="email"
               placeholder="email@company.com"
               {...register("email")}
-              className="h-9 text-sm focus-visible:ring-1 focus-visible:ring-[#8B5CF6]/50 rounded-md border-border/80"
+              className={cn(
+                "h-9 text-sm focus-visible:ring-1 focus-visible:ring-[#8B5CF6]/50 rounded-md border-border/80",
+                getErrorClass("email")
+              )}
             />
             {errors.email && (
               <p className="text-[10px] text-red-500 font-medium">{errors.email.message}</p>
@@ -151,7 +181,10 @@ export function StepIntakeForm({ form, sources, owners, lead, onSubmit }: StepIn
               id="phone"
               placeholder="+91 98765 43210"
               {...register("phone")}
-              className="h-9 text-sm focus-visible:ring-1 focus-visible:ring-[#8B5CF6]/50 rounded-md border-border/80"
+              className={cn(
+                "h-9 text-sm focus-visible:ring-1 focus-visible:ring-[#8B5CF6]/50 rounded-md border-border/80",
+                getErrorClass("phone")
+              )}
             />
             {errors.phone && (
               <p className="text-[10px] text-red-500 font-medium">{errors.phone.message}</p>
@@ -174,7 +207,11 @@ export function StepIntakeForm({ form, sources, owners, lead, onSubmit }: StepIn
               value={watch("sourceId") || "none"}
               onValueChange={(v) => setValue("sourceId", v === "none" ? "" : v, { shouldValidate: true })}
             >
-              <SelectTrigger className="h-9 text-xs focus:ring-[#8B5CF6] rounded-md border-border/80">
+              <SelectTrigger className={cn(
+                "h-9 text-xs focus:ring-[#8B5CF6] rounded-md border-border/80",
+                errors.sourceId && "border-red-500 focus:ring-red-500 focus-visible:ring-red-500",
+                shake && errors.sourceId && "animate-shake"
+              )}>
                 <SelectValue placeholder="Select source..." />
               </SelectTrigger>
               <SelectContent>
@@ -198,7 +235,10 @@ export function StepIntakeForm({ form, sources, owners, lead, onSubmit }: StepIn
                 id="sourceNotes"
                 placeholder="Enter details for Other source..."
                 {...register("sourceNotes")}
-                className="h-9 text-sm focus-visible:ring-1 focus-visible:ring-[#8B5CF6]/50 rounded-md border-border/80"
+                className={cn(
+                  "h-9 text-sm focus-visible:ring-1 focus-visible:ring-[#8B5CF6]/50 rounded-md border-border/80",
+                  getErrorClass("sourceNotes")
+                )}
               />
               {errors.sourceNotes && (
                 <p className="text-[10px] text-red-500 font-medium">{errors.sourceNotes.message}</p>
@@ -219,7 +259,10 @@ export function StepIntakeForm({ form, sources, owners, lead, onSubmit }: StepIn
             id="leadNotes"
             placeholder={"e.g. Interested in website redesign.\nCame through referral from Arun."}
             {...register("leadNotes")}
-            className="text-sm resize-none min-h-[96px] focus-visible:ring-1 focus-visible:ring-[#8B5CF6]/50 rounded-md border-border/80"
+            className={cn(
+              "text-sm resize-none min-h-[96px] focus-visible:ring-1 focus-visible:ring-[#8B5CF6]/50 rounded-md border-border/80",
+              getErrorClass("leadNotes")
+            )}
           />
           {errors.leadNotes && (
             <p className="text-[10px] text-red-500 font-medium">{errors.leadNotes.message}</p>

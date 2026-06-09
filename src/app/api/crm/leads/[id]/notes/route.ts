@@ -137,3 +137,51 @@ export async function DELETE(
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
+
+export async function PATCH(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const result = await verifyAccess(id);
+  if (!result.lead || !result.user) {
+    return NextResponse.json({ error: result.error }, { status: result.status });
+  }
+
+  try {
+    const body = await req.json();
+    const { noteId, content, visibility } = body;
+
+    if (!noteId) {
+      return NextResponse.json({ error: "noteId is required" }, { status: 400 });
+    }
+
+    const note = await db.note.findFirst({
+      where: { id: noteId, leadId: id, isActive: true },
+    });
+
+    if (!note) {
+      return NextResponse.json({ error: "Note not found" }, { status: 404 });
+    }
+
+    const updated = await db.note.update({
+      where: { id: noteId },
+      data: {
+        ...(content !== undefined && { content: content.trim() }),
+        ...(visibility !== undefined && { visibility }),
+        updatedAt: new Date(),
+      },
+      include: {
+        User: {
+          select: { id: true, firstName: true, lastName: true, avatarUrl: true },
+        },
+      },
+    });
+
+    return NextResponse.json(updated);
+  } catch (error) {
+    console.error("Note update error:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}
+

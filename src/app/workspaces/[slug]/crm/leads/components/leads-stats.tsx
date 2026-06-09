@@ -27,7 +27,7 @@ function StatCard({
         <Icon className="h-5 w-5" />
       </div>
       <div>
-        <div className="text-2xl font-black tracking-tight text-foreground">{value}</div>
+        <div className="text-2xl font-bold tracking-tight text-foreground">{value}</div>
         <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">
           {label}
         </div>
@@ -80,35 +80,35 @@ export function LeadsStats({ leads }: LeadsStatsProps) {
         value={stats.totalLeads}
         icon={TrendingUp}
         colorClass="text-violet-500"
-        bgClass="bg-violet-500/5"
+        bgClass="bg-linear-to-b from-transparent to-violet-500/10"
       />
       <StatCard
         label="Hot Leads"
         value={stats.hotLeads}
         icon={Flame}
         colorClass="text-rose-500"
-        bgClass="bg-rose-500/5"
+        bgClass="bg-linear-to-b from-transparent to-rose-500/10"
       />
       <StatCard
         label="Follow-up Due"
         value={stats.followUpDue}
         icon={Calendar}
         colorClass="text-amber-500"
-        bgClass="bg-amber-500/5"
+        bgClass="bg-linear-to-b from-transparent to-amber-500/10"
       />
       <StatCard
         label="Won This Month"
         value={stats.wonThisMonth}
         icon={Trophy}
         colorClass="text-emerald-500"
-        bgClass="bg-emerald-500/5"
+        bgClass="bg-linear-to-b from-transparent to-emerald-500/10"
       />
       <StatCard
         label="Pipeline Value"
         value={`₹${Math.round(stats.pipelineValue).toLocaleString("en-IN")}`}
         icon={FileText}
         colorClass="text-sky-500"
-        bgClass="bg-sky-500/5"
+        bgClass="bg-linear-to-b from-transparent to-sky-500/10"
       />
     </div>
   );

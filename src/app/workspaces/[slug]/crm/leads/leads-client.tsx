@@ -3,13 +3,23 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { LayoutList, Columns3, Plus, ChevronDown, ChevronRight } from "lucide-react";
+import { LayoutList, LayoutGrid, Plus, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/r-alert-dialog";
 
 import { LeadsStats } from "./components/leads-stats";
 import { LeadFilters } from "./components/lead-filters";
 import { LeadsTable } from "./components/leads-table";
-import { LeadsPipelineView } from "./components/leads-pipeline-view";
+import { LeadsGridView } from "./components/leads-grid-view";
 import {
   Lead,
   OptionStage,
@@ -18,7 +28,7 @@ import {
   LeadFormValues,
 } from "./components/types";
 
-type ViewMode = "list" | "pipeline";
+type ViewMode = "list" | "grid";
 
 export function LeadsPage() {
   const params = useParams();
@@ -77,50 +87,35 @@ export function LeadsPage() {
   }, [fetchData]);
 
   // Handle Delete Lead
-  const handleDeleteLead = async (leadId: string) => {
-    if (!confirm("Are you sure you want to delete this lead? This action cannot be undone.")) return;
+  const [leadIdToDelete, setLeadIdToDelete] = useState<string | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
+  const handleDeleteLead = async (leadId: string) => {
+    setLeadIdToDelete(leadId);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteLead = async () => {
+    if (!leadIdToDelete) return;
     try {
-      const res = await fetch(`/api/crm/leads/${leadId}`, { method: "DELETE" });
+      const res = await fetch(`/api/crm/leads/${leadIdToDelete}`, { method: "DELETE" });
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.error || "Failed to delete lead");
       }
       toast.success("Lead deleted successfully");
-      setLeads((prev) => prev.filter((l) => l.id !== leadId));
+      setLeads((prev) => prev.filter((l) => l.id !== leadIdToDelete));
     } catch (err: unknown) {
       console.error("Delete lead error:", err);
       const msg = err instanceof Error ? err.message : "Failed to delete lead.";
       toast.error(msg);
+    } finally {
+      setLeadIdToDelete(null);
+      setIsDeleteDialogOpen(false);
     }
   };
 
-  // Handle Pipeline Stage Change (optimistic)
-  const handlePipelineStageChange = async (leadId: string, stageId: string) => {
-    const prevLeads = leads;
-    // Optimistic update
-    setLeads((prev) =>
-      prev.map((l) =>
-        l.id === leadId
-          ? { ...l, stageId, stage: stages.find((s) => s.id === stageId) }
-          : l
-      )
-    );
-    try {
-      const res = await fetch(`/api/crm/leads/${leadId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ stageId }),
-      });
-      if (!res.ok) throw new Error("Failed to update stage");
-      const updated: Lead = await res.json();
-      setLeads((prev) => prev.map((l) => (l.id === leadId ? updated : l)));
-      toast.success("Stage updated");
-    } catch {
-      setLeads(prevLeads); // rollback
-      toast.error("Failed to update stage");
-    }
-  };
+
 
   // Local filtering calculation
   const filteredLeads = leads.filter((l) => {
@@ -172,18 +167,18 @@ export function LeadsPage() {
               <LayoutList className="h-3.5 w-3.5" />
               List
             </button>
-            <button
-              id="crm-view-pipeline"
-              onClick={() => setViewMode("pipeline")}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-semibold transition-colors ${
-                viewMode === "pipeline"
-                  ? "bg-card text-foreground shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Columns3 className="h-3.5 w-3.5" />
-              Pipeline
-            </button>
+             <button
+               id="crm-view-grid"
+               onClick={() => setViewMode("grid")}
+               className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+                 viewMode === "grid"
+                   ? "bg-card text-foreground shadow-xs"
+                   : "text-muted-foreground hover:text-foreground"
+               }`}
+             >
+               <LayoutGrid className="h-3.5 w-3.5" />
+               Grid
+             </button>
           </div>
 
           <Button
@@ -200,8 +195,8 @@ export function LeadsPage() {
       {/* Stats Summary Strip */}
       {showStats && <LeadsStats leads={leads} />}
 
-      {/* Filter strip - only in list mode */}
-      {viewMode === "list" && (
+      {/* Filter strip - both in list and grid mode */}
+      {(viewMode === "list" || viewMode === "grid") && (
         <LeadFilters
           search={search}
           setSearch={setSearch}
@@ -226,12 +221,35 @@ export function LeadsPage() {
           onAddClick={() => router.push(`/workspaces/${slug}/crm/leads/new`)}
         />
       ) : (
-        <LeadsPipelineView
-          leads={leads}
-          stages={stages}
-          onStageChange={handlePipelineStageChange}
+        <LeadsGridView
+          leads={filteredLeads}
+          loading={loading}
+          onDelete={handleDeleteLead}
+          onAddClick={() => router.push(`/workspaces/${slug}/crm/leads/new`)}
         />
       )}
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this lead?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this lead? This action will permanently remove the lead from your workspace, and you will not be able to recover it later.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setIsDeleteDialogOpen(false);
+              setLeadIdToDelete(null);
+            }}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteLead}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

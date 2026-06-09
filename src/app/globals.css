@@ -483,3 +483,28 @@
 .dark .scrollbar-thin-timeline::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.18);
 }
+
+/* ── Shake Animation for Validation Failures ── */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-4px); }
+  40%, 80% { transform: translateX(4px); }
+}
+
+.animate-shake {
+  animation: shake 0.4s ease-in-out;
+}
+
+/* ── Lead Grid Card Square Avatar Fix ── */
+.lead-avatar-square {
+  overflow: hidden !important;
+  border-radius: 12px !important;
+}
+
+.lead-avatar-square img {
+  border-radius: 0 !important;
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import { 
-  Check, Lock, ChevronRight, ChevronLeft, Save,
+  Check, Lock, ChevronRight, ChevronLeft, Save, ArrowRight,
   PlusCircle, Building2, ShieldCheck, Tag, Heart, CalendarCheck 
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -23,9 +23,12 @@ interface LeadStepStepperProps {
   currentStep: number;
   onStepClick: (step: number) => void;
   onSave: () => void;
-  onContinue?: () => void;
+  onAdvance?: () => void;
   isSaving?: boolean;
+  isDirty?: boolean;
+  nextStageLabel?: string | null;
   children: React.ReactNode;
+  customAction?: React.ReactNode;
 }
 
 const STEP_ICONS: Record<number, React.ComponentType<{ className?: string }>> = {
@@ -42,54 +45,64 @@ export function LeadStepStepper({
   currentStep,
   onStepClick,
   onSave,
+  onAdvance,
   isSaving = false,
+  isDirty = false,
+  nextStageLabel,
   children,
+  customAction,
 }: LeadStepStepperProps) {
   const step = steps.find((s) => s.id === currentStep);
-  const prevStep = currentStep > 1 ? steps.find((s) => s.id === currentStep - 1) : null;
+  const currentIdx = steps.findIndex((s) => s.id === currentStep);
+  const prevStep = currentIdx > 0 ? steps[currentIdx - 1] : null;
+  const showAdvance = !isDirty && step?.isComplete && nextStageLabel;
 
   return (
     <div className="space-y-5">
       {/* ─── Step Breadcrumb ─────────────────────────────────────────────────── */}
       <div className="w-full overflow-hidden bg-card border border-border/40 rounded-xl shadow-xs">
-        <div className="flex items-center justify-between w-full overflow-x-auto py-2.5 px-4 text-xs font-semibold whitespace-nowrap scrollbar-none [&::-webkit-scrollbar]:hidden">
+        <div className="flex items-center justify-between w-full py-2 px-2 text-[10px] sm:text-[11px] font-semibold whitespace-nowrap">
           {steps.map((s, idx) => {
             const isCurrent = s.id === currentStep;
-            const isCompleted = s.isComplete || s.id < currentStep;
-            const isClickable = !s.isLocked && (isCompleted || isCurrent);
+            const isCompleted = s.isComplete;
+            const isOpenedFromLock = !s.isLocked && !s.isComplete;
+            const isClickable = !s.isLocked;
             const StepIcon = STEP_ICONS[s.id];
  
             return (
-              <div key={s.id} className="flex items-center justify-between flex-1 shrink-0 min-w-[140px] last:flex-none last:min-w-0">
+              <div key={s.id} className="flex items-center gap-1 flex-1 min-w-0 justify-center">
                 <button
                   type="button"
                   disabled={s.isLocked}
                   onClick={() => isClickable && onStepClick(s.id)}
                   className={cn(
-                    "flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all select-none cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 mx-auto",
+                    "flex items-center gap-1 px-1.5 py-0.5 rounded-md transition-all select-none cursor-pointer disabled:cursor-not-allowed disabled:opacity-40",
                     isCurrent
                       ? "bg-[#8B5CF6]/10 text-[#8B5CF6] dark:text-[#a78bfa] border border-[#8B5CF6]/20 font-bold"
                       : isCompleted
                       ? "text-[#8B5CF6]/70 dark:text-[#a78bfa]/75 font-semibold"
+                      : isOpenedFromLock
+                      ? "text-amber-600 dark:text-amber-400 font-semibold"
                       : "text-muted-foreground/50 font-normal"
                   )}
                 >
                   {s.isLocked ? (
-                    <Lock className="h-3.5 w-3.5 text-muted-foreground/30 shrink-0" />
+                    <Lock className="h-3 w-3 text-muted-foreground/30 shrink-0" />
                   ) : StepIcon ? (
                     <StepIcon className={cn(
-                      "h-3.5 w-3.5 shrink-0",
-                      isCurrent ? "text-[#8B5CF6]" : isCompleted ? "text-[#8B5CF6]/75" : "text-muted-foreground/50"
+                      "h-3 w-3 shrink-0",
+                      isCurrent
+                        ? "text-[#8B5CF6]"
+                        : isCompleted
+                        ? "text-[#8B5CF6]/75"
+                        : "text-amber-500 dark:text-amber-400"
                     )} />
                   ) : null}
-                  <span>{s.label}</span>
-                  {s.badge && !s.isLocked && (
-                    <span className="text-[9px] opacity-60 ml-0.5">({s.badge})</span>
-                  )}
+                  <span className="truncate max-w-[80px] sm:max-w-none">{s.label}</span>
                 </button>
                 
                 {idx < steps.length - 1 && (
-                  <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/30 shrink-0 ml-auto" />
+                  <ChevronRight className="h-3 w-3 text-muted-foreground/25 shrink-0 ml-auto" />
                 )}
               </div>
             );
@@ -98,9 +111,9 @@ export function LeadStepStepper({
       </div>
  
       {/* ─── Step Content Card ───────────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-border/40 bg-card shadow-sm overflow-hidden">
+      <div className="rounded-2xl border border-border/40 bg-card shadow-sm overflow-visible relative">
         {/* Step header inside card */}
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-border/20 bg-muted/10">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-border/20 bg-muted/10 rounded-t-2xl">
           <div className="flex-1 min-w-0">
             <p className="text-sm font-bold">{step?.label}</p>
             <p className="text-[11px] text-muted-foreground/70">{step?.sublabel}</p>
@@ -119,31 +132,46 @@ export function LeadStepStepper({
         </div>
  
         {/* Action footer */}
-        <div className="flex items-center justify-between px-5 py-4 border-t border-border/20 bg-muted/5">
+        <div className="flex items-center justify-between px-5 py-4 border-t border-border/20 bg-muted/5 rounded-b-2xl">
           <div>
-            {currentStep > 1 && (
+            {prevStep && (
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => onStepClick(currentStep - 1)}
+                onClick={() => onStepClick(prevStep.id)}
                 className="h-8 text-xs font-semibold border-border/60 hover:bg-muted text-foreground rounded-lg transition-all"
               >
                 <ChevronLeft className="h-3.5 w-3.5 mr-1.5" />
-                {prevStep?.label || "Back"}
+                {prevStep.label || "Back"}
               </Button>
             )}
           </div>
-          <Button
-            type="button"
-            size="sm"
-            onClick={onSave}
-            disabled={isSaving}
-            className="h-8 text-xs font-semibold bg-[#8B5CF6] hover:bg-[#7C3AED] text-white hover:text-white rounded-lg transition-all"
-          >
-            <Save className="h-3.5 w-3.5 mr-1.5" />
-            {isSaving ? "Saving…" : "Save"}
-          </Button>
+          {customAction ? (
+            customAction
+          ) : showAdvance ? (
+            <Button
+              type="button"
+              size="sm"
+              onClick={onAdvance}
+              disabled={isSaving}
+              className="h-8 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 hover:shadow-emerald-500/10 text-white hover:text-white rounded-lg transition-all flex items-center"
+            >
+              <ArrowRight className="h-3.5 w-3.5 mr-1.5" />
+              {isSaving ? "Advancing…" : `Advance to ${nextStageLabel}`}
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              size="sm"
+              onClick={onSave}
+              disabled={isSaving}
+              className="h-8 text-xs font-semibold bg-[#8B5CF6] hover:bg-[#7C3AED] text-white hover:text-white rounded-lg transition-all"
+            >
+              <Save className="h-3.5 w-3.5 mr-1.5" />
+              {isSaving ? "Saving…" : "Save"}
+            </Button>
+          )}
         </div>
       </div>
     </div>

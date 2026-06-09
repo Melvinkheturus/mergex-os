@@ -9,12 +9,12 @@ import {
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Lead } from "./types";
+import { Lead, NEXT_ACTION_LABELS, NextActionType } from "./types";
 import { TemperatureIcon } from "./ui-helpers";
 
 interface LeadsTableProps {
@@ -65,7 +65,7 @@ export function LeadsTable({
     <Card className="border border-border/40 shadow-sm overflow-hidden rounded-xl">
       {/* Header row */}
       <CardHeader className="px-5 py-3.5 border-b border-border bg-card/10">
-        <div className="grid grid-cols-[2fr_1.4fr_1.2fr_1.2fr_1fr_1.2fr_1fr_40px] gap-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
+        <div className="grid grid-cols-[2fr_1.4fr_1.2fr_1.2fr_1fr_1.2fr_1fr_80px] gap-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
           <span>Company</span>
           <span>Contact</span>
           <span>Stage</span>
@@ -73,7 +73,7 @@ export function LeadsTable({
           <span>Temp</span>
           <span>Est. Value</span>
           <span>Follow-up</span>
-          <span />
+          <span className="text-right">Action</span>
         </div>
       </CardHeader>
 
@@ -81,7 +81,7 @@ export function LeadsTable({
         {loading ? (
           <div className="divide-y divide-border/20">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="grid grid-cols-[2fr_1.4fr_1.2fr_1.2fr_1fr_1.2fr_1fr_40px] items-center gap-3 px-4 py-3">
+              <div key={i} className="grid grid-cols-[2fr_1.4fr_1.2fr_1.2fr_1fr_1.2fr_1fr_80px] items-center gap-3 px-4 py-3">
                 <div className="flex items-center gap-3">
                   <Skeleton className="h-8 w-8 rounded-full shrink-0" />
                   <div className="space-y-1.5 flex-1">
@@ -101,7 +101,9 @@ export function LeadsTable({
                 <Skeleton className="h-4 w-8" />
                 <Skeleton className="h-3 w-20" />
                 <Skeleton className="h-3 w-16" />
-                <Skeleton className="h-7 w-7 rounded-md" />
+                <div className="flex justify-end">
+                  <Skeleton className="h-7 w-7 rounded-md" />
+                </div>
               </div>
             ))}
           </div>
@@ -117,11 +119,12 @@ export function LeadsTable({
                 <div
                   key={lead.id}
                   onClick={() => router.push(`/workspaces/${slug}/crm/leads/${lead.id}`)}
-                  className="grid grid-cols-[2fr_1.4fr_1.2fr_1.2fr_1fr_1.2fr_1fr_40px] items-center gap-3 px-4 py-3 hover:bg-muted/20 rounded-lg transition-all group text-xs border border-transparent hover:border-border/30 hover:shadow-xs cursor-pointer"
+                  className="grid grid-cols-[2fr_1.4fr_1.2fr_1.2fr_1fr_1.2fr_1fr_80px] items-center gap-3 px-4 py-3 hover:bg-muted/20 rounded-lg transition-all group text-xs border border-transparent hover:border-border/30 hover:shadow-xs cursor-pointer"
                 >
                   {/* Company */}
                   <div className="flex items-center gap-3 min-w-0">
                     <Avatar className="h-8 w-8 shrink-0 border border-[#8B5CF6]/10">
+                      <AvatarImage src={lead.avatarUrl || ""} alt={lead.companyName} />
                       <AvatarFallback className="text-[10px] font-bold bg-[#8B5CF6]/10 text-[#8B5CF6]">
                         {initials}
                       </AvatarFallback>
@@ -159,15 +162,18 @@ export function LeadsTable({
                   <div className="flex items-center gap-1.5 min-w-0">
                     {lead.owner ? (
                       <>
-                        <div className="h-5 w-5 rounded-full bg-[#8B5CF6]/10 flex items-center justify-center shrink-0">
-                          <User className="h-3 w-3 text-[#8B5CF6]" />
-                        </div>
+                        <Avatar className="h-5 w-5 shrink-0 border border-[#8B5CF6]/10">
+                          <AvatarImage src={lead.owner.avatarUrl || ""} alt={`${lead.owner.firstName || ""} ${lead.owner.lastName || ""}`.trim()} />
+                          <AvatarFallback className="text-[8px] font-bold bg-[#8B5CF6]/10 text-[#8B5CF6]">
+                            {`${lead.owner.firstName?.[0] || ""}${lead.owner.lastName?.[0] || ""}`.toUpperCase() || "U"}
+                          </AvatarFallback>
+                        </Avatar>
                         <span className="text-[11px] text-muted-foreground truncate">
                           {lead.owner.firstName} {lead.owner.lastName}
                         </span>
                       </>
                     ) : (
-                      <span className="text-muted-foreground/40 text-[11px]">Unassigned</span>
+                      <span className="text-muted-foreground/30 text-[11px] font-medium">-</span>
                     )}
                   </div>
 
@@ -184,7 +190,7 @@ export function LeadsTable({
                         {Number(lead.expectedValue).toLocaleString("en-IN")}
                       </span>
                     ) : (
-                      <span className="text-muted-foreground/40">-</span>
+                      <span className="text-muted-foreground/30 font-medium">₹0</span>
                     )}
                   </div>
 
@@ -202,13 +208,13 @@ export function LeadsTable({
                         {followUp.label}
                       </span>
                     ) : (
-                      <span className="text-muted-foreground/40 text-[11px]">-</span>
+                      <span className="text-muted-foreground/30 text-[10px] font-medium">Not scheduled</span>
                     )}
                   </div>
 
                   {/* Actions Menu */}
                   <div
-                    className="text-right"
+                    className="flex justify-end"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <DropdownMenu>
@@ -216,7 +222,7 @@ export function LeadsTable({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-7 w-7 rounded-md border border-transparent hover:border-border/30 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="h-7 w-7 rounded-md border border-transparent hover:border-border/30 transition-opacity"
                         >
                           <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
                         </Button>

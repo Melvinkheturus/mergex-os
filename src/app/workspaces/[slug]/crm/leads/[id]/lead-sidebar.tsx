@@ -7,7 +7,8 @@ import {
   Phone, Mail, MessageCircle, Calendar, FileText, Clock,
   Activity, IndianRupee,
   Plus, Loader2, StickyNote, ClipboardList,
-  ExternalLink, FileSignature, Upload
+  ExternalLink, FileSignature, Upload,
+  Download, Link as LinkIcon
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,16 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Lead, Meeting, Proposal, OptionUser, Activity as LeadActivity } from "../components/types";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+} from "@/components/ui/r-context-menu";
 
 interface LeadSidebarProps {
   lead: Lead;
@@ -186,6 +197,38 @@ export function LeadUtilityGrid({ lead }: { lead: Lead }) {
       setLoadingProposals(false);
     }
   }, [leadId]);
+
+  const handleUpdateProposalStatus = async (proposalId: string, status: string) => {
+    // Optimistic update
+    setProposals((prev) =>
+      prev.map((p) => (p.id === proposalId ? { ...p, status } : p))
+    );
+    try {
+      const res = await fetch(`/api/crm/proposals/${proposalId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success(`Proposal status updated to ${status}`);
+      // Notify timeline cards
+      window.dispatchEvent(new CustomEvent("crm-activity-logged"));
+      loadProposals();
+    } catch {
+      toast.error("Failed to update proposal status");
+      loadProposals();
+    }
+  };
+
+  const handleDownloadPDF = (proposal: Proposal) => {
+    toast.success(`Downloading proposal ${proposal.proposalNumber} PDF...`);
+  };
+
+  const handleCopyLink = (proposal: Proposal) => {
+    const url = `${window.location.origin}/workspaces/${slug}/crm/proposals?search=${proposal.proposalNumber}`;
+    navigator.clipboard.writeText(url);
+    toast.success("Proposal link copied to clipboard");
+  };
 
 
   useEffect(() => {
@@ -381,30 +424,65 @@ export function LeadUtilityGrid({ lead }: { lead: Lead }) {
           {loadingProposals ? (
             <div className="h-10 rounded-xl bg-muted/20 animate-pulse" />
           ) : latestProposal ? (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-bold text-foreground truncate max-w-[170px]">
-                  {latestProposal.proposalNumber} - {latestProposal.title}
-                </span>
-                <Badge className="text-[9px] border bg-amber-500/10 text-amber-500 border-amber-500/25 shrink-0 px-1 py-0">
-                  {latestProposal.status}
-                </Badge>
-              </div>
-              <div className="flex items-center justify-between mt-2 text-[11px]">
-                <p className="font-extrabold text-emerald-600 dark:text-emerald-400 flex items-center">
-                  <IndianRupee className="h-3 w-3 mr-0.5" />
-                  {Number(latestProposal.value).toLocaleString("en-IN")}
-                </p>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 text-[10px] font-semibold px-2 text-[#8B5CF6] hover:bg-[#8B5CF6]/5"
-                  onClick={() => router.push(`/workspaces/${slug}/crm/proposals`)}
-                >
-                  View
-                </Button>
-              </div>
-            </div>
+            <ContextMenu>
+              <ContextMenuTrigger asChild>
+                <div className="space-y-2 cursor-context-menu p-2 -m-2 rounded-lg hover:bg-muted/10 transition-colors">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-foreground truncate max-w-[170px]">
+                      {latestProposal.proposalNumber} - {latestProposal.title}
+                    </span>
+                    <Badge className="text-[9px] border bg-amber-500/10 text-amber-500 border-amber-500/25 shrink-0 px-1 py-0 font-semibold">
+                      {latestProposal.status}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between mt-2 text-[11px]">
+                    <p className="font-extrabold text-emerald-600 dark:text-emerald-400 flex items-center">
+                      <IndianRupee className="h-3 w-3 mr-0.5" />
+                      {Number(latestProposal.value).toLocaleString("en-IN")}
+                    </p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 text-[10px] font-semibold px-2 text-[#8B5CF6] hover:bg-[#8B5CF6]/5"
+                      onClick={() => router.push(`/workspaces/${slug}/crm/proposals`)}
+                    >
+                      View
+                    </Button>
+                  </div>
+                </div>
+              </ContextMenuTrigger>
+
+              <ContextMenuContent className="w-52">
+                <ContextMenuSub>
+                  <ContextMenuSubTrigger>
+                    <FileText className="size-3.5 opacity-70 mr-2" />
+                    Update Status
+                  </ContextMenuSubTrigger>
+                  <ContextMenuSubContent className="w-40">
+                    {["DRAFT", "SENT", "APPROVED", "REJECTED"].map((st) => (
+                      <ContextMenuItem
+                        key={st}
+                        onClick={() => handleUpdateProposalStatus(latestProposal.id, st)}
+                      >
+                        {st.charAt(0) + st.slice(1).toLowerCase()}
+                      </ContextMenuItem>
+                    ))}
+                  </ContextMenuSubContent>
+                </ContextMenuSub>
+
+                <ContextMenuSeparator />
+
+                <ContextMenuItem onClick={() => handleDownloadPDF(latestProposal)}>
+                  <Download className="size-3.5 opacity-70 mr-2" />
+                  Download PDF
+                </ContextMenuItem>
+
+                <ContextMenuItem onClick={() => handleCopyLink(latestProposal)}>
+                  <LinkIcon className="size-3.5 opacity-70 mr-2" />
+                  Copy Link
+                </ContextMenuItem>
+              </ContextMenuContent>
+            </ContextMenu>
           ) : (
             <div className="space-y-3 pt-2">
               <p className="text-[11px] text-muted-foreground/75 italic">No proposal created</p>

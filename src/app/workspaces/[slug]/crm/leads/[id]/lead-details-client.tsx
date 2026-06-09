@@ -5,7 +5,8 @@ import { useRouter, useParams } from "next/navigation";
 import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { ChevronLeft, Trophy, XCircle } from "lucide-react";
+import { ChevronLeft, Trophy, XCircle, Rocket } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -71,6 +72,12 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
   const [loading, setLoading] = useState(true);
   const [savingStage, setSavingStage] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
+  const [shake, setShake] = useState(false);
+  const triggerShake = () => {
+    setShake(true);
+    setTimeout(() => setShake(false), 500);
+  };
 
   // Wizard step state
   const [currentStep, setCurrentStep] = useState(1);
@@ -135,20 +142,41 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
       const data: Lead = await leadRes.json();
       setLead(data);
 
-      // Determine starting step from data completeness
-      const s1 = getStep1Complete(data);
-      const s2 = getStep2Complete(data);
-      const s3 = getStep3Complete(data);
+      // Determine starting step directly from lead's database stage name
+      const stageName = data.stage?.name || "";
+      if (stageName === "LEAD_INTAKE") {
+        setCurrentStep(1);
+      } else if (stageName === "BUSINESS_REVIEW") {
+        setCurrentStep(2);
+      } else if (stageName === "LEAD_QUALIFICATION") {
+        setCurrentStep(3);
+      } else if (stageName === "LEAD_CLASSIFICATION") {
+        setCurrentStep(4);
+      } else if (stageName === "LEAD_NURTURING") {
+        setCurrentStep(5);
+      } else if (stageName === "MEETING") {
+        setCurrentStep(6);
+      } else {
+        // Fallback to data completeness check if stageName is unrecognized/null
+        const s1 = getStep1Complete(data);
+        const s2 = getStep2Complete(data);
+        const s3 = getStep3Complete(data);
 
-      if (data.classification === "HOT") setCurrentStep(6);
-      else if (data.classification === "WARM") setCurrentStep(5);
-      else if (s3) setCurrentStep(4);
-      else if (s2) setCurrentStep(3);
-      else if (s1) setCurrentStep(2);
-      else setCurrentStep(1);
+        if (data.classification === "HOT") setCurrentStep(6);
+        else if (data.classification === "WARM" && s3) setCurrentStep(5);
+        else if (data.classification === "COLD" && s3) setCurrentStep(4);
+        else if (s3) setCurrentStep(4);
+        else if (s2) setCurrentStep(3);
+        else if (s1) setCurrentStep(2);
+        else setCurrentStep(1);
+      }
+
+      setIsDataLoaded(false);
 
       // Populate forms
-      intakeForm.reset({
+      // 1. Intake Form Draft
+      const savedIntakeDraft = localStorage.getItem(`intake-draft-${leadId}`);
+      let intakeInitial = {
         companyName: data.companyName,
         contactPerson: data.contactPerson,
         designation: data.designation || "",
@@ -163,15 +191,24 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
         leadNotes: "",
         priority: (data.priority as "HIGH" | "MEDIUM" | "LOW") || "MEDIUM",
         temperature: (data.temperature as "HOT" | "WARM" | "COLD") || "COLD",
-      });
+      };
+      if (savedIntakeDraft) {
+        try {
+          const parsed = JSON.parse(savedIntakeDraft);
+          intakeInitial = { ...intakeInitial, ...parsed };
+        } catch {}
+      }
+      intakeForm.reset(intakeInitial);
 
+      // 2. Business Review Form Draft
       const knownChannels = ["Instagram", "WhatsApp", "Website", "Marketplace", "Referral", "Offline"];
       const rawChannel = data.primaryChannel || "";
       const isKnown = knownChannels.includes(rawChannel);
       const primaryChannelValue = rawChannel === "" ? "" : (isKnown ? rawChannel : "Other");
       const primaryChannelOtherValue = isKnown ? "" : rawChannel;
 
-      businessReviewForm.reset({
+      const savedBusinessReviewDraft = localStorage.getItem(`business-review-draft-${leadId}`);
+      let businessReviewInitial = {
         businessModel: data.businessModel || "",
         businessAge: data.businessAge || "",
         teamSize: data.teamSize || "",
@@ -192,34 +229,75 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
         opportunityNotes: data.opportunityNotes || "",
         currentSituation: data.currentSituation || "",
         businessConfidence: data.businessConfidence || "",
-      });
+      };
+      if (savedBusinessReviewDraft) {
+        try {
+          const parsed = JSON.parse(savedBusinessReviewDraft);
+          businessReviewInitial = { ...businessReviewInitial, ...parsed };
+        } catch {}
+      }
+      businessReviewForm.reset(businessReviewInitial);
 
-      qualificationForm.reset({
-        qualIcpFit: data.qualIcpFit || 0,
-        qualBudgetLikelihood: data.qualBudgetLikelihood || 0,
-        qualDecisionMakerAccess: data.qualDecisionMakerAccess || 0,
-        qualOperationalFeasibility: data.qualOperationalFeasibility || 0,
-        qualServiceAlignment: data.qualServiceAlignment || 0,
-        qualGrowthPotential: data.qualGrowthPotential || 0,
-        qualificationNotes: "",
-      });
+      // 3. Qualification Form Draft
+      const savedQualificationDraft = localStorage.getItem(`qualification-draft-${leadId}`);
+      let qualificationInitial = {
+        qualIcpFit:                  data.qualIcpFit || 0,
+        qualIcpFitDesc:              data.qualIcpFitDesc || "",
+        qualBudgetLikelihood:        data.qualBudgetLikelihood || 0,
+        qualBudgetLikelihoodDesc:    data.qualBudgetLikelihoodDesc || "",
+        qualDecisionMakerAccess:     data.qualDecisionMakerAccess || 0,
+        qualDecisionMakerAccessDesc: data.qualDecisionMakerAccessDesc || "",
+        qualNeed:                    data.qualNeed || 0,
+        qualNeedDesc:                data.qualNeedDesc || "",
+        qualTimeline:                data.qualTimeline || 0,
+        qualTimelineDesc:            data.qualTimelineDesc || "",
+        qualRisks:                   data.qualRisks || [],
+        qualOtherRisk:               data.qualOtherRisk || "",
+        qualOutcome:                 data.qualOutcome || null,
+        qualificationNotes:          "",
+      };
+      if (savedQualificationDraft) {
+        try {
+          const parsed = JSON.parse(savedQualificationDraft);
+          qualificationInitial = { ...qualificationInitial, ...parsed };
+        } catch {}
+      }
+      qualificationForm.reset(qualificationInitial);
 
-      classificationForm.reset({
+      // 4. Classification Form Draft
+      const savedClassificationDraft = localStorage.getItem(`classification-draft-${leadId}`);
+      let classificationInitial = {
         classification: (data.classification as "HOT" | "WARM" | "COLD" | "ARCHIVE" | null) || null,
         nurturingDirection: (data.nurturingDirection as "IMMEDIATE_SALES" | "SHORT_TERM" | "LONG_TERM" | "ARCHIVE" | null) || null,
         services: data.services || [],
         expectedValue: data.expectedValue ? String(data.expectedValue) : "",
         classificationNotes: "",
-      });
+      };
+      if (savedClassificationDraft) {
+        try {
+          const parsed = JSON.parse(savedClassificationDraft);
+          classificationInitial = { ...classificationInitial, ...parsed };
+        } catch {}
+      }
+      classificationForm.reset(classificationInitial);
 
-      nurturingForm.reset({
+      // 5. Nurturing Form Draft
+      const savedNurturingDraft = localStorage.getItem(`nurturing-draft-${leadId}`);
+      let nurturingInitial = {
         nurturingStatus: (data.nurturingStatus as "NO_RESPONSE" | "ENGAGED" | "INTERESTED" | "MEETING_REQUESTED" | null) || null,
         nurturingChannel: (data.nurturingChannel as "WHATSAPP" | "EMAIL" | "CALL" | "MEETING" | "LINKEDIN" | null) || null,
         nextFollowUpAt: data.nextFollowUpAt
           ? new Date(data.nextFollowUpAt).toISOString().slice(0, 16)
           : "",
         conversationNotes: data.conversationNotes || "",
-      });
+      };
+      if (savedNurturingDraft) {
+        try {
+          const parsed = JSON.parse(savedNurturingDraft);
+          nurturingInitial = { ...nurturingInitial, ...parsed };
+        } catch {}
+      }
+      nurturingForm.reset(nurturingInitial);
 
       // Load meeting prep details from localStorage
       const savedPrep = localStorage.getItem(`meeting-prep-${leadId}`);
@@ -246,7 +324,9 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
         });
       }
 
+      setIsDataLoaded(true);
     } catch (error: unknown) {
+      setIsDataLoaded(false);
       const msg = error instanceof Error ? error.message : "Failed to load lead details";
       toast.error(msg);
       router.push(`/workspaces/${slug}/crm/leads`);
@@ -259,6 +339,47 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
     const timer = setTimeout(() => loadLeadData(), 0);
     return () => clearTimeout(timer);
   }, [leadId, loadLeadData]);
+
+  // Watchers to persist drafts
+  useEffect(() => {
+    if (!isDataLoaded) return;
+    const subscription = intakeForm.watch((value) => {
+      localStorage.setItem(`intake-draft-${leadId}`, JSON.stringify(value));
+    });
+    return () => subscription.unsubscribe();
+  }, [intakeForm, leadId, isDataLoaded]);
+
+  useEffect(() => {
+    if (!isDataLoaded) return;
+    const subscription = businessReviewForm.watch((value) => {
+      localStorage.setItem(`business-review-draft-${leadId}`, JSON.stringify(value));
+    });
+    return () => subscription.unsubscribe();
+  }, [businessReviewForm, leadId, isDataLoaded]);
+
+  useEffect(() => {
+    if (!isDataLoaded) return;
+    const subscription = qualificationForm.watch((value) => {
+      localStorage.setItem(`qualification-draft-${leadId}`, JSON.stringify(value));
+    });
+    return () => subscription.unsubscribe();
+  }, [qualificationForm, leadId, isDataLoaded]);
+
+  useEffect(() => {
+    if (!isDataLoaded) return;
+    const subscription = classificationForm.watch((value) => {
+      localStorage.setItem(`classification-draft-${leadId}`, JSON.stringify(value));
+    });
+    return () => subscription.unsubscribe();
+  }, [classificationForm, leadId, isDataLoaded]);
+
+  useEffect(() => {
+    if (!isDataLoaded) return;
+    const subscription = nurturingForm.watch((value) => {
+      localStorage.setItem(`nurturing-draft-${leadId}`, JSON.stringify(value));
+    });
+    return () => subscription.unsubscribe();
+  }, [nurturingForm, leadId, isDataLoaded]);
 
   // ─── Save helpers ────────────────────────────────────────────────────────────
 
@@ -294,6 +415,8 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
         });
         intakeForm.setValue("leadNotes", "");
       }
+      localStorage.removeItem(`intake-draft-${leadId}`);
+      intakeForm.reset({ ...values, leadNotes: "" });
       toast.success("Lead Intake saved");
     } catch {
       toast.error("Failed to save Intake");
@@ -311,6 +434,8 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
         ...rest,
         primaryChannel: finalChannel,
       });
+      localStorage.removeItem(`business-review-draft-${leadId}`);
+      businessReviewForm.reset(values);
       toast.success("Business Review saved");
     } catch {
       toast.error("Failed to save Business Review");
@@ -324,6 +449,8 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
     try {
       const { qualificationNotes: _, ...rest } = values;
       await patchLead({ ...rest });
+      localStorage.removeItem(`qualification-draft-${leadId}`);
+      qualificationForm.reset(values);
       toast.success("Qualification saved");
     } catch {
       toast.error("Failed to save Qualification");
@@ -341,6 +468,8 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
         services: values.services,
         temperature: values.classification === "HOT" ? "HOT" : values.classification === "WARM" ? "WARM" : "COLD",
       });
+      localStorage.removeItem(`classification-draft-${leadId}`);
+      classificationForm.reset(values);
       toast.success("Classification saved");
     } catch {
       toast.error("Failed to save Classification");
@@ -357,6 +486,8 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
         classification: "WARM",
         temperature: "WARM",
       });
+      localStorage.removeItem(`nurturing-draft-${leadId}`);
+      nurturingForm.reset(values);
       toast.success("Nurturing Workspace saved");
     } catch {
       toast.error("Failed to save Nurturing Workspace");
@@ -369,6 +500,7 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
     setIsSaving(true);
     try {
       localStorage.setItem(`meeting-prep-${leadId}`, JSON.stringify(values));
+      meetingReadinessForm.reset(values);
       toast.success("Meeting preparation saved");
     } catch {
       toast.error("Failed to save Meeting preparation");
@@ -397,18 +529,27 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
   // ─── Stepper actions ─────────────────────────────────────────────────────────
 
   const handleSave = async () => {
-    if (currentStep === 1) await intakeForm.handleSubmit(onIntakeSubmit)();
-    else if (currentStep === 2) await businessReviewForm.handleSubmit(onBusinessReviewSubmit)();
-    else if (currentStep === 3) await qualificationForm.handleSubmit(onQualificationSubmit)();
-    else if (currentStep === 4) await classificationForm.handleSubmit(onClassificationSubmit)();
-    else if (currentStep === 5) await nurturingForm.handleSubmit(onNurturingSubmit)();
-    else if (currentStep === 6) await meetingReadinessForm.handleSubmit(onMeetingReadinessSubmit)();
+    const onError = () => {
+      triggerShake();
+    };
+    if (currentStep === 1) await intakeForm.handleSubmit(onIntakeSubmit, onError)();
+    else if (currentStep === 2) await businessReviewForm.handleSubmit(onBusinessReviewSubmit, onError)();
+    else if (currentStep === 3) await qualificationForm.handleSubmit(onQualificationSubmit, onError)();
+    else if (currentStep === 4) await classificationForm.handleSubmit(onClassificationSubmit, onError)();
+    else if (currentStep === 5) await nurturingForm.handleSubmit(onNurturingSubmit, onError)();
+    else if (currentStep === 6) await meetingReadinessForm.handleSubmit(onMeetingReadinessSubmit, onError)();
   };
 
   const handleContinue = async () => {
     await handleSave();
-    if (currentStep === 4 && classificationForm.getValues("classification") === "HOT") {
-      setCurrentStep(6);
+    if (currentStep === 4) {
+      const classification = classificationForm.getValues("classification");
+      if (classification === "HOT") {
+        setCurrentStep(6); // Skip Nurturing, go to Meeting Readiness
+      } else if (classification === "WARM" || classification === "COLD") {
+        setCurrentStep(5); // Go to Nurturing
+      }
+      // ARCHIVE/null: stay on step 4 (no next step to advance to)
     } else if (currentStep < 6) {
       setCurrentStep((p) => p + 1);
     }
@@ -517,6 +658,65 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
 
   const isWon = lead.winLossStatus === "WON";
   const steps = buildSteps(lead, currentStep);
+
+  // Check meeting readiness checks (matches step-meeting-readiness-workspace.tsx)
+  const checkBR = getStep2Complete(lead);
+  const checkQual = getStep3Complete(lead);
+  const checkPainPoint = (lead.painPoints?.length ?? 0) > 0;
+  const checkOutreach = !!lead.lastContactAt || !!lead.nextFollowUpAt || !!lead.lastActivityAt;
+  const checkHot = lead.classification === "HOT";
+  const checkDM = lead.qualDecisionMakerAccess > 0;
+  const isReady = checkBR && checkQual && checkPainPoint && checkOutreach && checkHot && checkDM;
+
+  // Determine form dirtiness for current step
+  let isFormDirty = false;
+  if (currentStep === 1) isFormDirty = intakeForm.formState.isDirty;
+  else if (currentStep === 2) isFormDirty = businessReviewForm.formState.isDirty;
+  else if (currentStep === 3) isFormDirty = qualificationForm.formState.isDirty;
+  else if (currentStep === 4) isFormDirty = classificationForm.formState.isDirty;
+  else if (currentStep === 5) isFormDirty = nurturingForm.formState.isDirty;
+  else if (currentStep === 6) isFormDirty = meetingReadinessForm.formState.isDirty;
+
+  // Next stage information based on current wizard step
+  let nextStageLabel: string | null = null;
+  let nextStageId: string | null = null;
+
+  if (stages.length > 0) {
+    if (currentStep === 1) {
+      const st = stages.find(s => s.name === "BUSINESS_REVIEW");
+      nextStageLabel = st?.label || "Business Review";
+      nextStageId = st?.id || null;
+    } else if (currentStep === 2) {
+      const st = stages.find(s => s.name === "LEAD_QUALIFICATION");
+      nextStageLabel = st?.label || "Lead Qualification";
+      nextStageId = st?.id || null;
+    } else if (currentStep === 3) {
+      const st = stages.find(s => s.name === "LEAD_CLASSIFICATION");
+      nextStageLabel = st?.label || "Lead Classification";
+      nextStageId = st?.id || null;
+    } else if (currentStep === 4) {
+      const classification = classificationForm.getValues("classification") || lead.classification;
+      if (classification === "HOT") {
+        const st = stages.find(s => s.name === "MEETING");
+        nextStageLabel = st?.label || "Meeting Readiness";
+        nextStageId = st?.id || null;
+      } else if (classification === "WARM" || classification === "COLD") {
+        const st = stages.find(s => s.name === "LEAD_NURTURING");
+        nextStageLabel = st?.label || "Lead Nurturing";
+        nextStageId = st?.id || null;
+      }
+    } else if (currentStep === 5) {
+      const st = stages.find(s => s.name === "MEETING");
+      nextStageLabel = st?.label || "Meeting Readiness";
+      nextStageId = st?.id || null;
+    }
+  }
+
+  const handleAdvance = async () => {
+    if (nextStageId) {
+      await handleStageChange(nextStageId);
+    }
+  };
 
   // ─── Render ───────────────────────────────────────────────────────────────────
 
@@ -634,8 +834,35 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
             currentStep={currentStep}
             onStepClick={setCurrentStep}
             onSave={handleSave}
-            onContinue={handleContinue}
+            onAdvance={handleAdvance}
             isSaving={isSaving}
+            isDirty={isFormDirty}
+            nextStageLabel={nextStageLabel}
+            customAction={
+              currentStep === 6 ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => {
+                    if (isReady) {
+                      router.push(`/workspaces/${slug}/crm/meetings`);
+                    } else {
+                      toast.error("Complete all 6 internal checks to unlock launching the discovery meeting.");
+                    }
+                  }}
+                  disabled={!isReady}
+                  className={cn(
+                    "h-8 text-xs font-bold text-white rounded-lg transition-all flex items-center shadow-sm select-none",
+                    isReady 
+                      ? "bg-[#8B5CF6] hover:bg-[#7C3AED] hover:shadow-violet-500/10 cursor-pointer" 
+                      : "bg-[#8B5CF6]/50 cursor-not-allowed opacity-50"
+                  )}
+                >
+                  <Rocket className="h-3.5 w-3.5 mr-1.5" />
+                  Launch Discovery Meeting
+                </Button>
+              ) : undefined
+            }
           >
             {currentStep === 1 && (
               <StepIntakeForm
@@ -644,6 +871,7 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
                 owners={owners}
                 lead={lead}
                 onSubmit={onIntakeSubmit}
+                shake={shake}
               />
             )}
             {currentStep === 2 && (
@@ -684,6 +912,7 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
                 onStepClick={setCurrentStep}
                 onStageClick={handleStageChange}
                 savingStage={savingStage}
+                onLeadUpdate={setLead}
               />
             )}
           </LeadStepStepper>

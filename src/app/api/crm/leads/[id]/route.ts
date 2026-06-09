@@ -68,6 +68,10 @@ export async function PUT(
 
   try {
     const body = await req.json();
+    const stages = await db.leadStage.findMany({
+      where: { brandId: lead.brandId },
+      orderBy: { order: "asc" },
+    });
     const {
       companyName,
       contactPerson,
@@ -128,13 +132,20 @@ export async function PUT(
       relevantServices,
       valueProposition,
       businessConfidence,
-      // Step 3 — Qualification (6-dimension)
+      // Step 3 — Qualification (BANT + ICP)
       qualIcpFit,
+      qualIcpFitDesc,
       qualBudgetLikelihood,
+      qualBudgetLikelihoodDesc,
       qualDecisionMakerAccess,
-      qualOperationalFeasibility,
-      qualServiceAlignment,
-      qualGrowthPotential,
+      qualDecisionMakerAccessDesc,
+      qualNeed,
+      qualNeedDesc,
+      qualTimeline,
+      qualTimelineDesc,
+      qualRisks,
+      qualOtherRisk,
+      qualOutcome,
       // Step 4 — Classification
       classification,
       nurturingDirection,
@@ -160,10 +171,10 @@ export async function PUT(
       finalBantScore = Math.round((b + a + n + t) / 4);
     }
 
-    // Calculate qualification score from 6 dimensions
+    // Calculate qualification score from 5 dimensions (ICP Fit + BANT)
     let finalQualScore: number | undefined = undefined;
     let finalQualStatus: string | undefined = undefined;
-    const qualFields = { qualIcpFit, qualBudgetLikelihood, qualDecisionMakerAccess, qualOperationalFeasibility, qualServiceAlignment, qualGrowthPotential };
+    const qualFields = { qualIcpFit, qualBudgetLikelihood, qualDecisionMakerAccess, qualNeed, qualTimeline };
     const hasQualChange = Object.values(qualFields).some((v) => v !== undefined);
     if (hasQualChange) {
       const f = (key: keyof typeof qualFields, fallback: number) =>
@@ -171,20 +182,87 @@ export async function PUT(
       finalQualScore =
         f("qualIcpFit",              (lead as any).qualIcpFit              || 0) +
         f("qualBudgetLikelihood",    (lead as any).qualBudgetLikelihood    || 0) +
-        f("qualDecisionMakerAccess",(lead as any).qualDecisionMakerAccess || 0) +
-        f("qualOperationalFeasibility", (lead as any).qualOperationalFeasibility || 0) +
-        f("qualServiceAlignment",   (lead as any).qualServiceAlignment   || 0) +
-        f("qualGrowthPotential",    (lead as any).qualGrowthPotential    || 0);
-      finalQualStatus = finalQualScore >= 60 ? "QUALIFIED" : "DISQUALIFIED";
+        f("qualDecisionMakerAccess", (lead as any).qualDecisionMakerAccess || 0) +
+        f("qualNeed",                (lead as any).qualNeed                || 0) +
+        f("qualTimeline",            (lead as any).qualTimeline            || 0);
+      finalQualStatus = finalQualScore >= 80 ? "QUALIFIED" : "DISQUALIFIED";
+    }
+
+    // Calculate stageId dynamically if not explicitly provided (e.g. on form Save)
+    let finalStageId: string | null = lead.stageId;
+    if (stageId !== undefined) {
+      finalStageId = stageId;
+    } else {
+      // Reconstruct merged lead with incoming updates to calculate stage completion
+      const mergedLead = {
+        ...lead,
+        companyName: companyName !== undefined ? companyName : lead.companyName,
+        contactPerson: contactPerson !== undefined ? contactPerson : lead.contactPerson,
+        phone: phone !== undefined ? (phone || null) : lead.phone,
+        email: email !== undefined ? (email || null) : lead.email,
+        sourceId: sourceId !== undefined ? sourceId : lead.sourceId,
+        ownerId: ownerId !== undefined ? ownerId : lead.ownerId,
+        businessAge: businessAge !== undefined ? (businessAge || null) : (lead as any).businessAge,
+        teamSize: teamSize !== undefined ? (teamSize || null) : (lead as any).teamSize,
+        painPoints: painPoints !== undefined ? painPoints : lead.painPoints,
+        qualIcpFit: qualIcpFit !== undefined ? qualIcpFit : (lead as any).qualIcpFit,
+        qualBudgetLikelihood: qualBudgetLikelihood !== undefined ? qualBudgetLikelihood : (lead as any).qualBudgetLikelihood,
+        qualDecisionMakerAccess: qualDecisionMakerAccess !== undefined ? qualDecisionMakerAccess : (lead as any).qualDecisionMakerAccess,
+        qualNeed: qualNeed !== undefined ? qualNeed : (lead as any).qualNeed,
+        qualTimeline: qualTimeline !== undefined ? qualTimeline : (lead as any).qualTimeline,
+        classification: classification !== undefined ? (classification || null) : (lead as any).classification,
+        services: services !== undefined ? services : lead.services,
+        nurturingStatus: nurturingStatus !== undefined ? (nurturingStatus || null) : (lead as any).nurturingStatus,
+      };
+
+      const intakeStage = stages.find((s) => s.name === "LEAD_INTAKE");
+      const reviewStage = stages.find((s) => s.name === "BUSINESS_REVIEW");
+      const qualStage = stages.find((s) => s.name === "LEAD_QUALIFICATION");
+      const classStage = stages.find((s) => s.name === "LEAD_CLASSIFICATION");
+      const nurturingStage = stages.find((s) => s.name === "LEAD_NURTURING");
+      const meetingStage = stages.find((s) => s.name === "MEETING");
+
+      // Validate stages sequentially
+      const hasContact = !!(mergedLead.phone || mergedLead.email);
+      const s1Complete = !!(mergedLead.companyName && mergedLead.contactPerson && mergedLead.sourceId && mergedLead.ownerId && hasContact);
+
+      const s2Complete = !!(mergedLead.businessAge || mergedLead.teamSize) && (mergedLead.painPoints?.length ?? 0) > 0;
+
+      const s3Complete = !!(
+        mergedLead.qualIcpFit > 0 &&
+        mergedLead.qualBudgetLikelihood > 0 &&
+        mergedLead.qualDecisionMakerAccess > 0 &&
+        mergedLead.qualNeed > 0 &&
+        mergedLead.qualTimeline > 0
+      );
+
+      const s4Complete = !!(mergedLead.classification && mergedLead.services?.length > 0);
+
+      const needsNurturing = mergedLead.classification === "WARM" || mergedLead.classification === "COLD";
+      const s5Complete = needsNurturing ? !!(mergedLead.nurturingStatus) : true;
+
+      if (!s1Complete) {
+        finalStageId = intakeStage?.id || lead.stageId;
+      } else if (!s2Complete) {
+        finalStageId = reviewStage?.id || lead.stageId;
+      } else if (!s3Complete) {
+        finalStageId = qualStage?.id || lead.stageId;
+      } else if (!s4Complete) {
+        finalStageId = classStage?.id || lead.stageId;
+      } else if (needsNurturing && !s5Complete) {
+        finalStageId = nurturingStage?.id || lead.stageId;
+      } else {
+        finalStageId = meetingStage?.id || lead.stageId;
+      }
     }
 
     // Detect auditable changes
     const auditEntries: { action: string; oldValue: string | null; newValue: string | null }[] = [];
-    if (stageId !== undefined && stageId !== lead.stageId) {
+    if (finalStageId !== lead.stageId) {
       auditEntries.push({
         action: "STAGE_CHANGED",
         oldValue: lead.LeadStage?.label ?? lead.stageId ?? null,
-        newValue: stageId ?? null,
+        newValue: finalStageId ?? null,
       });
     }
     if (ownerId !== undefined && ownerId !== lead.ownerId) {
@@ -201,7 +279,7 @@ export async function PUT(
         newValue: winLossStatus ?? null,
       });
     }
-
+    // Trigger rebuild to reload updated Prisma Client
     const updatedLead = await db.lead.update({
       where: { id },
       data: {
@@ -222,10 +300,10 @@ export async function PUT(
             }
           : {}),
         // Prisma v7: stageId must be set via relation connect/disconnect, not scalar
-        ...(stageId !== undefined
+        ...(finalStageId !== lead.stageId
           ? {
-              LeadStage: stageId
-                ? { connect: { id: stageId } }
+              LeadStage: finalStageId
+                ? { connect: { id: finalStageId } }
                 : { disconnect: true },
             }
           : {}),
@@ -306,15 +384,22 @@ export async function PUT(
         relevantServices: relevantServices !== undefined ? (relevantServices || null) : (lead as any).relevantServices,
         valueProposition: valueProposition !== undefined ? (valueProposition || null) : (lead as any).valueProposition,
         businessConfidence: businessConfidence !== undefined ? (businessConfidence || null) : (lead as any).businessConfidence,
-        // Step 3 — Qualification (6-dimension)
-        qualIcpFit: qualIcpFit !== undefined ? qualIcpFit : (lead as any).qualIcpFit,
-        qualBudgetLikelihood: qualBudgetLikelihood !== undefined ? qualBudgetLikelihood : (lead as any).qualBudgetLikelihood,
-        qualDecisionMakerAccess: qualDecisionMakerAccess !== undefined ? qualDecisionMakerAccess : (lead as any).qualDecisionMakerAccess,
-        qualOperationalFeasibility: qualOperationalFeasibility !== undefined ? qualOperationalFeasibility : (lead as any).qualOperationalFeasibility,
-        qualServiceAlignment: qualServiceAlignment !== undefined ? qualServiceAlignment : (lead as any).qualServiceAlignment,
-        qualGrowthPotential: qualGrowthPotential !== undefined ? qualGrowthPotential : (lead as any).qualGrowthPotential,
-        qualScore: finalQualScore !== undefined ? finalQualScore : (lead as any).qualScore,
-        qualStatus: finalQualStatus !== undefined ? finalQualStatus : (lead as any).qualStatus,
+        // Step 3 — Qualification (BANT + ICP)
+        qualIcpFit:                  qualIcpFit !== undefined ? qualIcpFit : (lead as any).qualIcpFit,
+        qualIcpFitDesc:              qualIcpFitDesc !== undefined ? (qualIcpFitDesc || null) : (lead as any).qualIcpFitDesc,
+        qualBudgetLikelihood:        qualBudgetLikelihood !== undefined ? qualBudgetLikelihood : (lead as any).qualBudgetLikelihood,
+        qualBudgetLikelihoodDesc:    qualBudgetLikelihoodDesc !== undefined ? (qualBudgetLikelihoodDesc || null) : (lead as any).qualBudgetLikelihoodDesc,
+        qualDecisionMakerAccess:     qualDecisionMakerAccess !== undefined ? qualDecisionMakerAccess : (lead as any).qualDecisionMakerAccess,
+        qualDecisionMakerAccessDesc: qualDecisionMakerAccessDesc !== undefined ? (qualDecisionMakerAccessDesc || null) : (lead as any).qualDecisionMakerAccessDesc,
+        qualNeed:                    qualNeed !== undefined ? qualNeed : (lead as any).qualNeed,
+        qualNeedDesc:                qualNeedDesc !== undefined ? (qualNeedDesc || null) : (lead as any).qualNeedDesc,
+        qualTimeline:                qualTimeline !== undefined ? qualTimeline : (lead as any).qualTimeline,
+        qualTimelineDesc:            qualTimelineDesc !== undefined ? (qualTimelineDesc || null) : (lead as any).qualTimelineDesc,
+        qualScore:                   finalQualScore !== undefined ? finalQualScore : (lead as any).qualScore,
+        qualStatus:                  finalQualStatus !== undefined ? finalQualStatus : (lead as any).qualStatus,
+        qualRisks:                   qualRisks !== undefined ? qualRisks : (lead as any).qualRisks,
+        qualOtherRisk:               qualOtherRisk !== undefined ? (qualOtherRisk || null) : (lead as any).qualOtherRisk,
+        qualOutcome:                 qualOutcome !== undefined ? (qualOutcome || null) : (lead as any).qualOutcome,
         // Step 4 — Classification
         classification: classification !== undefined ? (classification || null) : (lead as any).classification,
         nurturingDirection: nurturingDirection !== undefined ? (nurturingDirection || null) : (lead as any).nurturingDirection,
@@ -358,9 +443,9 @@ export async function PUT(
 
     // ─── System-Generated Timeline Activity Logging ──────────────────────────
     // 1. Stage Changed
-    if (stageId !== undefined && stageId !== lead.stageId) {
+    if (finalStageId !== lead.stageId) {
       const oldStageLabel = lead.LeadStage?.label ?? "Intake";
-      const newStage = stageId ? await db.leadStage.findUnique({ where: { id: stageId } }) : null;
+      const newStage = finalStageId ? stages.find(s => s.id === finalStageId) : null;
       const newStageLabel = newStage?.label ?? "Unknown";
       await db.activity.create({
         data: {

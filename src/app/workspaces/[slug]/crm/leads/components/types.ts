@@ -108,15 +108,25 @@ export interface Lead {
   relevantServices: string | null;
   valueProposition: string | null;
   businessConfidence: string | null;
-  // Step 3 — Qualification (6-dimension)
+  // Step 3 — Qualification (BANT + ICP)
   qualIcpFit: number;
   qualBudgetLikelihood: number;
   qualDecisionMakerAccess: number;
   qualOperationalFeasibility: number;
   qualServiceAlignment: number;
   qualGrowthPotential: number;
+  qualNeed: number;
+  qualTimeline: number;
+  qualIcpFitDesc: string | null;
+  qualBudgetLikelihoodDesc: string | null;
+  qualDecisionMakerAccessDesc: string | null;
+  qualNeedDesc: string | null;
+  qualTimelineDesc: string | null;
   qualScore: number;
   qualStatus: string | null;
+  qualRisks: string[];
+  qualOtherRisk: string | null;
+  qualOutcome: string | null;
   // Step 4 — Classification
   classification: string | null;
   nurturingDirection: string | null;
@@ -382,14 +392,21 @@ export const businessReviewV2Schema = z.object({
 });
 export type BusinessReviewV2FormValues = z.infer<typeof businessReviewV2Schema>;
 
-// Step 3 — Qualification (6-dimension model)
+// Step 3 — Qualification (BANT + ICP methodology)
 export const qualificationSchema = z.object({
   qualIcpFit: z.number().min(0).max(25).default(0),
   qualBudgetLikelihood: z.number().min(0).max(25).default(0),
   qualDecisionMakerAccess: z.number().min(0).max(25).default(0),
-  qualOperationalFeasibility: z.number().min(0).max(15).default(0),
-  qualServiceAlignment: z.number().min(0).max(10).default(0),
-  qualGrowthPotential: z.number().min(0).max(10).default(0),
+  qualNeed: z.number().min(0).max(25).default(0),
+  qualTimeline: z.number().min(0).max(25).default(0),
+  qualIcpFitDesc: z.string().optional().nullable().default(""),
+  qualBudgetLikelihoodDesc: z.string().optional().nullable().default(""),
+  qualDecisionMakerAccessDesc: z.string().optional().nullable().default(""),
+  qualNeedDesc: z.string().optional().nullable().default(""),
+  qualTimelineDesc: z.string().optional().nullable().default(""),
+  qualRisks: z.array(z.string()).default([]),
+  qualOtherRisk: z.string().optional().or(z.literal("")),
+  qualOutcome: z.string().nullable().default(null),
   qualificationNotes: z.string().optional().or(z.literal("")),
 });
 export type QualificationFormValues = z.infer<typeof qualificationSchema>;

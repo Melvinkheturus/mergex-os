@@ -11,18 +11,17 @@ export function getStep2Complete(lead: Lead) {
 }
 
 export function getStep3Complete(lead: Lead) {
-  return (
-    lead.qualIcpFit > 0 ||
-    lead.qualBudgetLikelihood >= 0 ||
-    lead.qualDecisionMakerAccess >= 0
-  ) &&
+  return !!(
     lead.qualIcpFit > 0 &&
-    lead.qualOperationalFeasibility > 0 &&
-    lead.qualServiceAlignment > 0 &&
-    lead.qualGrowthPotential > 0;
+    lead.qualBudgetLikelihood > 0 &&
+    lead.qualDecisionMakerAccess > 0 &&
+    lead.qualNeed > 0 &&
+    lead.qualTimeline > 0
+  );
 }
 
 export function getStep4Complete(lead: Lead) {
+  // Classification step is complete when: classification is set + at least one service selected
   return !!(lead.classification && lead.services?.length > 0);
 }
 
@@ -32,9 +31,19 @@ export function buildSteps(lead: Lead, currentStep: number): WizardStep[] {
   const s2 = getStep2Complete(lead);
   const s3 = getStep3Complete(lead);
   const s4 = getStep4Complete(lead);
-  const s5 = lead.classification === "HOT"; // Completed when lead is promoted to HOT
 
-  return [
+  const isHot = lead.classification === "HOT";
+  const isWarm = lead.classification === "WARM";
+  const isCold = lead.classification === "COLD";
+  const isArchive = lead.classification === "ARCHIVE";
+
+  // Nurturing is only relevant for WARM/COLD leads, not HOT
+  const needsNurturing = isWarm || isCold;
+
+  // Step 5 (Nurturing) complete = has nurturing status set
+  const s5 = !!(lead.nurturingStatus);
+
+  const stepsList: WizardStep[] = [
     {
       id: 1,
       label: "Lead Intake",
@@ -66,25 +75,34 @@ export function buildSteps(lead: Lead, currentStep: number): WizardStep[] {
       sublabel: "Set status, services, and deal value",
       isComplete: s4,
       isLocked: !s3,
-      canAdvance: lead.classification === "HOT" || lead.classification === "WARM",
+      // Can advance from classification if classification is HOT, WARM, or COLD
+      canAdvance: isHot || isWarm || isCold,
       badge: lead.classification || undefined,
     },
-    {
+  ];
+
+  if (needsNurturing) {
+    stepsList.push({
       id: 5,
       label: "Nurturing",
       sublabel: "Manage holding state & engagement",
       isComplete: s5,
-      isLocked: !s4 || lead.classification === "COLD" || lead.classification === "ARCHIVE",
-      canAdvance: lead.classification === "HOT",
+      // Nurturing is locked if: classification step not done, OR lead is HOT, OR lead is ARCHIVE
+      isLocked: !s4 || isHot || isArchive,
+      canAdvance: isHot || (needsNurturing && s5),
       badge: lead.nurturingStatus || undefined,
-    },
-    {
-      id: 6,
-      label: "Meeting Readiness",
-      sublabel: "Gate review & discovery meeting prep",
-      isComplete: false,
-      isLocked: lead.classification !== "HOT",
-      canAdvance: true,
-    },
-  ];
+    });
+  }
+
+  stepsList.push({
+    id: 6,
+    label: "Meeting Readiness",
+    sublabel: "Gate review & discovery meeting prep",
+    isComplete: false,
+    // Meeting Readiness unlocks when lead is HOT
+    isLocked: !isHot,
+    canAdvance: isHot,
+  });
+
+  return stepsList;
 }

@@ -2,19 +2,27 @@
 
 import { cn } from "@/lib/utils";
 import { ChevronRight, Check } from "lucide-react";
-import { OptionStage } from "./types";
+import { OptionStage, Lead } from "./types";
 
 interface PipelineBreadcrumbProps {
   stages: OptionStage[];
   currentStageId: string | null;
+  lead?: Lead; // Optional — used to filter Nurturing for HOT leads
 }
 
 const TERMINAL_STAGE_NAMES = ["WON", "LOST", "ON_HOLD"];
 
-export function PipelineBreadcrumb({ stages, currentStageId }: PipelineBreadcrumbProps) {
-  const workflowStages = stages.filter(
-    (s) => !TERMINAL_STAGE_NAMES.includes(s.name)
-  );
+export function PipelineBreadcrumb({ stages, currentStageId, lead }: PipelineBreadcrumbProps) {
+  const needsNurturing = lead?.classification === "WARM" || lead?.classification === "COLD";
+
+  const workflowStages = stages
+    .filter((s) => !TERMINAL_STAGE_NAMES.includes(s.name) && s.name !== "QUALIFICATION_AUDIT")
+    .filter((s) => {
+      if ((s.name || "").toUpperCase().includes("NURTURING")) {
+        return needsNurturing;
+      }
+      return true;
+    });
 
   const currentIndex = workflowStages.findIndex((s) => s.id === currentStageId);
 

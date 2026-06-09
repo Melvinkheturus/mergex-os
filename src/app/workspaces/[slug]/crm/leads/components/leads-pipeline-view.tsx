@@ -5,7 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { toast } from "sonner";
 import { Flame, Thermometer, Snowflake, User, IndianRupee, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Lead, OptionStage, NEXT_ACTION_LABELS, NextActionType } from "./types";
 
 interface LeadsPipelineViewProps {
@@ -95,6 +95,7 @@ function LeadCard({
       {/* Company + Contact */}
       <div className="flex items-start gap-2.5">
         <Avatar className="h-8 w-8 shrink-0 border border-[#8B5CF6]/15 mt-0.5">
+          <AvatarImage src={lead.avatarUrl || ""} alt={lead.companyName} />
           <AvatarFallback className="text-[10px] font-bold bg-[#8B5CF6]/10 text-[#8B5CF6]">
             {initials}
           </AvatarFallback>

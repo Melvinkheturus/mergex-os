@@ -1,11 +1,21 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { CheckCircle2, Circle, Plus, Calendar, User, Flag, Loader2, X } from "lucide-react";
+import { CheckCircle2, Circle, Plus, Calendar, User, Flag, Loader2, X, Clock, UserCheck, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+} from "@/components/ui/r-context-menu";
 import {
   Dialog,
   DialogContent,
@@ -122,6 +132,28 @@ export function TasksCard({ leadId, owners }: TasksCardProps) {
     }
   };
 
+  // ─── Generic task PATCH update ──────────────────────────────────────────────
+  const handleUpdate = async (taskId: string, payload: Partial<Task>) => {
+    // Optimistic update
+    setTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, ...payload } : t))
+    );
+
+    try {
+      const res = await fetch(`/api/crm/leads/${leadId}/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error();
+      toast.success("Task updated");
+      loadTasks();
+    } catch {
+      toast.error("Failed to update task");
+      loadTasks();
+    }
+  };
+
   // ─── Create task ────────────────────────────────────────────────────────────
   const handleCreate = async () => {
     if (!taskName.trim()) { toast.error("Task name is required"); return; }
@@ -198,48 +230,125 @@ export function TasksCard({ leadId, owners }: TasksCardProps) {
           {active.map((task) => {
             const due = getRelativeDue(task.dueDate);
             const assignee = owners.find((o) => o.id === task.assigneeId);
+            
+            const getLocalDateString = (offsetDays: number) => {
+              const d = new Date();
+              d.setDate(d.getDate() + offsetDays);
+              const year = d.getFullYear();
+              const month = String(d.getMonth() + 1).padStart(2, "0");
+              const day = String(d.getDate()).padStart(2, "0");
+              return `${year}-${month}-${day}`;
+            };
+
             return (
-              <div
-                key={task.id}
-                className="group flex items-start gap-2.5 px-2 py-2 rounded-lg hover:bg-muted/30 transition-colors"
-              >
-                <button
-                  type="button"
-                  onClick={() => handleToggle(task.id)}
-                  className="mt-0.5 shrink-0 text-muted-foreground hover:text-[#8B5CF6] transition-colors"
-                >
-                  <Circle className="h-3.5 w-3.5" />
-                </button>
-                <div className="flex-1 min-w-0 space-y-0.5">
-                  <p className="text-xs font-semibold text-foreground leading-tight truncate">
-                    {task.name}
-                  </p>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {due.label && (
-                      <span className={`text-[9px] font-bold flex items-center gap-0.5 ${due.urgent ? "text-red-500" : "text-muted-foreground/70"}`}>
-                        <Calendar className="h-2.5 w-2.5" />
-                        {due.label}
-                      </span>
-                    )}
-                    {assignee && (
-                      <span className="text-[9px] text-muted-foreground/60 flex items-center gap-0.5">
-                        <User className="h-2.5 w-2.5" />
-                        {assignee.firstName}
-                      </span>
-                    )}
-                    <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded-full border ${PRIORITY_CONFIG[task.priority]}`}>
-                      {task.priority}
-                    </span>
+              <ContextMenu key={task.id}>
+                <ContextMenuTrigger asChild>
+                  <div className="group flex items-start gap-2.5 px-2 py-2 rounded-lg hover:bg-muted/30 transition-colors cursor-context-menu">
+                    <button
+                      type="button"
+                      onClick={() => handleToggle(task.id)}
+                      className="mt-0.5 shrink-0 text-muted-foreground hover:text-[#8B5CF6] transition-colors"
+                    >
+                      <Circle className="h-3.5 w-3.5" />
+                    </button>
+                    <div className="flex-1 min-w-0 space-y-0.5">
+                      <p className="text-xs font-semibold text-foreground leading-tight truncate">
+                        {task.name}
+                      </p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {due.label && (
+                          <span className={`text-[9px] font-bold flex items-center gap-0.5 ${due.urgent ? "text-red-500" : "text-muted-foreground/70"}`}>
+                            <Calendar className="h-2.5 w-2.5" />
+                            {due.label}
+                          </span>
+                        )}
+                        {assignee && (
+                          <span className="text-[9px] text-muted-foreground/60 flex items-center gap-0.5">
+                            <User className="h-2.5 w-2.5" />
+                            {assignee.firstName}
+                          </span>
+                        )}
+                        <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded-full border ${PRIORITY_CONFIG[task.priority]}`}>
+                          {task.priority}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(task.id)}
+                      className="opacity-0 group-hover:opacity-100 text-muted-foreground/40 hover:text-red-400 transition-all mt-0.5 shrink-0"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
                   </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleDelete(task.id)}
-                  className="opacity-0 group-hover:opacity-100 text-muted-foreground/40 hover:text-red-400 transition-all mt-0.5 shrink-0"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
+                </ContextMenuTrigger>
+
+                <ContextMenuContent className="w-52">
+                  <ContextMenuItem onClick={() => handleToggle(task.id)}>
+                    <CheckCircle2 className="size-3.5 opacity-70 mr-2" />
+                    Mark as Completed
+                  </ContextMenuItem>
+
+                  <ContextMenuSub>
+                    <ContextMenuSubTrigger>
+                      <Calendar className="size-3.5 opacity-70 mr-2" />
+                      Reschedule
+                    </ContextMenuSubTrigger>
+                    <ContextMenuSubContent className="w-44">
+                      <ContextMenuItem onClick={() => handleUpdate(task.id, { dueDate: getLocalDateString(0) })}>
+                        Today
+                      </ContextMenuItem>
+                      <ContextMenuItem onClick={() => handleUpdate(task.id, { dueDate: getLocalDateString(1) })}>
+                        Tomorrow
+                      </ContextMenuItem>
+                      <ContextMenuItem onClick={() => handleUpdate(task.id, { dueDate: getLocalDateString(7) })}>
+                        Next Week
+                      </ContextMenuItem>
+                      <ContextMenuSeparator />
+                      <ContextMenuItem onClick={() => handleUpdate(task.id, { dueDate: null })}>
+                        Clear Due Date
+                      </ContextMenuItem>
+                    </ContextMenuSubContent>
+                  </ContextMenuSub>
+
+                  <ContextMenuSub>
+                    <ContextMenuSubTrigger>
+                      <UserCheck className="size-3.5 opacity-70 mr-2" />
+                      Assign Task
+                    </ContextMenuSubTrigger>
+                    <ContextMenuSubContent className="w-48">
+                      {owners.map((owner) => (
+                        <ContextMenuItem
+                          key={owner.id}
+                          onClick={() => handleUpdate(task.id, { assigneeId: owner.id })}
+                        >
+                          <span className="flex items-center gap-1.5 truncate">
+                            {owner.avatarUrl ? (
+                              <img src={owner.avatarUrl} className="h-3.5 w-3.5 rounded-full shrink-0" alt="" />
+                            ) : (
+                              <span className="h-3.5 w-3.5 rounded-full bg-violet-500/10 text-violet-500 text-[8px] flex items-center justify-center shrink-0">
+                                {owner.firstName?.[0] || "U"}
+                              </span>
+                            )}
+                            {`${owner.firstName || ""} ${owner.lastName || ""}`.trim()}
+                          </span>
+                        </ContextMenuItem>
+                      ))}
+                      <ContextMenuSeparator />
+                      <ContextMenuItem onClick={() => handleUpdate(task.id, { assigneeId: null })}>
+                        Unassigned
+                      </ContextMenuItem>
+                    </ContextMenuSubContent>
+                  </ContextMenuSub>
+
+                  <ContextMenuSeparator />
+
+                  <ContextMenuItem variant="destructive" onClick={() => handleDelete(task.id)}>
+                    <Trash2 className="size-3.5 opacity-70 mr-2" />
+                    Delete Task
+                  </ContextMenuItem>
+                </ContextMenuContent>
+              </ContextMenu>
             );
           })}
 
@@ -247,28 +356,43 @@ export function TasksCard({ leadId, owners }: TasksCardProps) {
           {completed.length > 0 && (
             <div className="border-t border-border/10 pt-1 mt-1 space-y-1">
               {completed.map((task) => (
-                <div
-                  key={task.id}
-                  className="group flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-muted/20 transition-colors"
-                >
-                  <button
-                    type="button"
-                    onClick={() => handleToggle(task.id)}
-                    className="shrink-0 text-[#8B5CF6]"
-                  >
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                  </button>
-                  <p className="text-[10px] font-medium text-muted-foreground/50 line-through flex-1 truncate">
-                    {task.name}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(task.id)}
-                    className="opacity-0 group-hover:opacity-100 text-muted-foreground/40 hover:text-red-400 transition-all shrink-0"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
+                <ContextMenu key={task.id}>
+                  <ContextMenuTrigger asChild>
+                    <div className="group flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-muted/20 transition-colors cursor-context-menu">
+                      <button
+                        type="button"
+                        onClick={() => handleToggle(task.id)}
+                        className="shrink-0 text-[#8B5CF6]"
+                      >
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                      </button>
+                      <p className="text-[10px] font-medium text-muted-foreground/50 line-through flex-1 truncate">
+                        {task.name}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(task.id)}
+                        className="opacity-0 group-hover:opacity-100 text-muted-foreground/40 hover:text-red-400 transition-all shrink-0"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </ContextMenuTrigger>
+                  
+                  <ContextMenuContent className="w-50">
+                    <ContextMenuItem onClick={() => handleToggle(task.id)}>
+                      <Circle className="size-3.5 opacity-70 mr-2" />
+                      Mark as In Progress
+                    </ContextMenuItem>
+                    
+                    <ContextMenuSeparator />
+                    
+                    <ContextMenuItem variant="destructive" onClick={() => handleDelete(task.id)}>
+                      <Trash2 className="size-3.5 opacity-70 mr-2" />
+                      Delete Task
+                    </ContextMenuItem>
+                  </ContextMenuContent>
+                </ContextMenu>
               ))}
             </div>
           )}
