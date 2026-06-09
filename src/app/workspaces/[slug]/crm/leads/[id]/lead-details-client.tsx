@@ -30,6 +30,7 @@ import {
   getStep1Complete,
   getStep2Complete,
   getStep3Complete,
+  getStep4Complete,
   buildSteps
 } from "../components/wizard-helpers";
 
@@ -142,34 +143,22 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
       const data: Lead = await leadRes.json();
       setLead(data);
 
-      // Determine starting step directly from lead's database stage name
-      const stageName = data.stage?.name || "";
-      if (stageName === "LEAD_INTAKE") {
-        setCurrentStep(1);
-      } else if (stageName === "BUSINESS_REVIEW") {
-        setCurrentStep(2);
-      } else if (stageName === "LEAD_QUALIFICATION") {
-        setCurrentStep(3);
-      } else if (stageName === "LEAD_CLASSIFICATION") {
-        setCurrentStep(4);
-      } else if (stageName === "LEAD_NURTURING") {
-        setCurrentStep(5);
-      } else if (stageName === "MEETING") {
-        setCurrentStep(6);
-      } else {
-        // Fallback to data completeness check if stageName is unrecognized/null
-        const s1 = getStep1Complete(data);
-        const s2 = getStep2Complete(data);
-        const s3 = getStep3Complete(data);
+      // Determine starting step using the same first-incomplete-stage logic as the
+      // command center. This is the single source of truth and avoids stale DB
+      // stage names producing the wrong wizard step after a refresh.
+      const _s1 = getStep1Complete(data);
+      const _s2 = getStep2Complete(data);
+      const _s3 = getStep3Complete(data);
+      const _s4 = getStep4Complete(data);
+      const _needsNurturing = data.classification === "WARM" || data.classification === "COLD";
+      const _s5 = _needsNurturing ? !!(data.nurturingStatus) : true;
 
-        if (data.classification === "HOT") setCurrentStep(6);
-        else if (data.classification === "WARM" && s3) setCurrentStep(5);
-        else if (data.classification === "COLD" && s3) setCurrentStep(4);
-        else if (s3) setCurrentStep(4);
-        else if (s2) setCurrentStep(3);
-        else if (s1) setCurrentStep(2);
-        else setCurrentStep(1);
-      }
+      if (!_s1) setCurrentStep(1);
+      else if (!_s2) setCurrentStep(2);
+      else if (!_s3) setCurrentStep(3);
+      else if (!_s4) setCurrentStep(4);
+      else if (_needsNurturing && !_s5) setCurrentStep(5);
+      else setCurrentStep(6);
 
       setIsDataLoaded(false);
 

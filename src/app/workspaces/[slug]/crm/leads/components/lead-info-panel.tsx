@@ -36,40 +36,84 @@ export function LeadInfoPanel({
   savingOwner,
 }: LeadInfoPanelProps) {
   const [now] = useState(() => Date.now());
-  // Health Score Calculations
-  const bh = Math.round((lead.bantScore || 0) * 0.40);
-  const ih = Math.round((lead.icpScore || 0) * 0.20);
-  
-  let eh = 0;
-  if (lead.lastActivityAt) {
-    const diffDays = (now - new Date(lead.lastActivityAt).getTime()) / (1000 * 60 * 60 * 24);
-    if (diffDays <= 7) eh = 20;
-    else if (diffDays <= 14) eh = 10;
-  }
-  
-  let sh = 5;
-  if (lead.stage) {
-    const name = lead.stage.name.toLowerCase();
-    if (name.includes("review") || name.includes("stage2") || name.includes("business")) sh = 10;
-    else if (name.includes("qualification") || name.includes("bant") || name.includes("stage3") || name.includes("qual")) sh = 15;
-    else if (name.includes("classification") || name.includes("stage4") || name.includes("class")) sh = 20;
+
+  // ── Health Score (computed from live qualification + pipeline data) ───────────
+  //
+  // The old formula used bantScore + icpScore (legacy fields that are no longer
+  // updated by the new 6-step wizard forms) and lead.stage.name (which can lag).
+  // We now derive the score entirely from fields that the wizard DOES write:
+  //
+  //  Qualification dimension scores  → max 5 each × 5 dims = 25 pts  (50%)
+  //    • qualIcpFit                  → ICP match (0-5 scale in Step 3 = 0-25 raw)
+  //    • qualBudgetLikelihood        → Budget readiness
+  //    • qualDecisionMakerAccess     → Decision maker reach
+  //    • qualNeed                    → Business need urgency
+  //    • qualTimeline                → Timeline pressure
+  //
+  //  Classification                  → 0-20 pts  (20%)
+  //    • HOT = 20, WARM = 12, COLD = 5, null = 0
+  //
+  //  Engagement recency              → 0-20 pts  (20%)
+  //    • last activity ≤7d=20, ≤14d=12, ≤30d=6, else=0
+  //
+  //  Pipeline completeness           → 0-10 pts  (10%)
+  //    • steps completed (1-6) × 10/6 per completed step
+
+  // 1. Qualification score: each dim is stored 0-25 in DB, normalise to 0-5 max each → sum 0-25 pts total
+  const q1 = Math.min(5, Math.round((lead.qualIcpFit || 0) / 5));
+  const q2 = Math.min(5, Math.round((lead.qualBudgetLikelihood || 0) / 5));
+  const q3 = Math.min(5, Math.round((lead.qualDecisionMakerAccess || 0) / 5));
+  const q4 = Math.min(5, Math.round((lead.qualNeed || 0) / 5));
+  const q5 = Math.min(5, Math.round((lead.qualTimeline || 0) / 5));
+  const qualPoints = (q1 + q2 + q3 + q4 + q5) * 2; // 0-50
+
+  // 2. Classification points
+  let classPoints = 0;
+  if (lead.classification === "HOT") classPoints = 20;
+  else if (lead.classification === "WARM") classPoints = 12;
+  else if (lead.classification === "COLD") classPoints = 5;
+
+  // 3. Engagement recency
+  let engPoints = 0;
+  const lastActive = lead.lastActivityAt || lead.lastContactAt;
+  if (lastActive) {
+    const diffDays = (now - new Date(lastActive).getTime()) / (1000 * 60 * 60 * 24);
+    if (diffDays <= 7) engPoints = 20;
+    else if (diffDays <= 14) engPoints = 12;
+    else if (diffDays <= 30) engPoints = 6;
   }
 
-  const healthScore = Math.min(100, Math.max(0, bh + ih + eh + sh));
+  // 4. Pipeline completeness (how many steps are non-trivially filled)
+  const stepsComplete = [
+    !!(lead.companyName && lead.contactPerson && lead.sourceId && (lead.phone || lead.email)), // s1
+    !!((lead.businessAge || lead.teamSize) && (lead.painPoints?.length ?? 0) > 0),             // s2
+    !!(lead.qualIcpFit > 0 && lead.qualBudgetLikelihood > 0 && lead.qualDecisionMakerAccess > 0 && lead.qualNeed > 0 && lead.qualTimeline > 0), // s3
+    !!(lead.classification && lead.services?.length > 0),                                      // s4
+    !!(lead.nurturingStatus),                                                                  // s5
+    lead.classification === "HOT",                                                             // s6 unlock condition
+  ];
+  const completedSteps = stepsComplete.filter(Boolean).length;
+  const pipelinePoints = Math.round((completedSteps / 6) * 10);
 
-  // Health Score Label & Color mapping
+  const healthScore = Math.min(100, qualPoints + classPoints + engPoints + pipelinePoints);
+
+  // Health Score Label & Color mapping — also respect classification as a source of truth
+  const isHotLead = lead.classification === "HOT" || healthScore > 80;
+  const isWarmLead = lead.classification === "WARM" || (healthScore > 60 && !isHotLead);
+  const isWarmingUp = healthScore > 30 && !isHotLead && !isWarmLead;
+
   let healthLabel = "Cold Lead";
   let healthRingColor = "stroke-rose-500";
   let healthTextColor = "text-rose-500 bg-rose-500/10 border-rose-500/20";
-  if (healthScore > 80) {
+  if (isHotLead) {
     healthLabel = "Hot Opportunity";
     healthRingColor = "stroke-emerald-500";
     healthTextColor = "text-emerald-500 bg-emerald-500/10 border-emerald-500/20";
-  } else if (healthScore > 60) {
+  } else if (isWarmLead) {
     healthLabel = "Strong Prospect";
     healthRingColor = "stroke-[#8B5CF6]";
     healthTextColor = "text-[#8B5CF6] bg-[#8B5CF6]/10 border-[#8B5CF6]/20";
-  } else if (healthScore > 30) {
+  } else if (isWarmingUp) {
     healthLabel = "Warming Up";
     healthRingColor = "stroke-amber-500";
     healthTextColor = "text-amber-500 bg-amber-500/10 border-amber-500/20";
