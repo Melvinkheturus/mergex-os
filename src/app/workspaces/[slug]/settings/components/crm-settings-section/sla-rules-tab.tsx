@@ -15,6 +15,11 @@ export function SlaRulesTab({
 }) {
   return (
     <div className="space-y-6">
+      {settings.slaEnabled === false && (
+        <div className="p-4 rounded-xl border border-red-500/20 bg-red-500/5 text-left text-xs font-semibold text-red-600 dark:text-red-400">
+          ⚠️ The SLA System is globally disabled. The active rules below will not be monitored or enforced across the platform.
+        </div>
+      )}
       
       {/* Lead Operations Table */}
       <Card className="glass-frost-card border border-border/20 rounded-[20px] shadow-sm">

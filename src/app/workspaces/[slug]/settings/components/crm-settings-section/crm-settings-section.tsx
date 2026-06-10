@@ -5,6 +5,7 @@ import { useSearchParams, useParams } from "next/navigation";
 import { Clock, ShieldAlert, Calendar, PauseCircle, Save } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { LoaderIcon } from "../profile-section";
 import { SettingsPageProps } from "../../types";
@@ -15,6 +16,8 @@ import { BusinessHoursTab } from "./business-hours-tab";
 import { PauseRulesTab } from "./pause-rules-tab";
 
 export const DEFAULT_CRM_SETTINGS = {
+  slaEnabled: true,
+  escalationEnabled: true,
   leadSlas: [
     { stage: "Lead Intake", duration: 4, unit: "Hours" },
     { stage: "Business Review", duration: 24, unit: "Hours" },
@@ -65,39 +68,76 @@ export function CrmSettingsSection({ user }: { user: SettingsPageProps["user"] }
   }, [searchParams]);
 
   // Settings State
-  const [settings, setSettings] = useState(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem(`mergex_crm_settings_${slug}`);
-      if (stored) {
-        try {
-          return { ...DEFAULT_CRM_SETTINGS, ...JSON.parse(stored) };
-        } catch {}
-      }
-    }
-    return DEFAULT_CRM_SETTINGS;
-  });
+  const [settings, setSettings] = useState(DEFAULT_CRM_SETTINGS);
+  const [initialSettings, setInitialSettings] = useState(DEFAULT_CRM_SETTINGS);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  const [initialSettings, setInitialSettings] = useState(settings);
+  // Load settings on mount (DB first, fallback to localStorage)
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await fetch(`/api/crm/settings?slug=${slug}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.settings) {
+            setSettings({ ...DEFAULT_CRM_SETTINGS, ...data.settings });
+            setInitialSettings({ ...DEFAULT_CRM_SETTINGS, ...data.settings });
+            return;
+          }
+        }
+        
+        // Fallback to localStorage if not set in DB yet
+        if (typeof window !== "undefined") {
+          const stored = localStorage.getItem(`mergex_crm_settings_${slug}`);
+          if (stored) {
+            try {
+              const parsed = JSON.parse(stored);
+              setSettings({ ...DEFAULT_CRM_SETTINGS, ...parsed });
+              setInitialSettings({ ...DEFAULT_CRM_SETTINGS, ...parsed });
+            } catch {}
+          }
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [slug]);
 
   const isDirty = JSON.stringify(settings) !== JSON.stringify(initialSettings);
 
-  const [saving, setSaving] = useState(false);
-
-  const handleSave = () => {
+  const handleSave = async () => {
     setSaving(true);
-    setTimeout(() => {
+    try {
+      const res = await fetch(`/api/crm/settings?slug=${slug}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(settings),
+      });
+      if (!res.ok) throw new Error("Failed to save settings");
+      
       setInitialSettings(settings);
       localStorage.setItem(`mergex_crm_settings_${slug}`, JSON.stringify(settings));
       toast.success("CRM Settings saved successfully!");
-      setSaving(false);
       window.dispatchEvent(new CustomEvent("crm-settings-updated"));
-    }, 600);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to save settings. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   // Toast wrapper inside module
   const toast = {
     success: (message: string) => {
       import("sonner").then((mod) => mod.toast.success(message));
+    },
+    error: (message: string) => {
+      import("sonner").then((mod) => mod.toast.error(message));
     }
   };
 
@@ -134,11 +174,24 @@ export function CrmSettingsSection({ user }: { user: SettingsPageProps["user"] }
   };
 
   const subTabs = [
-    { id: "sla", label: "SLA Rules", icon: Clock },
-    { id: "escalation", label: "Escalation Rules", icon: ShieldAlert },
-    { id: "hours", label: "Business Hours", icon: Calendar },
-    { id: "pause", label: "Pause Rules", icon: PauseCircle },
+    { id: "sla", label: "SLA Rules", icon: Clock, enabled: settings.slaEnabled !== false },
+    { id: "escalation", label: "Escalation Rules", icon: ShieldAlert, enabled: settings.escalationEnabled !== false },
+    { id: "hours", label: "Business Hours", icon: Calendar, enabled: true },
+    { id: "pause", label: "Pause Rules", icon: PauseCircle, enabled: settings.slaEnabled !== false },
   ];
+
+  if (loading) {
+    return (
+      <div className="space-y-6 animate-pulse text-left">
+        <div className="flex justify-between items-center pb-4 border-b border-border/10">
+          <div className="h-8 w-48 bg-muted rounded-lg" />
+          <div className="h-8 w-36 bg-muted rounded-lg" />
+        </div>
+        <div className="h-10 w-full bg-muted rounded-lg" />
+        <div className="h-64 bg-muted rounded-2xl" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -165,6 +218,40 @@ export function CrmSettingsSection({ user }: { user: SettingsPageProps["user"] }
         </div>
       </div>
 
+      {/* Global Toggle Switch Panel for Super Admin */}
+      {user?.role?.name === "super_admin" && (
+        <div className="p-4 rounded-2xl border border-violet-500/20 bg-violet-500/5 flex flex-col sm:flex-row gap-6 justify-between items-stretch sm:items-center text-left">
+          <div className="space-y-1">
+            <h4 className="text-xs font-bold text-foreground">Global CRM Feature Gates</h4>
+            <p className="text-[10px] text-muted-foreground">
+              Turn SLA monitoring and Escalation systems ON/OFF globally. Changes immediately affect all users.
+            </p>
+          </div>
+          <div className="flex items-center gap-6 flex-wrap sm:flex-nowrap shrink-0">
+            <div className="flex items-center gap-2">
+              <Switch
+                id="toggle-sla"
+                checked={settings.slaEnabled !== false}
+                onCheckedChange={(checked) => setSettings({ ...settings, slaEnabled: checked })}
+              />
+              <label htmlFor="toggle-sla" className="text-xs font-bold text-foreground cursor-pointer select-none">
+                SLA System {settings.slaEnabled !== false ? "ON" : "OFF"}
+              </label>
+            </div>
+            <div className="flex items-center gap-2 sm:border-l sm:border-border/20 sm:pl-6">
+              <Switch
+                id="toggle-escalation"
+                checked={settings.escalationEnabled !== false}
+                onCheckedChange={(checked) => setSettings({ ...settings, escalationEnabled: checked })}
+              />
+              <label htmlFor="toggle-escalation" className="text-xs font-bold text-foreground cursor-pointer select-none">
+                Escalation {settings.escalationEnabled !== false ? "ON" : "OFF"}
+              </label>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="space-y-6">
         {/* Horizontal Sub-tabs list */}
         <div className="flex border-b border-border/10 pb-px overflow-x-auto no-scrollbar gap-8">
@@ -183,7 +270,12 @@ export function CrmSettingsSection({ user }: { user: SettingsPageProps["user"] }
                 )}
               >
                 <ActiveIcon className="h-4 w-4 shrink-0" />
-                {subTab.label}
+                <span>{subTab.label}</span>
+                {!subTab.enabled && (
+                  <span className="text-[9px] font-black text-rose-500 uppercase tracking-wider ml-0.5">
+                    (Off)
+                  </span>
+                )}
                 {isActive && (
                   <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#8B5CF6] rounded-full shadow-[0_1px_8px_rgba(139,92,246,0.5)]" />
                 )}

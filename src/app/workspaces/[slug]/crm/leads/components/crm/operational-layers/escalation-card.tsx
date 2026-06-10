@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 import { AlertTriangle, User, Clock, ShieldAlert } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Lead, Activity as LeadActivity } from "../../types";
@@ -27,6 +28,38 @@ function formatDuration(ms: number): string {
 }
 
 export function EscalationCard({ lead }: EscalationCardProps) {
+  const params = useParams();
+  const slug = params?.slug as string | undefined;
+  const [slaEnabled, setSlaEnabled] = useState(true);
+  const [escalationEnabled, setEscalationEnabled] = useState(true);
+
+  useEffect(() => {
+    if (!slug) return;
+    let active = true;
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch(`/api/crm/settings?slug=${slug}`);
+        if (res.ok && active) {
+          const data = await res.json();
+          if (data) {
+            if (typeof data.slaEnabled === "boolean") {
+              setSlaEnabled(data.slaEnabled);
+            }
+            if (typeof data.escalationEnabled === "boolean") {
+              setEscalationEnabled(data.escalationEnabled);
+            }
+          }
+        }
+      } catch {
+        // silent
+      }
+    };
+    fetchSettings();
+    return () => {
+      active = false;
+    };
+  }, [slug]);
+
   const [isBreached, setIsBreached] = useState(false);
   const [isResolved, setIsResolved] = useState(false);
   const [overdueMs, setOverdueMs] = useState(0);
@@ -87,8 +120,8 @@ export function EscalationCard({ lead }: EscalationCardProps) {
     return () => clearInterval(interval);
   }, [isResolved, lead.createdAt]);
 
-  // Card is only shown when SLA is breached and NOT resolved
-  if (!isBreached || isResolved) return null;
+  // Card is only shown when SLA is breached and NOT resolved, AND settings allow it
+  if (!slaEnabled || !escalationEnabled || !isBreached || isResolved) return null;
 
   const activeEscalation = ESCALATION_LEVELS.find((e) => e.level === currentLevel);
   const ownerName = lead.owner

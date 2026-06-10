@@ -65,6 +65,7 @@ model Brand {
   color           String?           @default("violet")
   description     String?
   status          String            @default("active")
+  crmSettings     String?
   Client          Client[]
   Lead            Lead[]
   LeadSource      LeadSource[]

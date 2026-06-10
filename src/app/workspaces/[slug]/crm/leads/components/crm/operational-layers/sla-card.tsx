@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useParams } from "next/navigation";
 import { Clock, CheckCircle2, AlertTriangle, ShieldAlert } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Lead, Activity as LeadActivity } from "../../types";
@@ -25,6 +26,32 @@ function formatDuration(ms: number): string {
 }
 
 export function SlaCard({ lead }: SlaCardProps) {
+  const params = useParams();
+  const slug = params?.slug as string | undefined;
+  const [slaEnabled, setSlaEnabled] = useState(true);
+
+  useEffect(() => {
+    if (!slug) return;
+    let active = true;
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch(`/api/crm/settings?slug=${slug}`);
+        if (res.ok && active) {
+          const data = await res.json();
+          if (data && typeof data.slaEnabled === "boolean") {
+            setSlaEnabled(data.slaEnabled);
+          }
+        }
+      } catch {
+        // silent
+      }
+    };
+    fetchSettings();
+    return () => {
+      active = false;
+    };
+  }, [slug]);
+
   const [activities, setActivities] = useState<LeadActivity[]>([]);
   const [slaState, setSlaState] = useState<SlaState>("ON_TRACK");
   const [timeDisplay, setTimeDisplay] = useState("0d 4h 00m 00s");
@@ -161,6 +188,8 @@ export function SlaCard({ lead }: SlaCardProps) {
 
   const createdAt = new Date(createdAtMs);
   const targetAt = new Date(targetAtMs);
+
+  if (!slaEnabled) return null;
 
   return (
     <Card className={`border ${c.border} shadow-sm rounded-2xl bg-card`}>
