@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DateTimePicker } from "@/components/ui/datetime-picker";
 import { toast } from "sonner";
 import { Lead } from "../../types";
 
@@ -120,11 +121,10 @@ export function ReopenLogicCard({ lead, onLeadUpdate }: ReopenLogicCardProps) {
             Schedule Next Reopen
           </Label>
           <div className="flex gap-2">
-            <Input
-              id="nextReopenDate"
-              type="date"
+            <DateTimePicker
               value={nextReopen}
-              onChange={(e) => setNextReopen(e.target.value)}
+              onChange={(val) => setNextReopen(val)}
+              mode="date"
               className="h-8 text-xs flex-1"
             />
             <Button

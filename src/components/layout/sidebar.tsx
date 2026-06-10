@@ -25,15 +25,14 @@ interface SidebarProps {
 
 const SUB_ITEMS: Record<string, { title: string; href: string }[]> = {
   CRM: [
-    { title: "Leads", href: "/dashboard/crm/leads" },
-    { title: "Meetings", href: "/dashboard/crm/meetings" },
-    { title: "Proposals", href: "/dashboard/crm/proposals" },
+    { title: "Lead Operations", href: "/dashboard/crm/leads" },
+    { title: "Sales Conversion", href: "/dashboard/crm/sales-conversion" },
   ],
   Clients: [
+    { title: "Active Clients", href: "/dashboard/clients/active" },
     { title: "Projects", href: "/dashboard/clients/projects" },
-    { title: "Reports", href: "/dashboard/clients/reports" },
-    { title: "Financials", href: "/dashboard/clients/financials" },
-    { title: "Timeline", href: "/dashboard/clients/timeline" },
+    { title: "Support", href: "/dashboard/clients/support" },
+    { title: "Renewals", href: "/dashboard/clients/renewals" },
   ],
   Documents: [
     { title: "Templates", href: "/dashboard/documents/templates" },
@@ -88,7 +87,7 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
         )}
       >
         {/* ── Logo ── */}
-        <div className="flex items-center px-3.5 border-b border-transparent pt-[16px] h-[64px]">
+        <div className="flex items-center px-3.5 border-b border-neutral-200/60 dark:border-white/5 pt-[16px] h-[64px]">
           {collapsed ? (
             /* Collapsed: logo visible by default; hover reveals expand icon */
             <Tooltip>
@@ -142,7 +141,7 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
         </div>
 
         {/* ── Primary Navigation ── */}
-        <nav className="flex-1 overflow-y-auto pt-6 pb-3 px-3 space-y-0.5">
+        <nav className="flex-1 overflow-y-auto pt-6 pb-3 px-3 space-y-1.5">
           {navGroups.flatMap((group) =>
             group.items.map((item) => {
               const Icon = item.icon;
@@ -153,6 +152,8 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
                   : pathname.startsWith(dynamicHref);
               const isFrozen = !!item.isComingSoon;
               const subItems = SUB_ITEMS[item.title];
+              const hasActiveSubItem = subItems?.some((sub) => pathname.startsWith(getDynamicHref(sub.href)));
+              const isParentHighlighted = isActive && !hasActiveSubItem;
               const isAccordionOpen = !!openAccordions[item.title];
 
               const linkEl = (
@@ -163,10 +164,12 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
                     !collapsed && subItems && toggleAccordion(item.title, e)
                   }
                   className={cn(
-                    "flex items-center gap-3 px-2 py-[7px] rounded-md transition-colors duration-100",
+                    "flex items-center gap-3 px-2.5 py-2 rounded-md transition-all duration-100",
                     collapsed ? "justify-center" : "",
                     isActive
-                      ? "text-[#8B5CF6] dark:text-[#A78BFA] bg-[#8B5CF6]/5 dark:bg-[#8B5CF6]/10 font-bold"
+                      ? isParentHighlighted
+                        ? "text-[#8B5CF6] dark:text-[#A78BFA] bg-gradient-to-b from-white to-[#8B5CF6]/12 dark:from-[#121118] dark:to-[#8B5CF6]/15 font-bold shadow-[0_1px_2px_rgba(139,92,246,0.05)]"
+                        : "text-[#8B5CF6] dark:text-[#A78BFA] font-bold hover:bg-black/5 dark:hover:bg-white/5"
                       : isFrozen
                       ? "text-neutral-400/30 dark:text-neutral-600/30 pointer-events-none"
                       : "text-neutral-800 dark:text-neutral-200 hover:text-neutral-950 dark:hover:text-neutral-50 hover:bg-black/5 dark:hover:bg-white/5"
@@ -197,7 +200,8 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
                       {subItems && (
                         <ChevronDown
                           className={cn(
-                            "h-3 w-3 shrink-0 text-neutral-500/40 dark:text-neutral-400/40 transition-transform duration-200",
+                            "h-3 w-3 shrink-0 transition-transform duration-200",
+                            isActive ? "text-[#8B5CF6] dark:text-[#A78BFA]" : "text-neutral-500/40 dark:text-neutral-400/40",
                             isAccordionOpen && "rotate-180"
                           )}
                         />
@@ -228,7 +232,7 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
                 <div key={item.title}>
                   {linkEl}
                   {subItems && isAccordionOpen && (
-                    <ul className="ml-[30px] mt-0.5 mb-1 space-y-0.5 border-l border-border/20 pl-3">
+                    <ul className="ml-[30px] mt-1.5 mb-2 space-y-1.5 border-l border-neutral-200/60 dark:border-white/5 pl-3.5">
                       {subItems.map((sub) => {
                         const subHref = getDynamicHref(sub.href);
                         const isSubActive = pathname.startsWith(subHref);
@@ -243,19 +247,13 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
                                 toast.info(`${sub.title} is coming soon.`);
                               } : undefined}
                               className={cn(
-                                "flex items-center gap-1.5 py-1.5 text-[12px] transition-colors",
+                                "group flex items-center px-2.5 py-2 rounded-md text-[11px] transition-all duration-100 w-full",
                                 isSubActive
-                                  ? "text-[#8B5CF6] dark:text-[#A78BFA] font-bold"
-                                  : "text-neutral-700 dark:text-neutral-300 hover:text-neutral-950 dark:hover:text-neutral-50 font-semibold"
+                                  ? "text-[#8B5CF6] dark:text-[#A78BFA] bg-gradient-to-b from-white to-[#8B5CF6]/12 dark:from-[#121118] dark:to-[#8B5CF6]/15 font-bold shadow-[0_1px_2px_rgba(139,92,246,0.05)]"
+                                  : "text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 font-medium hover:bg-black/5 dark:hover:bg-white/5"
                               )}
                             >
-                              <span
-                                className={cn(
-                                  "w-[3px] h-[3px] rounded-full shrink-0",
-                                  isSubActive ? "bg-[#8B5CF6] dark:bg-[#A78BFA]" : "bg-neutral-400 dark:bg-neutral-600"
-                                )}
-                              />
-                              {sub.title}
+                              <span className="whitespace-nowrap">{sub.title}</span>
                             </Link>
                           </li>
                         );
@@ -269,22 +267,22 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
         </nav>
 
         {/* ── Settings (Bottom) ── */}
-        <div className="border-t border-transparent p-3 space-y-1">
+        <div className="border-t border-neutral-200/60 dark:border-white/5 p-3 space-y-1">
           {collapsed ? (
             <Tooltip>
               <TooltipTrigger asChild>
                 <Link
                   href={`/workspaces/${slug}/settings`}
                   className={cn(
-                    "flex items-center justify-center h-9 w-9 mx-auto rounded-md transition-colors",
+                    "flex items-center justify-center h-9 w-9 mx-auto rounded-md transition-all duration-100",
                     pathname.startsWith(`/workspaces/${slug}/settings`)
-                      ? "bg-[#8B5CF6]/10 dark:bg-[#8B5CF6]/20 text-[#8B5CF6] dark:text-[#A78BFA] shadow-xs"
+                      ? "text-[#8B5CF6] dark:text-[#A78BFA] bg-gradient-to-b from-white to-[#8B5CF6]/12 dark:from-[#121118] dark:to-[#8B5CF6]/15 shadow-[0_1px_2px_rgba(139,92,246,0.05)]"
                       : "text-neutral-700 dark:text-neutral-300 hover:text-neutral-950 dark:hover:text-neutral-50 hover:bg-black/5 dark:hover:bg-white/5"
                   )}
                 >
                   <Settings
                     className={cn(
-                      "h-[16px] w-[16px] shrink-0",
+                      "h-[16px] w-[16px] shrink-0 transition-colors",
                       pathname.startsWith(`/workspaces/${slug}/settings`)
                         ? "text-[#8B5CF6] dark:text-[#A78BFA]"
                         : "text-neutral-500 dark:text-neutral-400"
@@ -301,15 +299,15 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
             <Link
               href={`/workspaces/${slug}/settings`}
               className={cn(
-                "flex items-center gap-3 px-2 py-[7px] rounded-md text-[13px] transition-colors",
+                "flex items-center gap-3 px-2 py-[7px] rounded-md text-[13px] transition-all duration-100",
                 pathname.startsWith(`/workspaces/${slug}/settings`)
-                  ? "text-[#8B5CF6] dark:text-[#A78BFA] bg-[#8B5CF6]/5 dark:bg-[#8B5CF6]/10 font-bold"
+                  ? "text-[#8B5CF6] dark:text-[#A78BFA] bg-gradient-to-b from-white to-[#8B5CF6]/12 dark:from-[#121118] dark:to-[#8B5CF6]/15 font-bold shadow-[0_1px_2px_rgba(139,92,246,0.05)]"
                   : "text-neutral-800 dark:text-neutral-200 hover:text-neutral-950 dark:hover:text-neutral-50 hover:bg-black/5 dark:hover:bg-white/5 font-semibold"
               )}
             >
               <Settings
                 className={cn(
-                  "h-[16px] w-[16px] shrink-0",
+                  "h-[16px] w-[16px] shrink-0 transition-colors",
                   pathname.startsWith(`/workspaces/${slug}/settings`)
                     ? "text-[#8B5CF6] dark:text-[#A78BFA]"
                     : "text-neutral-500 dark:text-neutral-400"

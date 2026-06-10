@@ -11,35 +11,40 @@ interface HeaderInfo {
 }
 
 const HEADERS: Record<string, HeaderInfo> = {
-  profile: {
+  "my-profile": {
     title: "Profile Configuration",
     subtitle: "Manage your personal profile details, security settings, and preferences",
     icon: User,
   },
-  workspace: {
-    title: "Workspace Settings",
-    subtitle: "Configure brand divisions, defaults, and regional properties",
+  "brand-settings": {
+    title: "Brand Settings",
+    subtitle: "Configure the identity and details of this brand workspace.",
     icon: Building2,
   },
-  team: {
-    title: "Team & Access",
-    subtitle: "Invite colleagues, manage user accounts, and review permissions",
-    icon: Users,
-  },
-  config: {
-    title: "Operational Config",
-    subtitle: "Set custom CRM qualification stages and client lifecycle statuses",
+  "crm-settings": {
+    title: "CRM Operational Settings",
+    subtitle: "Configure pipeline rules, SLAs, escalation triggers, and business hours",
     icon: Settings2,
   },
-  system: {
-    title: "System Preferences",
-    subtitle: "Configure platform upload sizes, audit rules, and view logs",
+  "members": {
+    title: "Members",
+    subtitle: "Manage who has access to this brand workspace",
+    icon: Users,
+  },
+  "audit-logs": {
+    title: "Audit Logs",
+    subtitle: "Chronological record of all actions in this workspace",
     icon: Sliders,
   },
-  notifications: {
+  "notifications": {
     title: "Pulse Engine",
     subtitle: "Configure email delivery and notification channels",
     icon: Bell,
+  },
+  "workspace-preferences": {
+    title: "Workspace Preferences",
+    subtitle: "Manage general workspace options and defaults",
+    icon: Building2,
   },
 };
 
@@ -55,12 +60,12 @@ export function SettingsWorkspaceHeader({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   
-  let key = searchParams.get("tab") || "profile";
+  let key = searchParams.get("tab") || "my-profile";
   if (pathname.includes("/notifications")) {
     key = "notifications";
   }
 
-  const info = HEADERS[key] || HEADERS.profile;
+  const info = HEADERS[key] || HEADERS["my-profile"];
   const Icon = info.icon;
 
   return (

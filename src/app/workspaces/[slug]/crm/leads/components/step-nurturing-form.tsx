@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { DateTimePicker } from "@/components/ui/datetime-picker";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -163,7 +164,11 @@ export function StepNurturingForm({
 
               <div className="space-y-1">
                 <Label className="text-[10px] font-bold text-foreground/60">Follow-up Date & Time</Label>
-                <Input type="datetime-local" className="h-8 text-xs bg-background/50" {...register("nextFollowUpAt")} />
+                <DateTimePicker
+                  value={watch("nextFollowUpAt") || ""}
+                  onChange={(val) => setValue("nextFollowUpAt", val, { shouldDirty: true })}
+                  className="h-8 text-xs bg-background/50 border border-border/30 rounded-lg focus:outline-none"
+                />
               </div>
 
               <div className="space-y-1">

@@ -14,11 +14,13 @@ import {
   Camera,
   ChevronDown,
   Zap,
+  Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { OptionStage, Lead, NEXT_ACTION_LABELS, NextActionType } from "./types";
 import { ImageCropperModal } from "@/components/ui/image-cropper";
 import {
@@ -442,6 +444,13 @@ export function LeadCommandCenter({
                       {lead.leadNumber}
                     </Badge>
                   )}
+                  <Link
+                    href={`/workspaces/${slug}/settings?tab=crm-settings&subTab=sla`}
+                    className="inline-flex items-center justify-center h-5 w-5 rounded-md hover:bg-black/5 dark:hover:bg-white/5 text-muted-foreground hover:text-[#8B5CF6] transition-colors ml-1"
+                    title="Configure Operational SLAs"
+                  >
+                    <Clock className="h-3.5 w-3.5" />
+                  </Link>
                 </div>
                 <p className="text-xs text-muted-foreground font-medium">
                   {lead.industry && <span>{lead.industry} · </span>}

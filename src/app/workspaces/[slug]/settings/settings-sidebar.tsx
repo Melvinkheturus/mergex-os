@@ -5,7 +5,7 @@ import { usePathname, useSearchParams, useParams } from "next/navigation";
 import {
   User,
   Bell,
-  Palette,
+  Building2,
   Users,
   ShieldCheck,
   FileText,
@@ -13,6 +13,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   LogOut,
+  Settings2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -29,6 +30,7 @@ type SettingsTab =
   | "my-profile"
   | "notifications"
   | "brand-settings"
+  | "crm-settings"
   | "workspace-preferences"
   | "members"
   | "audit-logs";
@@ -58,7 +60,8 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Workspace",
     items: [
-      { id: "brand-settings", label: "Brand Settings", href: "/dashboard/settings?tab=brand-settings", icon: Palette, adminOnly: true },
+      { id: "brand-settings", label: "Brand Settings", href: "/dashboard/settings?tab=brand-settings", icon: Building2, adminOnly: true },
+      { id: "crm-settings", label: "CRM Settings", href: "/dashboard/settings?tab=crm-settings", icon: Settings2, adminOnly: true },
     ],
   },
   {

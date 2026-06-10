@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DateTimePicker } from "@/components/ui/datetime-picker";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -419,10 +420,10 @@ export function TasksCard({ leadId, owners }: TasksCardProps) {
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">Due Date</Label>
-                <Input
-                  type="date"
+                <DateTimePicker
                   value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
+                  onChange={(val) => setDueDate(val)}
+                  mode="date"
                   className="h-8 text-xs"
                 />
               </div>
