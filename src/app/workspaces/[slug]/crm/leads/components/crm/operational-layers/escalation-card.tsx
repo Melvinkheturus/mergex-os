@@ -8,7 +8,7 @@ import { Lead, Activity as LeadActivity } from "../../types";
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 const SLA_HOURS = 4;
-const RESPONSE_TYPES = new Set(["CALL", "EMAIL", "WHATSAPP", "TASK"]);
+const RESPONSE_TYPES = new Set(["CALL", "EMAIL", "WHATSAPP", "TASK", "MEETING"]);
 
 const ESCALATION_LEVELS = [
   { level: 1, afterHours: 2,  escalateTo: "Lead Owner",       reason: "No Response" },

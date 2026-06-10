@@ -8,7 +8,7 @@ import { Lead, Activity as LeadActivity } from "../../types";
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 const SLA_HOURS = 4;
-const RESPONSE_TYPES = new Set(["CALL", "EMAIL", "WHATSAPP", "TASK"]);
+const RESPONSE_TYPES = new Set(["CALL", "EMAIL", "WHATSAPP", "TASK", "MEETING"]);
 
 interface SlaCardProps {
   lead: Lead;
@@ -245,7 +245,7 @@ export function SlaCard({ lead }: SlaCardProps) {
         <p className="text-[9px] text-muted-foreground/50 italic">
           {slaState === "COMPLETED"
             ? `First response via ${firstResponseType?.toLowerCase() ?? "activity"}.`
-            : `Target: ${SLA_HOURS}h from creation. Counts on first call, email, WhatsApp, or task.`}
+            : `Target: ${SLA_HOURS}h from creation. Counts on first call, email, WhatsApp, meeting, or task.`}
         </p>
       </CardContent>
     </Card>
