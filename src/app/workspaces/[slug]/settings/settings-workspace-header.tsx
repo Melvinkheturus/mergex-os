@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useSearchParams } from "next/navigation";
-import { User, Building2, Users, Settings2, Sliders, Bell, Menu } from "lucide-react";
+import { User, Building2, Users, Settings2, Sliders, Bell, Menu, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface HeaderInfo {
@@ -15,6 +15,11 @@ const HEADERS: Record<string, HeaderInfo> = {
     title: "Profile Configuration",
     subtitle: "Manage your personal profile details, security settings, and preferences",
     icon: User,
+  },
+  "releases": {
+    title: "Release Manager",
+    subtitle: "Draft, publish, and configure operational updates or popup announcements",
+    icon: Settings2,
   },
   "brand-settings": {
     title: "Brand Settings",

@@ -525,3 +525,32 @@ enum PlanType {
   PRO
   ENTERPRISE
 }
+
+model ChangeLog {
+  id               String          @id @default(dbgenerated("(gen_random_uuid())::text"))
+  version          String          @unique
+  title            String
+  description      String
+  releaseDate      DateTime        @default(now())
+  type             String          @default("minor") // "major" | "minor" | "patch"
+  status           String          @default("published") // "draft" | "published"
+  popupEnabled     Boolean         @default(false)
+  popupTitle       String?
+  popupDescription String?
+  createdAt        DateTime        @default(now())
+  items            ChangeLogItem[]
+}
+
+model ChangeLogItem {
+  id          String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  changelogId String
+  type        String    // "feature" | "improvement" | "fix"
+  category    String    // e.g. "Sales OS", "Client Execution", "Documents", "Platform"
+  subcategory String?   // e.g. "Lead Intake", "Client Onboarding", "Proposal" etc.
+  description String
+  createdAt   DateTime  @default(now())
+  ChangeLog   ChangeLog @relation(fields: [changelogId], references: [id], onDelete: Cascade)
+
+  @@index([changelogId])
+}
+

@@ -12,6 +12,7 @@ import { NextResponse } from "next/server";
 // Public routes - accessible without authentication
 const isPublicRoute = createRouteMatcher([
   "/",               // landing page
+  "/changelog(.*)",  // changelog page (public)
   "/sign-in(.*)",    // Clerk sign-in
   "/sign-up(.*)",    // Clerk sign-up (invite flow)
   "/invite(.*)",     // Custom invite activation page

@@ -42,4 +42,5 @@ export type SettingsTab =
   | "brand-settings"
   | "crm-settings"
   | "members"
+  | "releases"
   | "audit-logs";

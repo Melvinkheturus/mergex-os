@@ -50,7 +50,7 @@ export default async function LandingPage() {
       
       {/* ── TOP NAVIGATION HEADER ────────────────────────────────────────── */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-md border-b border-white/5 animate-header">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-6 py-2.5 flex items-center justify-between">
         
         {/* Left: Big Logo + MERGEX OS in capital (no MergeX text) */}
         <div className="flex items-center gap-3">
@@ -59,17 +59,18 @@ export default async function LandingPage() {
             alt="MergeX OS Logo"
             className="w-12 h-12 md:w-14 md:h-14 object-contain shrink-0"
           />
-          <span className="text-base md:text-lg font-black text-white tracking-widest uppercase">
+          <span className="text-base md:text-lg font-semibold text-white tracking-widest uppercase font-clash">
             MERGEX OS
           </span>
         </div>
 
         {/* Center: nav menus */}
         <nav className="hidden md:flex items-center gap-8 text-[11px] font-bold tracking-widest uppercase text-muted-foreground">
-          <Link href="#" className="text-white transition-colors">Home</Link>
-          <Link href="#preview" className="hover:text-white transition-colors">Preview</Link>
-          <Link href="#about" className="hover:text-white transition-colors">About</Link>
-          <Link href="#features" className="hover:text-white transition-colors">Features</Link>
+          <Link href="/" className="text-white transition-colors">Home</Link>
+          <Link href="/#preview" className="hover:text-white transition-colors">Preview</Link>
+          <Link href="/#about" className="hover:text-white transition-colors">About</Link>
+          <Link href="/#features" className="hover:text-white transition-colors">Features</Link>
+          <Link href="/changelog" className="hover:text-white transition-colors">Changelog</Link>
         </nav>
 
         {/* Right: Login option */}
@@ -234,19 +235,12 @@ export default async function LandingPage() {
         {/* Glow point behind divider */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-px bg-linear-to-r from-transparent via-purple-500/40 to-transparent" />
         
-        <div className="max-w-5xl mx-auto px-6 pb-12 flex justify-center items-center">
-          
-          {/* Left: Brand logo & name */}
-          <div className="flex items-center gap-3">
-            <img
-              src="/logo/mergex-logo.png"
-              alt="MergeX OS Logo"
-              className="w-8 h-8 object-contain shrink-0"
-            />
-            <span className="text-xs font-black text-white tracking-widest uppercase font-sans">
-              MERGEX OS
-            </span>
-          </div>
+        <div className="w-full max-w-none px-8 md:px-16 lg:px-24 pb-2 flex items-center justify-center">
+
+          {/* Center: Tagline ("Experience liftoff" size) */}
+          <span className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-light tracking-tight text-white font-sans text-center">
+            ONE SYSTEM ZERO FRICTION
+          </span>
 
         </div>
 

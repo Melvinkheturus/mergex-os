@@ -4,7 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import { usePathname, useParams } from "next/navigation";
 import { useUser, useClerk } from "@clerk/nextjs";
 import Link from "next/link";
-import { Search, Menu } from "lucide-react";
+import { Search, Menu, Sparkles, Megaphone } from "lucide-react";
+import { ReleaseAnnouncementModal } from "@/components/layout/release-announcement-modal";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -47,8 +48,73 @@ export function TopNav() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [brands, setBrands] = useState<BrandOption[]>([]);
   const { toggle } = useCommandCenter();
+  const [latestRelease, setLatestRelease] = useState<any>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [hasUnseenUpdate, setHasUnseenUpdate] = useState(false);
 
   const isMac = typeof navigator !== "undefined" && /Mac/i.test(navigator.platform);
+
+  useEffect(() => {
+    const fallbackRelease = {
+      id: "initial-setup",
+      version: "1.0.0",
+      title: "MergeX OS Platform Online",
+      description: "Initial platform deployment. Track sales pipelines, manage brands, and store proposals securely.",
+      type: "major",
+      popupTitle: "🚀 MergeX OS Command Center Online",
+      popupDescription: "Welcome to the all-in-one operations system. Explore your brand workspaces, lead lifecycles, and proposal vaults.",
+      releaseDate: new Date().toISOString(),
+      items: [
+        {
+          id: "init-item-1",
+          type: "feature",
+          category: "Platform",
+          description: "SSO auth, multi-brand workspace switcher, and dashboard modules."
+        },
+        {
+          id: "init-item-2",
+          type: "feature",
+          category: "CRM",
+          description: "CRM Sales Conversion pipeline and automated qualification logs."
+        }
+      ]
+    };
+
+    fetch("/api/releases/latest")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.release) {
+          setLatestRelease(data.release);
+          const lastSeenId = localStorage.getItem("lastSeenChangelogId");
+          if (lastSeenId !== data.release.id) {
+            setHasUnseenUpdate(true);
+            if (data.release.popupEnabled) {
+              setModalOpen(true);
+            }
+          }
+        } else {
+          setLatestRelease(fallbackRelease);
+        }
+      })
+      .catch(() => {
+        setLatestRelease(fallbackRelease);
+      });
+  }, []);
+
+  const handleDismissRelease = () => {
+    if (latestRelease) {
+      localStorage.setItem("lastSeenChangelogId", latestRelease.id);
+      setHasUnseenUpdate(false);
+    }
+    setModalOpen(false);
+  };
+
+  const handleWhatsNewClick = () => {
+    if (latestRelease) {
+      localStorage.setItem("lastSeenChangelogId", latestRelease.id);
+      setHasUnseenUpdate(false);
+    }
+  };
 
   // Load brands for switcher
   useEffect(() => {
@@ -115,6 +181,27 @@ export function TopNav() {
           </kbd>
         </button>
 
+        {/* What's New Button */}
+        {hasUnseenUpdate && (
+          <Link
+            href="/changelog"
+            onClick={handleWhatsNewClick}
+            className={cn(
+              "relative flex items-center justify-center h-8 px-2.5 gap-1.5 rounded-md cursor-pointer text-xs transition-all shrink-0",
+              "bg-[#8B5CF6]/5 hover:bg-[#8B5CF6]/15 border border-[#8B5CF6]/20 hover:border-[#8B5CF6]/40",
+              "text-[#8B5CF6] font-bold"
+            )}
+            aria-label="What's New Updates"
+          >
+            <Megaphone className="h-3.5 w-3.5" />
+            <span className="hidden md:inline">What&apos;s New</span>
+            <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-500"></span>
+            </span>
+          </Link>
+        )}
+
         {/* Notifications */}
         <NotificationDropdown />
 
@@ -126,6 +213,13 @@ export function TopNav() {
 
       </div>
     </header>
+
+    <ReleaseAnnouncementModal
+      open={modalOpen}
+      onOpenChange={setModalOpen}
+      release={latestRelease}
+      onDismiss={handleDismissRelease}
+    />
   </div>
   );
 }

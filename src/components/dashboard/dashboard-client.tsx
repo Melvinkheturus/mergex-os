@@ -396,7 +396,7 @@ export function DashboardClient({
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-2">
         <div className="text-left space-y-1">
           <h2 className="text-2xl font-bold tracking-tight text-foreground">
-            {greeting}, {user?.firstName ?? "Teammate"}
+            {greeting}, <span className="font-normal">{user?.firstName ?? "Teammate"}</span>
           </h2>
           <p className="text-xs text-muted-foreground">
             Here's your operational overview for <span className="font-semibold text-foreground/85">{brandName}</span> today.

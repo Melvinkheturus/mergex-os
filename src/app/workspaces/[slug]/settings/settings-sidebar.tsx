@@ -33,6 +33,7 @@ type SettingsTab =
   | "crm-settings"
   | "workspace-preferences"
   | "members"
+  | "releases"
   | "audit-logs";
 
 interface NavItem {
@@ -73,6 +74,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Advanced",
     items: [
+      { id: "releases", label: "Release Manager", href: "/dashboard/settings?tab=releases", icon: Settings2, adminOnly: true },
       { id: "audit-logs", label: "Audit Logs", href: "/dashboard/settings?tab=audit-logs", icon: FileText, adminOnly: true },
     ],
   },

@@ -8,6 +8,7 @@ import { BrandSettingsSection } from "./components/brand-settings-section";
 import { CrmSettingsSection } from "./components/crm-settings-section/crm-settings-section";
 import { MembersSection } from "./components/members-section";
 import { AuditLogsSection } from "./components/audit-logs-section";
+import { ReleasesSection } from "./components/releases-section";
 
 export function SettingsPage({ user, brands, teammates }: SettingsPageProps) {
   const searchParams = useSearchParams();
@@ -29,6 +30,7 @@ export function SettingsPage({ user, brands, teammates }: SettingsPageProps) {
       case "brand-settings":         return <BrandSettingsSection brands={brands} />;
       case "crm-settings":           return <CrmSettingsSection user={user} />;
       case "members":                return <MembersSection teammates={teammates} />;
+      case "releases":               return <ReleasesSection />;
       case "audit-logs":             return <AuditLogsSection />;
       default:                       return <ProfileSection user={user} brands={brands} />;
     }
