@@ -111,13 +111,13 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
                 <button
                   onClick={() => onCollapse(false)}
                   aria-label="Expand sidebar"
-                  className="group/logo relative flex items-center justify-center w-8 h-8 rounded-md hover:bg-black/5 dark:hover:bg-white/5 transition-colors mx-auto"
+                  className="group/logo relative flex items-center justify-center w-9 h-9 rounded-md hover:bg-black/5 dark:hover:bg-white/5 transition-colors mx-auto"
                 >
                   {/* Logo - fades out on hover */}
                   <img
                     src="/logo/mergex-logo.png"
                     alt="MergeX Logo"
-                    className="w-6 h-6 object-contain absolute transition-opacity duration-150 group-hover/logo:opacity-0"
+                    className="w-7 h-7 object-contain absolute transition-opacity duration-150 group-hover/logo:opacity-0"
                   />
                   {/* Expand icon - fades in on hover */}
                   <PanelLeftOpen
@@ -137,7 +137,7 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
                 <img
                   src="/logo/mergex-logo.png"
                   alt="MergeX Logo"
-                  className="w-6 h-6 object-contain shrink-0"
+                  className="w-8 h-8 object-contain shrink-0"
                 />
                 <div className="min-w-0">
                   <span className="font-medium text-[11px] uppercase tracking-widest text-foreground truncate block font-clash">

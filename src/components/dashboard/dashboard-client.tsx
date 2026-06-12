@@ -20,6 +20,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { AreaChart, Area, ResponsiveContainer } from "recharts";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -29,6 +30,17 @@ import {
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 import { AnalyticsWidget } from "@/components/dashboard/analytics-widgets";
+
+// DEMO DATA IMPORT (Easily removable)
+import {
+  demoTeammates,
+  demoClients,
+  demoProposals,
+  demoLeads,
+  demoMeetings,
+  demoActions,
+  demoActivities,
+} from "./demo/demo-data";
 
 // Helper to parse metric values like "124", "68.2%", "$48K", "3", "₹48K"
 const parseKpiValue = (valStr: string) => {
@@ -182,13 +194,13 @@ type KpiType = keyof typeof KPI_POOL;
 const WIDGET_POOL = {
   // CRM
   "pipeline-funnel": { label: "Pipeline Funnel", category: "CRM" },
+  "pipeline-health": { label: "Pipeline Health", category: "CRM" },
+  "pipeline-value": { label: "Pipeline Value", category: "CRM" },
   "lead-sources": { label: "Lead Sources", category: "CRM" },
   "proposal-win-rate": { label: "Proposal Win Rate", category: "CRM" },
   // Clients
   "client-health": { label: "Client Health", category: "Clients" },
   "projects-by-status": { label: "Projects by Status", category: "Clients" },
-  // Team
-  "cx-workload": { label: "CX Workload", category: "Team" },
   // Documents
   "pending-agreements": { label: "Pending Agreements", category: "Documents" },
   "invoice-status": { label: "Invoice Status", category: "Documents" },
@@ -211,8 +223,15 @@ export function DashboardClient({
   const slug = params?.slug as string;
   const [greeting, setGreeting] = useState("Welcome back");
 
-  // Dynamic calculations for KPIs
-  const activeLeadsCount = leads.filter(l => !l.winLossStatus || l.winLossStatus === "OPEN").length;
+  // DEMO DATA MERGE (Easily removable)
+  const combinedLeads = [...leads, ...demoLeads];
+  const combinedMeetings = [...meetings, ...demoMeetings];
+  const combinedProposals = [...proposals, ...demoProposals];
+  const combinedClients = [...clients, ...demoClients];
+  const combinedTeammates = teammates.length > 0 ? teammates : demoTeammates;
+
+  // Dynamic calculations for KPIs (using combined data)
+  const activeLeadsCount = combinedLeads.filter(l => !l.winLossStatus || l.winLossStatus === "OPEN").length;
   
   // Calculate meetings this week
   const startOfWeek = new Date();
@@ -220,37 +239,37 @@ export function DashboardClient({
   startOfWeek.setHours(0, 0, 0, 0);
   const endOfWeek = new Date(startOfWeek);
   endOfWeek.setDate(endOfWeek.getDate() + 7);
-  const meetingsThisWeek = meetings.filter(m => {
+  const meetingsThisWeek = combinedMeetings.filter(m => {
     const d = new Date(m.scheduledAt);
     return d >= startOfWeek && d < endOfWeek;
   }).length;
 
-  const wonLeadsCount = leads.filter(l => l.winLossStatus === "WON").length;
-  const lostLeadsCount = leads.filter(l => l.winLossStatus === "LOST").length;
+  const wonLeadsCount = combinedLeads.filter(l => l.winLossStatus === "WON").length;
+  const lostLeadsCount = combinedLeads.filter(l => l.winLossStatus === "LOST").length;
   const totalClosedLeads = wonLeadsCount + lostLeadsCount;
   const conversionRate = totalClosedLeads > 0 ? ((wonLeadsCount / totalClosedLeads) * 100).toFixed(1) : "0.0";
-  const activeClientsCount = clients.filter(c => c.status === "active").length;
+  const activeClientsCount = combinedClients.filter(c => c.status === "active").length;
 
-  const wonLeadsValue = leads
+  const wonLeadsValue = combinedLeads
     .filter(l => l.winLossStatus === "WON")
     .reduce((sum, l) => sum + (Number(l.expectedValue) || 0), 0);
-  const unpaidExpectedValue = leads
+  const unpaidExpectedValue = combinedLeads
     .filter(l => !l.winLossStatus || l.winLossStatus === "OPEN")
     .reduce((sum, l) => sum + (Number(l.expectedValue) || 0), 0);
-  const overdueActionsCount = leads.filter(l => l.nextActionDate && new Date(l.nextActionDate) < new Date()).length;
+  const overdueActionsCount = combinedLeads.filter(l => l.nextActionDate && new Date(l.nextActionDate) < new Date()).length;
 
   const dynamicKpiPool: Record<KpiType, { label: string; value: string; trend: string; trendUp: boolean; desc: string }> = {
     "active-leads": { 
       label: "Active Leads", 
       value: String(activeLeadsCount), 
-      trend: `${leads.length > 0 ? Math.round((activeLeadsCount / leads.length) * 100) : 0}%`, 
+      trend: `${combinedLeads.length > 0 ? Math.round((activeLeadsCount / combinedLeads.length) * 100) : 0}%`, 
       trendUp: true, 
       desc: "of total leads" 
     },
     "meetings-week": { 
       label: "Meetings This Week", 
       value: String(meetingsThisWeek), 
-      trend: String(meetings.length), 
+      trend: String(combinedMeetings.length), 
       trendUp: true, 
       desc: "total meetings" 
     },
@@ -264,7 +283,7 @@ export function DashboardClient({
     "active-clients": { 
       label: "Active Clients", 
       value: String(activeClientsCount), 
-      trend: String(clients.length), 
+      trend: String(combinedClients.length), 
       trendUp: true, 
       desc: "total onboarded" 
     },
@@ -298,6 +317,45 @@ export function DashboardClient({
     },
   };
 
+  const getKpiSparklineData = (kpiKey: KpiType) => {
+    switch (kpiKey) {
+      case "active-leads": {
+        const val = activeLeadsCount;
+        return [Math.round(val * 0.65), Math.round(val * 0.8), Math.round(val * 0.75), Math.round(val * 0.9), Math.round(val * 0.85), val];
+      }
+      case "meetings-week": {
+        const val = meetingsThisWeek;
+        return [Math.round(val * 0.5), Math.round(val * 0.7), Math.round(val * 0.4), Math.round(val * 0.8), Math.round(val * 0.9), val];
+      }
+      case "proposal-conversion": {
+        const rate = parseFloat(conversionRate) || 50;
+        return [rate - 8, rate - 3, rate - 5, rate + 2, rate - 1, rate];
+      }
+      case "active-clients": {
+        const val = activeClientsCount;
+        return [Math.max(0, val - 3), Math.max(0, val - 2), Math.max(0, val - 2), Math.max(0, val - 1), Math.max(0, val - 1), val];
+      }
+      case "payments-collected": {
+        const val = wonLeadsValue;
+        return [val * 0.4, val * 0.55, val * 0.5, val * 0.8, val * 0.7, val];
+      }
+      case "unpaid-invoices": {
+        const val = unpaidExpectedValue;
+        return [val * 0.9, val * 0.8, val * 0.95, val * 0.85, val * 1.05, val];
+      }
+      case "overdue-actions": {
+        const val = overdueActionsCount;
+        return [val + 2, val + 1, val + 3, val, val + 1, val];
+      }
+      case "completed-tasks": {
+        const val = wonLeadsCount;
+        return [Math.round(val * 0.5), Math.round(val * 0.6), Math.round(val * 0.8), Math.round(val * 0.75), Math.round(val * 0.9), val];
+      }
+      default:
+        return [10, 12, 11, 15, 14, 16];
+    }
+  };
+
   // Layout states for customized KPI slots (4 slots)
   const [kpis, setKpis] = useState<KpiType[]>([
     "active-leads",
@@ -309,13 +367,13 @@ export function DashboardClient({
   // Layout states for customized Analytics panel slots (4 slots)
   const [widgets, setWidgets] = useState<WidgetType[]>([
     "pipeline-funnel",
-    "lead-sources",
-    "client-health",
-    "cx-workload"
+    "pipeline-health",
+    "pipeline-value",
+    "client-health"
   ]);
 
-  // Interactive local Action Center list (starts empty for clean onboarding state)
-  const [actions, setActions] = useState<{ id: string; text: string; urgency: string; done: boolean }[]>([]);
+  // Interactive local Action Center list (starts with demo data, easily removable)
+  const [actions, setActions] = useState<{ id: string; text: string; urgency: string; done: boolean }[]>(demoActions);
 
   // Load customizations on mount
   useEffect(() => {
@@ -337,8 +395,30 @@ export function DashboardClient({
     const savedWidgets = localStorage.getItem("mergex_dashboard_widgets");
     if (savedWidgets) {
       try {
-        const parsed = JSON.parse(savedWidgets) as WidgetType[];
-        if (parsed.length === 4) setWidgets(parsed);
+        const parsed = (JSON.parse(savedWidgets) as string[])
+          .filter(k => k in WIDGET_POOL) as WidgetType[];
+        if (parsed.length === 4) {
+          setWidgets(parsed);
+        } else {
+          const defaultPool = [
+            "pipeline-funnel",
+            "pipeline-health",
+            "pipeline-value",
+            "client-health",
+            "lead-sources",
+            "proposal-win-rate",
+            "projects-by-status",
+            "pending-agreements",
+            "invoice-status"
+          ] as WidgetType[];
+          const uniqueParsed = Array.from(new Set(parsed));
+          while (uniqueParsed.length < 4) {
+            const nextDef = defaultPool.find(d => !uniqueParsed.includes(d));
+            if (!nextDef) break;
+            uniqueParsed.push(nextDef);
+          }
+          setWidgets(uniqueParsed.slice(0, 4));
+        }
       } catch (e) {}
     }
   }, []);
@@ -392,11 +472,24 @@ export function DashboardClient({
 
   return (
     <div className="space-y-8 max-w-[1600px] mx-auto pb-8">
+      {/* Sparkline Gradient Definitions */}
+      <svg className="hidden" aria-hidden="true">
+        <defs>
+          <linearGradient id="emeraldAreaSpark" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#10B981" stopOpacity={0.2} />
+            <stop offset="100%" stopColor="#10B981" stopOpacity={0} />
+          </linearGradient>
+          <linearGradient id="roseAreaSpark" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#EF4444" stopOpacity={0.2} />
+            <stop offset="100%" stopColor="#EF4444" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+      </svg>
       
       {/* ── 1. Page Header (Welcome + Quick Actions) ── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-2">
         <div className="text-left space-y-1">
-          <h2 className="text-2xl font-bold tracking-tight text-foreground">
+          <h2 className="text-2xl font-semibold tracking-tight text-foreground">
             {greeting}, <span className="font-normal">{user?.firstName ?? "Teammate"}</span>
           </h2>
           <p className="text-xs text-muted-foreground">
@@ -440,7 +533,6 @@ export function DashboardClient({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-
         </div>
       </div>
 
@@ -449,9 +541,12 @@ export function DashboardClient({
         {kpis.map((kpiKey, slotIndex) => {
           const kpi = dynamicKpiPool[kpiKey];
           return (
-            <div key={slotIndex} className="relative group/kpi glass-frost-card rounded-[20px] p-6 transition-all flex flex-col justify-between h-[120px] text-left hover:shadow-[0_12px_40px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_16px_48px_rgba(0,0,0,0.4)]">
-              <div className="flex justify-between items-start w-full">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">
+            <div 
+              key={slotIndex} 
+              className="relative group/kpi border border-zinc-200/50 dark:border-zinc-800/50 bg-white/70 dark:bg-[#111114]/70 backdrop-blur-md rounded-2xl p-5 transition-all flex flex-col justify-between h-[135px] text-left hover:shadow-[0_12px_32px_rgba(0,0,0,0.04)] dark:hover:shadow-[0_16px_40px_rgba(0,0,0,0.3)] shadow-[0_2px_8px_rgba(0,0,0,0.01)]"
+            >
+              <div className="flex justify-between items-center w-full">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
                   {kpi.label}
                 </span>
                 
@@ -484,31 +579,60 @@ export function DashboardClient({
                 </DropdownMenu>
               </div>
               
-              <div>
-                <h3 className="text-3xl font-bold tracking-tight text-foreground font-mono leading-none mt-1">
-                  {(() => {
-                    const parsed = parseKpiValue(kpi.value);
-                    return (
-                      <NumberCounter
-                        key={`${kpiKey}-${kpi.value}`}
-                        value={parsed.value}
-                        prefix={parsed.prefix}
-                        suffix={parsed.suffix}
-                        decimals={parsed.decimals}
-                        duration={1.5}
-                        easing="easeOut"
-                      />
-                    );
-                  })()}
-                </h3>
-                <p className="text-[10px] text-muted-foreground/50 mt-1.5 flex items-center gap-1.5">
-                  <span className={kpi.trendUp ? "text-emerald-500 font-bold" : "text-muted-foreground/70 font-semibold"}>
-                    {kpi.trend}
-                  </span>
-                  <span>{kpi.desc}</span>
-                </p>
-              </div>
+              <div className="flex items-end justify-between w-full mt-2">
+                <div className="flex flex-col gap-1 min-w-0 flex-1">
+                  <h3 className="text-3xl font-extrabold tracking-tight text-foreground font-mono leading-none group-hover/kpi:text-[#8B5CF6] transition-colors duration-300">
+                    {(() => {
+                      const parsed = parseKpiValue(kpi.value);
+                      return (
+                        <NumberCounter
+                          key={`${kpiKey}-${kpi.value}`}
+                          value={parsed.value}
+                          prefix={parsed.prefix}
+                          suffix={parsed.suffix}
+                          decimals={parsed.decimals}
+                          duration={1.5}
+                          easing="easeOut"
+                        />
+                      );
+                    })()}
+                  </h3>
+                  
+                  <div className="flex items-center gap-1.5 text-[10px] mt-2 shrink-0">
+                    <span className={cn(
+                      "font-bold flex items-center px-1.5 py-0.5 rounded-md text-[9px] shrink-0 border",
+                      kpi.trendUp 
+                        ? "text-emerald-600 bg-emerald-500/10 border-emerald-500/20 dark:text-emerald-400 dark:bg-emerald-500/5 dark:border-emerald-500/10" 
+                        : "text-amber-600 bg-amber-500/10 border-amber-500/20 dark:text-amber-400 dark:bg-amber-500/5 dark:border-amber-500/10"
+                    )}>
+                      {kpi.trendUp ? "↗" : "↘"} {kpi.trend}
+                    </span>
+                    <span className="text-muted-foreground/60 truncate max-w-[80px] font-semibold" title={kpi.desc}>
+                      {kpi.desc}
+                    </span>
+                  </div>
+                </div>
 
+                {/* Sparkline chart */}
+                <div className="h-11 w-20 shrink-0 opacity-80 group-hover/kpi:opacity-100 transition-opacity duration-300">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart 
+                      data={getKpiSparklineData(kpiKey).map((v, i) => ({ id: i, value: v }))}
+                      margin={{ top: 2, right: 2, left: 2, bottom: 2 }}
+                    >
+                      <Area
+                        type="monotone"
+                        dataKey="value"
+                        stroke={kpi.trendUp ? "#10B981" : "#EF4444"}
+                        strokeWidth={1.5}
+                        fillOpacity={0.15}
+                        fill={kpi.trendUp ? "url(#emeraldAreaSpark)" : "url(#roseAreaSpark)"}
+                        dot={false}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
             </div>
           );
         })}
@@ -519,7 +643,7 @@ export function DashboardClient({
         {widgets.map((widgetKey, slotIndex) => {
           const activeWidget = WIDGET_POOL[widgetKey];
           return (
-            <Card key={slotIndex} className="flex flex-col h-[375px]">
+            <Card key={slotIndex} className="flex flex-col h-[375px] group/card relative">
               <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0 shrink-0 p-6">
                 <div className="space-y-1 text-left">
                   <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
@@ -532,31 +656,34 @@ export function DashboardClient({
                     )}
                     <span>{activeWidget.label}</span>
                   </CardTitle>
-                  <CardDescription className="text-[10px] text-muted-foreground/50 tracking-wider uppercase font-semibold">
-                    Category: {activeWidget.category}
-                  </CardDescription>
                 </div>
 
                 {/* Dropdown panel switcher */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-7 text-[10px] font-bold text-muted-foreground hover:text-[#8B5CF6] hover:bg-muted/40 cursor-pointer rounded-md">
-                      <span>Change Widget</span>
-                      <ChevronDown className="ml-1 h-3 w-3 opacity-60" />
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-7 w-7 text-muted-foreground hover:text-[#8B5CF6] hover:bg-muted/40 cursor-pointer rounded-md opacity-0 group-hover/card:opacity-100 transition-opacity duration-200 focus:outline-hidden"
+                      aria-label="Change Widget"
+                    >
+                      <MoreVertical className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-60 bg-white dark:bg-[#111114] border border-border/20 rounded-xl p-1 shadow-md max-h-80 overflow-y-auto">
                     
                     {/* Helper to render widget items with active state indicators */}
-                    {(["CRM", "Clients", "Team", "Documents"] as const).map((category, catIdx) => (
-                      <div key={category}>
-                        {catIdx > 0 && <DropdownMenuSeparator className="bg-border/10 my-1" />}
-                        <DropdownMenuLabel className="text-[9px] uppercase font-bold text-muted-foreground/60 px-2 py-1">
-                          {category === "CRM" ? "CRM Analytics" : category === "Clients" ? "Client Analytics" : category === "Team" ? "Team Analytics" : "Document Analytics"}
-                        </DropdownMenuLabel>
-                        {(Object.keys(WIDGET_POOL) as WidgetType[])
-                          .filter(k => WIDGET_POOL[k].category === category)
-                          .map(k => {
+                    {(["CRM", "Clients", "Team", "Documents"] as const).map((category, catIdx) => {
+                      const categoryWidgets = (Object.keys(WIDGET_POOL) as WidgetType[])
+                        .filter(k => WIDGET_POOL[k].category === category);
+                      if (categoryWidgets.length === 0) return null;
+                      return (
+                        <div key={category}>
+                          {catIdx > 0 && <DropdownMenuSeparator className="bg-border/10 my-1" />}
+                          <DropdownMenuLabel className="text-[9px] uppercase font-bold text-muted-foreground/60 px-2 py-1">
+                            {category === "CRM" ? "CRM Analytics" : category === "Clients" ? "Client Analytics" : category === "Team" ? "Team Analytics" : "Document Analytics"}
+                          </DropdownMenuLabel>
+                          {categoryWidgets.map(k => {
                             const isCurrentSlot = widgets[slotIndex] === k;
                             const isUsedElsewhere = !isCurrentSlot && widgets.includes(k);
                             return (
@@ -582,20 +709,21 @@ export function DashboardClient({
                               </DropdownMenuItem>
                             );
                           })}
-                      </div>
-                    ))}
+                        </div>
+                      );
+                    })}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </CardHeader>
               <CardContent className="flex-1 flex flex-col justify-center overflow-hidden p-6 pt-0">
-                <AnalyticsWidget 
+                 <AnalyticsWidget 
                   type={widgetKey} 
-                  teammates={teammates} 
+                  teammates={combinedTeammates} 
                   brands={brands} 
-                  leads={leads}
-                  meetings={meetings}
-                  proposals={proposals}
-                  clients={clients}
+                  leads={combinedLeads}
+                  meetings={combinedMeetings}
+                  proposals={combinedProposals}
+                  clients={combinedClients}
                 />
               </CardContent>
             </Card>
@@ -617,14 +745,23 @@ export function DashboardClient({
               Real-time events happening across divisions
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-6 pt-0 grow flex items-center justify-center">
-            {/* Empty state for Activity Feed */}
-            <div className="flex flex-col items-center justify-center py-6 text-center text-xs text-muted-foreground">
-              <Activity className="h-8 w-8 text-muted-foreground/30 mb-2 animate-pulse" />
-              <p className="font-semibold text-foreground">No recent activity</p>
-              <p className="text-[10px] text-muted-foreground/50 mt-0.5 max-w-[280px]">
-                As sales workflows scale, real-time trigger notifications and pipeline transitions will stream here.
-              </p>
+          <CardContent className="p-6 pt-0 grow overflow-y-auto max-h-[300px]">
+            <div className="space-y-4">
+              {demoActivities.map((act) => (
+                <div key={act.id} className="flex items-center justify-between text-xs py-2 border-b border-border/5 last:border-0">
+                  <div className="flex items-center gap-3">
+                    <div className={cn("h-7 w-7 rounded-full flex items-center justify-center text-[10px] font-black border shrink-0", act.color)}>
+                      {act.avatarInitials}
+                    </div>
+                    <div className="text-left">
+                      <p className="font-semibold text-foreground/90 leading-tight">
+                        {act.user} <span className="font-normal text-muted-foreground">{act.action}</span> {act.target}
+                      </p>
+                      <span className="text-[9px] text-muted-foreground/50 font-medium mt-0.5 inline-block">{act.time}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
