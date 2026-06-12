@@ -1,164 +1,28 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import { toast } from "sonner";
-import { NumberCounter } from "@/components/ui/number-counter";
-import { 
-  Briefcase, 
-  Users, 
-  FileText, 
-  Calendar, 
-  TrendingUp, 
-  Plus, 
-  ChevronDown, 
-  CheckCircle2, 
-  Clock, 
-  Activity,
-  MoreVertical
-} from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { AreaChart, Area, ResponsiveContainer } from "recharts";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger,
-  DropdownMenuLabel,
-  DropdownMenuSeparator
-} from "@/components/ui/dropdown-menu";
-import { AnalyticsWidget } from "@/components/dashboard/analytics-widgets";
+import { CheckCircle2 } from "lucide-react";
 
-// DEMO DATA IMPORT (Easily removable)
+import { DashboardHeader } from "./dashboard-header";
+import { KpiGrid } from "./kpi-grid";
+import { AnalyticsGrid } from "./analytics-grid";
+import { ActivityFeed } from "./activity-feed";
+import { ActionCenter, ActionItem } from "./action-center";
+import { ActivityItem } from "./activity-feed";
+
 import {
-  demoTeammates,
-  demoClients,
-  demoProposals,
-  demoLeads,
-  demoMeetings,
-  demoActions,
-  demoActivities,
-} from "./demo/demo-data";
-
-// Helper to parse metric values like "124", "68.2%", "$48K", "3", "₹48K"
-const parseKpiValue = (valStr: string) => {
-  let prefix = "";
-  let suffix = "";
-  let cleanStr = valStr.trim();
-
-  if (cleanStr.startsWith("$")) {
-    prefix = "$";
-    cleanStr = cleanStr.substring(1);
-  } else if (cleanStr.startsWith("₹")) {
-    prefix = "₹";
-    cleanStr = cleanStr.substring(1);
-  }
-
-  if (cleanStr.endsWith("K")) {
-    suffix = "K";
-    cleanStr = cleanStr.slice(0, -1);
-  } else if (cleanStr.endsWith("%")) {
-    suffix = "%";
-    cleanStr = cleanStr.slice(0, -1);
-  }
-
-  const parsed = parseFloat(cleanStr);
-  const decimals = cleanStr.includes(".") ? cleanStr.split(".")[1].length : 0;
-
-  return {
-    value: isNaN(parsed) ? 0 : parsed,
-    prefix,
-    suffix,
-    decimals,
-    original: valStr
-  };
-};
-
-interface Teammate {
-  id: string;
-  email: string;
-  firstName: string | null;
-  lastName: string | null;
-  designation?: string | null;
-  status: "ACTIVE" | "SUSPENDED" | "ARCHIVED";
-  role: {
-    label: string;
-  };
-}
-
-interface Brand {
-  id: string;
-  name: string;
-  slug: string;
-}
-
-interface Client {
-  id: string;
-  companyName: string;
-  contactPerson: string;
-  status: string;
-  createdAt: string;
-}
-
-interface Proposal {
-  id: string;
-  title: string;
-  proposalNumber: string;
-  status: string;
-  value: number;
-  createdAt: string;
-}
-
-interface Meeting {
-  id: string;
-  title: string;
-  scheduledAt: string;
-  duration: number;
-  mode: string;
-  meetingUrl: string | null;
-  status: string;
-  lead: {
-    id: string;
-    companyName: string;
-    contactPerson: string;
-  } | null;
-  organizer: {
-    firstName: string | null;
-    lastName: string | null;
-    avatarUrl: string | null;
-  } | null;
-}
-
-interface Lead {
-  id: string;
-  companyName: string;
-  contactPerson: string;
-  email: string | null;
-  phone: string | null;
-  expectedValue: number | null;
-  winLossStatus: string | null;
-  nextActionDate: string | null;
-  createdAt: string;
-  owner: {
-    id: string;
-    firstName: string | null;
-    lastName: string | null;
-    email: string;
-    avatarUrl: string | null;
-  } | null;
-  stage: {
-    id: string;
-    name: string;
-    label: string;
-    color: string | null;
-  } | null;
-  source: {
-    id: string;
-    name: string;
-  } | null;
-}
+  Teammate,
+  Brand,
+  Client,
+  Proposal,
+  Meeting,
+  Lead,
+  KpiType,
+  WidgetType,
+  WIDGET_POOL
+} from "./dashboard-types";
 
 interface DashboardClientProps {
   user: {
@@ -176,62 +40,222 @@ interface DashboardClientProps {
   clients: Client[];
 }
 
-// Pool of 8 customizable KPIs
-const KPI_POOL = {
-  "active-leads": { label: "Active Leads", value: "0", trend: "0%", trendUp: false, desc: "vs last week" },
-  "meetings-week": { label: "Meetings This Week", value: "0", trend: "0", trendUp: false, desc: "vs last week" },
-  "proposal-conversion": { label: "Proposal Conversion", value: "0.0%", trend: "0%", trendUp: false, desc: "vs last month" },
-  "active-clients": { label: "Active Clients", value: "0", trend: "0", trendUp: false, desc: "this month" },
-  "payments-collected": { label: "Payments Collected", value: "₹0K", trend: "0%", trendUp: false, desc: "vs last month" },
-  "unpaid-invoices": { label: "Unpaid Invoices", value: "₹0K", trend: "0%", trendUp: false, desc: "outstanding balance" },
-  "overdue-actions": { label: "Overdue Actions", value: "0", trend: "None", trendUp: false, desc: "high priority items" },
-  "completed-tasks": { label: "Completed Tasks", value: "0", trend: "0", trendUp: false, desc: "this week" },
+// Helpers to dynamically generate real actions and activities from the database data
+
+const generateRealActions = (
+  leads: Lead[],
+  meetings: Meeting[],
+  proposals: Proposal[]
+): ActionItem[] => {
+  const actionsList: ActionItem[] = [];
+  const now = new Date();
+  
+  // 1. Overdue actions
+  leads.forEach((l) => {
+    if (l.winLossStatus === "OPEN" || !l.winLossStatus) {
+      if (l.nextActionDate && new Date(l.nextActionDate) < now) {
+        actionsList.push({
+          id: `act-lead-overdue-${l.id}`,
+          text: `Follow up with ${l.contactPerson || "contact"} at ${l.companyName} (Overdue)`,
+          urgency: "High",
+          done: false,
+        });
+      }
+    }
+  });
+
+  // 2. Draft/Sent Proposals requiring review
+  proposals.forEach((p) => {
+    if (p.status === "DRAFT") {
+      actionsList.push({
+        id: `act-prop-draft-${p.id}`,
+        text: `Complete draft proposal "${p.title}" for review`,
+        urgency: "Medium",
+        done: false,
+      });
+    } else if (p.status === "SENT") {
+      actionsList.push({
+        id: `act-prop-sent-${p.id}`,
+        text: `Follow up on proposal "${p.title}" (${p.proposalNumber})`,
+        urgency: "Medium",
+        done: false,
+      });
+    }
+  });
+
+  // 3. Upcoming Scheduled Meetings (within the next 3 days)
+  const threeDaysFromNow = new Date();
+  threeDaysFromNow.setDate(now.getDate() + 3);
+  meetings.forEach((m) => {
+    const meetingDate = new Date(m.scheduledAt);
+    if (m.status === "SCHEDULED" && meetingDate > now && meetingDate <= threeDaysFromNow) {
+      actionsList.push({
+        id: `act-meet-prep-${m.id}`,
+        text: `Prepare for meeting "${m.title}" with ${m.lead?.companyName || "Client"}`,
+        urgency: "Low",
+        done: false,
+      });
+    }
+  });
+
+  return actionsList;
 };
 
-type KpiType = keyof typeof KPI_POOL;
+const generateRealActivities = (
+  leads: Lead[],
+  meetings: Meeting[],
+  proposals: Proposal[],
+  clients: Client[]
+): ActivityItem[] => {
+  const activitiesList: (ActivityItem & { date: Date })[] = [];
 
-// Pool of exactly 8 core customizable widgets (reduced for MVP focus)
-const WIDGET_POOL = {
-  // CRM
-  "pipeline-funnel": { label: "Pipeline Funnel", category: "CRM" },
-  "pipeline-health": { label: "Pipeline Health", category: "CRM" },
-  "pipeline-value": { label: "Pipeline Value", category: "CRM" },
-  "lead-sources": { label: "Lead Sources", category: "CRM" },
-  "proposal-win-rate": { label: "Proposal Win Rate", category: "CRM" },
-  // Clients
-  "client-health": { label: "Client Health", category: "Clients" },
-  "projects-by-status": { label: "Projects by Status", category: "Clients" },
-  // Documents
-  "pending-agreements": { label: "Pending Agreements", category: "Documents" },
-  "invoice-status": { label: "Invoice Status", category: "Documents" },
+  // Helper to format time ago
+  const formatTimeAgo = (date: Date) => {
+    const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+    if (seconds < 0) return "just now";
+    let interval = Math.floor(seconds / 31536000);
+    if (interval >= 1) return interval === 1 ? "1 year ago" : `${interval} years ago`;
+    interval = Math.floor(seconds / 2592000);
+    if (interval >= 1) return interval === 1 ? "1 month ago" : `${interval} months ago`;
+    interval = Math.floor(seconds / 86400);
+    if (interval >= 1) return interval === 1 ? "yesterday" : `${interval} days ago`;
+    interval = Math.floor(seconds / 3600);
+    if (interval >= 1) return interval === 1 ? "1 hour ago" : `${interval} hours ago`;
+    interval = Math.floor(seconds / 60);
+    if (interval >= 1) return interval === 1 ? "1 minute ago" : `${interval} minutes ago`;
+    return "just now";
+  };
+
+  // Helper to get initials
+  const getInitials = (firstName: string | null, lastName: string | null, email?: string) => {
+    if (firstName || lastName) {
+      return `${firstName?.charAt(0) || ""}${lastName?.charAt(0) || ""}`.toUpperCase();
+    }
+    if (email) {
+      return email.slice(0, 2).toUpperCase();
+    }
+    return "US";
+  };
+
+  // 1. Won/Lost/Created Leads
+  leads.forEach((l) => {
+    const lDate = new Date(l.createdAt);
+    const ownerName = l.owner ? `${l.owner.firstName || ""} ${l.owner.lastName || ""}`.trim() : "System";
+    const initials = l.owner ? getInitials(l.owner.firstName, l.owner.lastName, l.owner.email) : "SYS";
+    
+    if (l.winLossStatus === "WON") {
+      activitiesList.push({
+        id: `act-lead-won-${l.id}`,
+        user: ownerName || "Teammate",
+        avatarInitials: initials,
+        action: "marked lead as WON:",
+        target: l.companyName,
+        time: formatTimeAgo(lDate),
+        color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20",
+        date: lDate
+      });
+    } else if (l.winLossStatus === "LOST") {
+      activitiesList.push({
+        id: `act-lead-lost-${l.id}`,
+        user: ownerName || "Teammate",
+        avatarInitials: initials,
+        action: "marked lead as LOST:",
+        target: l.companyName,
+        time: formatTimeAgo(lDate),
+        color: "text-red-500 bg-red-500/10 border-red-500/20",
+        date: lDate
+      });
+    } else {
+      activitiesList.push({
+        id: `act-lead-created-${l.id}`,
+        user: ownerName || "Teammate",
+        avatarInitials: initials,
+        action: "added new lead:",
+        target: l.companyName,
+        time: formatTimeAgo(lDate),
+        color: "text-amber-500 bg-amber-500/10 border-amber-500/20",
+        date: lDate
+      });
+    }
+  });
+
+  // 2. Proposals
+  proposals.forEach((p) => {
+    const pDate = new Date(p.createdAt);
+    activitiesList.push({
+      id: `act-prop-${p.id}`,
+      user: "System",
+      avatarInitials: "SYS",
+      action: `generated proposal (${p.status}):`,
+      target: p.title,
+      time: formatTimeAgo(pDate),
+      color: "text-[#8B5CF6] bg-[#8B5CF6]/10 border-[#8B5CF6]/20",
+      date: pDate
+    });
+  });
+
+  // 3. Meetings
+  meetings.forEach((m) => {
+    const mDate = new Date(m.scheduledAt);
+    const organizerName = m.organizer ? `${m.organizer.firstName || ""} ${m.organizer.lastName || ""}`.trim() : "System";
+    const initials = m.organizer ? getInitials(m.organizer.firstName, m.organizer.lastName) : "SYS";
+    activitiesList.push({
+      id: `act-meet-${m.id}`,
+      user: organizerName || "Teammate",
+      avatarInitials: initials,
+      action: `scheduled meeting:`,
+      target: m.title,
+      time: formatTimeAgo(mDate),
+      color: "text-blue-500 bg-blue-500/10 border-blue-500/20",
+      date: mDate
+    });
+  });
+
+  // 4. Onboarded Clients
+  clients.forEach((c) => {
+    const cDate = new Date(c.createdAt);
+    activitiesList.push({
+      id: `act-client-${c.id}`,
+      user: "System",
+      avatarInitials: "SYS",
+      action: "onboarded new client:",
+      target: c.companyName,
+      time: formatTimeAgo(cDate),
+      color: "text-pink-500 bg-pink-500/10 border-pink-500/20",
+      date: cDate
+    });
+  });
+
+  // Sort by date descending
+  activitiesList.sort((a, b) => b.date.getTime() - a.date.getTime());
+
+  // Return clean ActivityItem objects
+  return activitiesList.map(({ id, user, avatarInitials, action, target, time, color }) => ({
+    id,
+    user,
+    avatarInitials,
+    action,
+    target,
+    time,
+    color
+  })).slice(0, 10);
 };
-
-type WidgetType = keyof typeof WIDGET_POOL;
 
 export function DashboardClient({ 
   user, 
-  teammates, 
-  brands, 
+  teammates = [], 
+  brands = [], 
   brandName,
   leads = [],
   meetings = [],
   proposals = [],
   clients = []
 }: DashboardClientProps) {
-  const router = useRouter();
   const params = useParams();
   const slug = params?.slug as string;
-  const [greeting, setGreeting] = useState("Welcome back");
 
-  // DEMO DATA MERGE (Easily removable)
-  const combinedLeads = [...leads, ...demoLeads];
-  const combinedMeetings = [...meetings, ...demoMeetings];
-  const combinedProposals = [...proposals, ...demoProposals];
-  const combinedClients = [...clients, ...demoClients];
-  const combinedTeammates = teammates.length > 0 ? teammates : demoTeammates;
-
-  // Dynamic calculations for KPIs (using combined data)
-  const activeLeadsCount = combinedLeads.filter(l => !l.winLossStatus || l.winLossStatus === "OPEN").length;
+  // Dynamic calculations for KPIs (using real database records)
+  const activeLeadsCount = leads.filter(l => !l.winLossStatus || l.winLossStatus === "OPEN").length;
   
   // Calculate meetings this week
   const startOfWeek = new Date();
@@ -239,37 +263,37 @@ export function DashboardClient({
   startOfWeek.setHours(0, 0, 0, 0);
   const endOfWeek = new Date(startOfWeek);
   endOfWeek.setDate(endOfWeek.getDate() + 7);
-  const meetingsThisWeek = combinedMeetings.filter(m => {
+  const meetingsThisWeek = meetings.filter(m => {
     const d = new Date(m.scheduledAt);
     return d >= startOfWeek && d < endOfWeek;
   }).length;
 
-  const wonLeadsCount = combinedLeads.filter(l => l.winLossStatus === "WON").length;
-  const lostLeadsCount = combinedLeads.filter(l => l.winLossStatus === "LOST").length;
+  const wonLeadsCount = leads.filter(l => l.winLossStatus === "WON").length;
+  const lostLeadsCount = leads.filter(l => l.winLossStatus === "LOST").length;
   const totalClosedLeads = wonLeadsCount + lostLeadsCount;
   const conversionRate = totalClosedLeads > 0 ? ((wonLeadsCount / totalClosedLeads) * 100).toFixed(1) : "0.0";
-  const activeClientsCount = combinedClients.filter(c => c.status === "active").length;
+  const activeClientsCount = clients.filter(c => c.status === "active").length;
 
-  const wonLeadsValue = combinedLeads
+  const wonLeadsValue = leads
     .filter(l => l.winLossStatus === "WON")
     .reduce((sum, l) => sum + (Number(l.expectedValue) || 0), 0);
-  const unpaidExpectedValue = combinedLeads
+  const unpaidExpectedValue = leads
     .filter(l => !l.winLossStatus || l.winLossStatus === "OPEN")
     .reduce((sum, l) => sum + (Number(l.expectedValue) || 0), 0);
-  const overdueActionsCount = combinedLeads.filter(l => l.nextActionDate && new Date(l.nextActionDate) < new Date()).length;
+  const overdueActionsCount = leads.filter(l => l.nextActionDate && new Date(l.nextActionDate) < new Date()).length;
 
   const dynamicKpiPool: Record<KpiType, { label: string; value: string; trend: string; trendUp: boolean; desc: string }> = {
     "active-leads": { 
       label: "Active Leads", 
       value: String(activeLeadsCount), 
-      trend: `${combinedLeads.length > 0 ? Math.round((activeLeadsCount / combinedLeads.length) * 100) : 0}%`, 
+      trend: `${leads.length > 0 ? Math.round((activeLeadsCount / leads.length) * 100) : 0}%`, 
       trendUp: true, 
       desc: "of total leads" 
     },
     "meetings-week": { 
       label: "Meetings This Week", 
       value: String(meetingsThisWeek), 
-      trend: String(combinedMeetings.length), 
+      trend: String(meetings.length), 
       trendUp: true, 
       desc: "total meetings" 
     },
@@ -283,7 +307,7 @@ export function DashboardClient({
     "active-clients": { 
       label: "Active Clients", 
       value: String(activeClientsCount), 
-      trend: String(combinedClients.length), 
+      trend: String(clients.length), 
       trendUp: true, 
       desc: "total onboarded" 
     },
@@ -372,17 +396,13 @@ export function DashboardClient({
     "client-health"
   ]);
 
-  // Interactive local Action Center list (starts with demo data, easily removable)
-  const [actions, setActions] = useState<{ id: string; text: string; urgency: string; done: boolean }[]>(demoActions);
+  // Interactive local Action Center list
+  const [actions, setActions] = useState<ActionItem[]>([]);
+  // Dynamic activities list
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
 
   // Load customizations on mount
   useEffect(() => {
-    // Dynamic greeting
-    const hours = new Date().getHours();
-    if (hours < 12) setGreeting("Good morning");
-    else if (hours < 17) setGreeting("Good afternoon");
-    else setGreeting("Good evening");
-
     // Load localStorage settings
     const savedKpis = localStorage.getItem("mergex_dashboard_kpis");
     if (savedKpis) {
@@ -422,6 +442,12 @@ export function DashboardClient({
       } catch (e) {}
     }
   }, []);
+
+  // Update dynamic actions and activities when real data changes
+  useEffect(() => {
+    setActions(generateRealActions(leads, meetings, proposals));
+    setActivities(generateRealActivities(leads, meetings, proposals, clients));
+  }, [leads, meetings, proposals, clients]);
 
   // Update KPI slot - swaps automatically if already selected to prevent duplicates
   const handleSelectKpi = (slotIndex: number, kpiKey: KpiType) => {
@@ -472,357 +498,43 @@ export function DashboardClient({
 
   return (
     <div className="space-y-8 max-w-[1600px] mx-auto pb-8">
-      {/* Sparkline Gradient Definitions */}
-      <svg className="hidden" aria-hidden="true">
-        <defs>
-          <linearGradient id="emeraldAreaSpark" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#10B981" stopOpacity={0.2} />
-            <stop offset="100%" stopColor="#10B981" stopOpacity={0} />
-          </linearGradient>
-          <linearGradient id="roseAreaSpark" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#EF4444" stopOpacity={0.2} />
-            <stop offset="100%" stopColor="#EF4444" stopOpacity={0} />
-          </linearGradient>
-        </defs>
-      </svg>
-      
       {/* ── 1. Page Header (Welcome + Quick Actions) ── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-2">
-        <div className="text-left space-y-1">
-          <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-            {greeting}, <span className="font-normal">{user?.firstName ?? "Teammate"}</span>
-          </h2>
-          <p className="text-xs text-muted-foreground">
-            Here's your operational overview for <span className="font-semibold text-foreground/85">{brandName}</span> today.
-          </p>
-        </div>
+      <DashboardHeader 
+        user={user} 
+        brandName={brandName} 
+        slug={slug} 
+      />
 
-        {/* Global Quick Action Dropdown */}
-        <div className="flex items-center gap-3">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button size="sm" className="h-8 text-xs font-semibold bg-[#4C1D95] hover:bg-[#3B0764] text-white flex items-center gap-1.5 transition-all cursor-pointer rounded-md shadow-xs">
-                <Plus className="w-3.5 h-3.5" />
-                <span>Create</span>
-                <ChevronDown className="w-3 h-3 opacity-60" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 bg-white dark:bg-[#111114] border border-border/20 rounded-xl shadow-lg p-1">
-              <DropdownMenuLabel className="text-[10px] uppercase font-bold text-muted-foreground/60 px-2 py-1">
-                Sales Workflows
-              </DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => router.push(`/workspaces/${slug}/crm/leads/new`)} className="text-xs flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-muted/50 rounded-md">
-                <Briefcase className="h-3.5 w-3.5 text-[#8B5CF6]" />
-                <span>New Lead</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => router.push(`/workspaces/${slug}/clients`)} className="text-xs flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-muted/50 rounded-md">
-                <Users className="h-3.5 w-3.5 text-[#8B5CF6]" />
-                <span>New Client</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-border/10 my-1" />
-              <DropdownMenuLabel className="text-[10px] uppercase font-bold text-muted-foreground/60 px-2 py-1">
-                Utilities
-              </DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => router.push(`/workspaces/${slug}/documents`)} className="text-xs flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-muted/50 rounded-md">
-                <FileText className="h-3.5 w-3.5 text-[#8B5CF6]" />
-                <span>Upload Document</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => router.push(`/workspaces/${slug}/crm/meetings`)} className="text-xs flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-muted/50 rounded-md">
-                <Calendar className="h-3.5 w-3.5 text-[#8B5CF6]" />
-                <span>Schedule Meeting</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
+      {/* ── 2. KPI Strip ── */}
+      <KpiGrid
+        kpis={kpis}
+        dynamicKpiPool={dynamicKpiPool}
+        getKpiSparklineData={getKpiSparklineData}
+        onSelectKpi={handleSelectKpi}
+      />
 
-      {/* ── 2. KPI Strip (Floating, borderless cards) ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-        {kpis.map((kpiKey, slotIndex) => {
-          const kpi = dynamicKpiPool[kpiKey];
-          return (
-            <div 
-              key={slotIndex} 
-              className="relative group/kpi border border-zinc-200/50 dark:border-zinc-800/50 bg-white/70 dark:bg-[#111114]/70 backdrop-blur-md rounded-2xl p-5 transition-all flex flex-col justify-between h-[135px] text-left hover:shadow-[0_12px_32px_rgba(0,0,0,0.04)] dark:hover:shadow-[0_16px_40px_rgba(0,0,0,0.3)] shadow-[0_2px_8px_rgba(0,0,0,0.01)]"
-            >
-              <div className="flex justify-between items-center w-full">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
-                  {kpi.label}
-                </span>
-                
-                {/* dedicated trigger on top right of card for customization */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button 
-                      className="h-5 w-5 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground/35 hover:text-foreground cursor-pointer focus:outline-none shrink-0 transition-colors"
-                      aria-label="Customize KPI slot"
-                    >
-                      <MoreVertical className="h-3.5 w-3.5" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-56 bg-white dark:bg-[#111114] border border-border/20 rounded-xl p-1 shadow-md">
-                    <DropdownMenuLabel className="text-[10px] uppercase font-bold text-muted-foreground/60 px-2 py-1">
-                      Change KPI Metric
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator className="bg-border/10 my-1" />
-                    {(Object.keys(dynamicKpiPool) as KpiType[]).map((poolKey) => (
-                      <DropdownMenuItem 
-                        key={poolKey}
-                        onClick={() => handleSelectKpi(slotIndex, poolKey)}
-                        className="text-xs flex justify-between items-center px-2 py-1.5 cursor-pointer hover:bg-muted/50 rounded-md"
-                      >
-                        <span>{dynamicKpiPool[poolKey].label}</span>
-                        <span className="text-[10px] font-mono text-muted-foreground/50">{dynamicKpiPool[poolKey].value}</span>
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-              
-              <div className="flex items-end justify-between w-full mt-2">
-                <div className="flex flex-col gap-1 min-w-0 flex-1">
-                  <h3 className="text-3xl font-extrabold tracking-tight text-foreground font-mono leading-none group-hover/kpi:text-[#8B5CF6] transition-colors duration-300">
-                    {(() => {
-                      const parsed = parseKpiValue(kpi.value);
-                      return (
-                        <NumberCounter
-                          key={`${kpiKey}-${kpi.value}`}
-                          value={parsed.value}
-                          prefix={parsed.prefix}
-                          suffix={parsed.suffix}
-                          decimals={parsed.decimals}
-                          duration={1.5}
-                          easing="easeOut"
-                        />
-                      );
-                    })()}
-                  </h3>
-                  
-                  <div className="flex items-center gap-1.5 text-[10px] mt-2 shrink-0">
-                    <span className={cn(
-                      "font-bold flex items-center px-1.5 py-0.5 rounded-md text-[9px] shrink-0 border",
-                      kpi.trendUp 
-                        ? "text-emerald-600 bg-emerald-500/10 border-emerald-500/20 dark:text-emerald-400 dark:bg-emerald-500/5 dark:border-emerald-500/10" 
-                        : "text-amber-600 bg-amber-500/10 border-amber-500/20 dark:text-amber-400 dark:bg-amber-500/5 dark:border-amber-500/10"
-                    )}>
-                      {kpi.trendUp ? "↗" : "↘"} {kpi.trend}
-                    </span>
-                    <span className="text-muted-foreground/60 truncate max-w-[80px] font-semibold" title={kpi.desc}>
-                      {kpi.desc}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Sparkline chart */}
-                <div className="h-11 w-20 shrink-0 opacity-80 group-hover/kpi:opacity-100 transition-opacity duration-300">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart 
-                      data={getKpiSparklineData(kpiKey).map((v, i) => ({ id: i, value: v }))}
-                      margin={{ top: 2, right: 2, left: 2, bottom: 2 }}
-                    >
-                      <Area
-                        type="monotone"
-                        dataKey="value"
-                        stroke={kpi.trendUp ? "#10B981" : "#EF4444"}
-                        strokeWidth={1.5}
-                        fillOpacity={0.15}
-                        fill={kpi.trendUp ? "url(#emeraldAreaSpark)" : "url(#roseAreaSpark)"}
-                        dot={false}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* ── 3. Analytics Grid (Normalized panel heights to prevent layout shift) ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {widgets.map((widgetKey, slotIndex) => {
-          const activeWidget = WIDGET_POOL[widgetKey];
-          return (
-            <Card key={slotIndex} className="flex flex-col h-[375px] group/card relative">
-              <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0 shrink-0 p-6">
-                <div className="space-y-1 text-left">
-                  <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
-                    {widgetKey.startsWith("pipeline") || widgetKey.startsWith("lead") || widgetKey.startsWith("proposal") ? (
-                      <TrendingUp className="w-4 h-4 text-[#8B5CF6]" />
-                    ) : widgetKey.startsWith("client") || widgetKey.startsWith("projects") ? (
-                      <Users className="w-4 h-4 text-[#8B5CF6]" />
-                    ) : (
-                      <FileText className="w-4 h-4 text-[#8B5CF6]" />
-                    )}
-                    <span>{activeWidget.label}</span>
-                  </CardTitle>
-                </div>
-
-                {/* Dropdown panel switcher */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-7 w-7 text-muted-foreground hover:text-[#8B5CF6] hover:bg-muted/40 cursor-pointer rounded-md opacity-0 group-hover/card:opacity-100 transition-opacity duration-200 focus:outline-hidden"
-                      aria-label="Change Widget"
-                    >
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-60 bg-white dark:bg-[#111114] border border-border/20 rounded-xl p-1 shadow-md max-h-80 overflow-y-auto">
-                    
-                    {/* Helper to render widget items with active state indicators */}
-                    {(["CRM", "Clients", "Team", "Documents"] as const).map((category, catIdx) => {
-                      const categoryWidgets = (Object.keys(WIDGET_POOL) as WidgetType[])
-                        .filter(k => WIDGET_POOL[k].category === category);
-                      if (categoryWidgets.length === 0) return null;
-                      return (
-                        <div key={category}>
-                          {catIdx > 0 && <DropdownMenuSeparator className="bg-border/10 my-1" />}
-                          <DropdownMenuLabel className="text-[9px] uppercase font-bold text-muted-foreground/60 px-2 py-1">
-                            {category === "CRM" ? "CRM Analytics" : category === "Clients" ? "Client Analytics" : category === "Team" ? "Team Analytics" : "Document Analytics"}
-                          </DropdownMenuLabel>
-                          {categoryWidgets.map(k => {
-                            const isCurrentSlot = widgets[slotIndex] === k;
-                            const isUsedElsewhere = !isCurrentSlot && widgets.includes(k);
-                            return (
-                              <DropdownMenuItem
-                                key={k}
-                                onClick={() => handleSelectWidget(slotIndex, k)}
-                                className={cn(
-                                  "text-xs px-2 py-1.5 cursor-pointer rounded-md flex items-center justify-between gap-2",
-                                  isCurrentSlot
-                                    ? "bg-[#8B5CF6]/5 text-[#8B5CF6] font-semibold"
-                                    : isUsedElsewhere
-                                    ? "text-muted-foreground/60 hover:bg-muted/50"
-                                    : "hover:bg-muted/50"
-                                )}
-                              >
-                                <span>{WIDGET_POOL[k].label}</span>
-                                {isCurrentSlot && (
-                                  <CheckCircle2 className="h-3 w-3 text-[#8B5CF6] shrink-0" />
-                                )}
-                                {isUsedElsewhere && (
-                                  <span className="text-[8px] bg-muted/60 px-1 py-0.5 rounded font-medium shrink-0">↔ Swap</span>
-                                )}
-                              </DropdownMenuItem>
-                            );
-                          })}
-                        </div>
-                      );
-                    })}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </CardHeader>
-              <CardContent className="flex-1 flex flex-col justify-center overflow-hidden p-6 pt-0">
-                 <AnalyticsWidget 
-                  type={widgetKey} 
-                  teammates={combinedTeammates} 
-                  brands={brands} 
-                  leads={combinedLeads}
-                  meetings={combinedMeetings}
-                  proposals={combinedProposals}
-                  clients={combinedClients}
-                />
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+      {/* ── 3. Analytics Grid ── */}
+      <AnalyticsGrid
+        widgets={widgets}
+        onSelectWidget={handleSelectWidget}
+        teammates={teammates}
+        brands={brands}
+        leads={leads}
+        meetings={meetings}
+        proposals={proposals}
+        clients={clients}
+      />
 
       {/* ── 4. Bottom Row (Operational Feed + Upcoming Actions) ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
         {/* Left: Operational Feed (2/3 width) */}
-        <Card className="lg:col-span-2 flex flex-col min-h-[220px]">
-          <CardHeader className="pb-3 p-6 shrink-0">
-            <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
-              <Activity className="w-4 h-4 text-[#8B5CF6]" />
-              Operational Activity Feed
-            </CardTitle>
-            <CardDescription className="text-xs text-muted-foreground/60">
-              Real-time events happening across divisions
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-6 pt-0 grow overflow-y-auto max-h-[300px]">
-            <div className="space-y-4">
-              {demoActivities.map((act) => (
-                <div key={act.id} className="flex items-center justify-between text-xs py-2 border-b border-border/5 last:border-0">
-                  <div className="flex items-center gap-3">
-                    <div className={cn("h-7 w-7 rounded-full flex items-center justify-center text-[10px] font-black border shrink-0", act.color)}>
-                      {act.avatarInitials}
-                    </div>
-                    <div className="text-left">
-                      <p className="font-semibold text-foreground/90 leading-tight">
-                        {act.user} <span className="font-normal text-muted-foreground">{act.action}</span> {act.target}
-                      </p>
-                      <span className="text-[9px] text-muted-foreground/50 font-medium mt-0.5 inline-block">{act.time}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <ActivityFeed activities={activities} />
 
         {/* Right: Upcoming Action Center (1/3 width) */}
-        <Card className="flex flex-col min-h-[220px]">
-          <CardHeader className="pb-3 p-6 shrink-0">
-            <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
-              <Clock className="w-4 h-4 text-[#8B5CF6]" />
-              Action Center
-            </CardTitle>
-            <CardDescription className="text-xs text-muted-foreground/60">
-              Immediate tasks requiring attention
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-6 pt-0 grow flex items-center justify-center">
-            {actions.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-6 text-center text-xs text-muted-foreground">
-                <CheckCircle2 className="h-8 w-8 text-emerald-500/30 mb-2" />
-                <p className="font-semibold text-foreground">All caught up!</p>
-                <p className="text-[10px] text-muted-foreground/50 mt-0.5 max-w-[200px]">
-                  No urgent action items or approval requests require your attention today.
-                </p>
-              </div>
-            ) : (
-              <div className="w-full space-y-3">
-                {actions.map((act) => (
-                  <div 
-                    key={act.id} 
-                    className={cn(
-                      "flex items-start gap-3 p-3 rounded-xl border border-border/10 text-xs transition-all",
-                      act.done ? "opacity-45 bg-muted/20 border-muted" : "bg-muted/30 hover:bg-muted/50 cursor-pointer"
-                    )}
-                    onClick={() => !act.done && handleActionClick(act.id, act.text)}
-                  >
-                    <div className="mt-0.5 shrink-0">
-                      {act.done ? (
-                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                      ) : (
-                        <div className="h-4 w-4 rounded border border-muted-foreground/30 hover:border-[#8B5CF6] transition-colors" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0 text-left">
-                      <p className={cn("font-semibold text-foreground leading-tight truncate", act.done && "line-through")}>
-                        {act.text}
-                      </p>
-                      <span className={cn(
-                        "text-[8px] uppercase tracking-wide font-extrabold px-1 rounded-sm mt-1 inline-block",
-                        act.urgency === "High" ? "bg-red-500/10 text-red-500" :
-                        act.urgency === "Medium" ? "bg-amber-500/10 text-amber-500" :
-                        "bg-blue-500/10 text-blue-500"
-                      )}>
-                        {act.urgency} Priority
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <ActionCenter 
+          actions={actions} 
+          onActionClick={handleActionClick} 
+        />
       </div>
     </div>
   );
