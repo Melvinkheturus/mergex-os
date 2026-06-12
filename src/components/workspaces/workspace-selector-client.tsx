@@ -281,7 +281,7 @@ export function WorkspaceSelectorClient({ brands, user, userRole, teammates }: P
           {/* Brand identity */}
           <div className="flex items-center gap-3">
             <img src="/logo/mergex-logo.png" alt="MergeX" className="w-7 h-7 object-contain shrink-0" />
-            <span className="text-[11px] font-black text-foreground dark:text-white tracking-widest uppercase font-sans">
+            <span className="text-[11px] font-medium text-foreground dark:text-white tracking-widest uppercase font-clash">
               MERGEX OS
             </span>
           </div>

@@ -124,7 +124,7 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
                   className="w-6 h-6 object-contain shrink-0"
                 />
                 <div className="min-w-0">
-                  <span className="font-semibold text-[11px] uppercase tracking-wider text-foreground truncate block">
+                  <span className="font-medium text-[11px] uppercase tracking-widest text-foreground truncate block font-clash">
                     MERGEX OS
                   </span>
                 </div>

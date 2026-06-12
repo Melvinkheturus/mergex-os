@@ -280,8 +280,8 @@ export async function sendTeamInviteEmail({
           <!-- Header -->
           <tr>
             <td align="center" style="padding-bottom: 24px;">
-              <div style="font-size: 11px; font-weight: 600; color: #9CA3AF; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">You're invited to</div>
-              <div style="font-size: 26px; font-weight: 600; color: #FFFFFF; letter-spacing: 0.15em; text-transform: uppercase; font-family: 'Clash Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">MergeX <span style="color:#8B5CF6;">OS</span></div>
+              <div style="font-size: 11px; font-weight: 500; color: #9CA3AF; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">You're invited to</div>
+              <div style="font-size: 26px; font-weight: 500; color: #FFFFFF; letter-spacing: 0.15em; text-transform: uppercase; font-family: 'Clash Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">MergeX <span style="color:#8B5CF6;">OS</span></div>
             </td>
           </tr>
           

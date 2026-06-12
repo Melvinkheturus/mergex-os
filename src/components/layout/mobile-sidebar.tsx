@@ -30,7 +30,7 @@ export function MobileSidebar({ onClose }: MobileSidebarProps) {
             alt="MergeX Logo" 
             className="w-8 h-8 object-contain shrink-0" 
           />
-          <span className="font-bold text-[11px] uppercase tracking-wider text-foreground">
+          <span className="font-medium text-[11px] uppercase tracking-widest text-foreground font-clash">
             MERGEX OS
           </span>
         </div>
