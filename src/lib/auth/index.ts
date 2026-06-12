@@ -17,7 +17,7 @@ export type AuthUser = {
   lastName: string | null;
   phone: string | null;
   avatarUrl: string | null;
-  isActive: boolean;
+  status: "ACTIVE" | "SUSPENDED" | "ARCHIVED";
   activeBrandId: string | null;
   role: {
     id: string;
@@ -48,7 +48,9 @@ const USER_SELECT = {
   lastName: true,
   phone: true,
   avatarUrl: true,
-  isActive: true,
+  status: true,
+  suspendedAt: true,
+  archivedAt: true,
   activeBrandId: true,
   roleId: true,
   Role: {
@@ -76,7 +78,9 @@ type UserWithRole = {
   lastName: string | null;
   phone: string | null;
   avatarUrl: string | null;
-  isActive: boolean;
+  status: "ACTIVE" | "SUSPENDED" | "ARCHIVED";
+  suspendedAt: Date | null;
+  archivedAt: Date | null;
   activeBrandId: string | null;
   roleId: string;
   Role: {
@@ -106,7 +110,7 @@ function buildAuthUser(user: UserWithRole, overrideRole?: UserWithRole["Role"]):
     lastName: user.lastName,
     phone: user.phone,
     avatarUrl: user.avatarUrl,
-    isActive: user.isActive,
+    status: user.status,
     activeBrandId: user.activeBrandId,
     role: {
       id: activeRole.id,
@@ -192,7 +196,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
                   firstName: clerkUser.firstName ?? existingByEmail.firstName,
                   lastName: clerkUser.lastName ?? existingByEmail.lastName,
                   avatarUrl: clerkUser.imageUrl ?? existingByEmail.avatarUrl,
-                  isActive: true,
+                  status: "ACTIVE",
                   roleId: existingByEmail.roleId ?? roleId,
                   onboardingState: existingByEmail.onboardingState ?? "PROFILE_SETUP",
                   updatedAt: new Date(),
@@ -211,12 +215,12 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
                   lastName: clerkUser.lastName,
                   avatarUrl: clerkUser.imageUrl,
                   roleId,
-                  isActive: true,
+                  status: "ACTIVE",
                   onboardingState,
                   updatedAt: new Date(),
                 },
                 update: {
-                  isActive: true,
+                  status: "ACTIVE",
                   email: primaryEmail,
                   firstName: clerkUser.firstName,
                   lastName: clerkUser.lastName,
@@ -246,7 +250,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
     }
   }
 
-  if (!user || !user.isActive) return null;
+  if (!user || user.status !== "ACTIVE") return null;
 
   // Layer 2 Recovery: If user's email matches ROOT_ADMIN_EMAIL, force-inject super_admin role
   const rootAdminEmail = process.env.ROOT_ADMIN_EMAIL;

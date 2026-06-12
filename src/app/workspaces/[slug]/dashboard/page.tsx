@@ -29,8 +29,16 @@ export default async function DashboardPage({
   });
 
   const teammates = await db.user.findMany({
-    where: { isActive: true },
-    include: { Role: true },
+    where: { status: "ACTIVE" },
+    select: {
+      id: true,
+      email: true,
+      firstName: true,
+      lastName: true,
+      designation: true,
+      status: true,
+      Role: { select: { label: true } },
+    },
     orderBy: { createdAt: "desc" },
   });
 
@@ -176,6 +184,7 @@ export default async function DashboardPage({
         firstName: t.firstName,
         lastName: t.lastName,
         designation: t.designation,
+        status: t.status,
         role: { label: t.Role.label },
       }))}
       brands={brands.map((b) => ({

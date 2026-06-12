@@ -1,28 +1,11 @@
 "use client";
 
-import { Search, FolderKanban, Plus, Users } from "lucide-react";
+import { Search, FolderKanban, Plus, Pencil } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { LiquidMetalButton } from "@/components/ui/liquid-metal-button";
 
-// ── Brand color palette - each brand gets a unique accent ─────────────────
-const BRAND_COLORS = [
-  { bg: "from-violet-500/10 to-purple-600/10", border: "border-violet-500/30", avatar: "bg-linear-to-br from-violet-500 to-purple-600", text: "text-violet-400" },
-  { bg: "from-indigo-500/10 to-blue-600/10",   border: "border-indigo-500/30", avatar: "bg-linear-to-br from-indigo-500 to-blue-600", text: "text-indigo-400" },
-  { bg: "from-rose-500/10 to-pink-600/10",     border: "border-rose-500/30",   avatar: "bg-linear-to-br from-rose-500 to-pink-600",   text: "text-rose-400" },
-  { bg: "from-amber-500/10 to-orange-600/10",  border: "border-amber-500/30",  avatar: "bg-linear-to-br from-amber-500 to-orange-600",  text: "text-amber-400" },
-  { bg: "from-emerald-500/10 to-teal-600/10",  border: "border-emerald-500/30",avatar: "bg-linear-to-br from-emerald-500 to-teal-600",text: "text-emerald-400" },
-  { bg: "from-sky-500/10 to-cyan-600/10",      border: "border-sky-500/30",    avatar: "bg-linear-to-br from-sky-500 to-cyan-600",    text: "text-sky-400" },
-];
 
-const COLOR_HEX: Record<string, string> = {
-  violet:  "#8B5CF6",
-  indigo:  "#6366F1",
-  rose:    "#F43F5E",
-  amber:   "#F59E0B",
-  emerald: "#10B981",
-  sky:     "#0EA5E9",
-};
 
 interface Brand {
   id: string;
@@ -44,9 +27,6 @@ function getBrandInitials(name: string): string {
     .join("");
 }
 
-function getBrandColor(index: number) {
-  return BRAND_COLORS[index % BRAND_COLORS.length];
-}
 
 interface WorkspacesTabProps {
   filteredBrands: Brand[];
@@ -58,6 +38,7 @@ interface WorkspacesTabProps {
   mounted: boolean;
   handleSelectBrand: (brand: Brand) => void;
   onNewBrand: () => void;
+  onGoToSettings?: () => void;
 }
 
 export function WorkspacesTab({
@@ -70,6 +51,7 @@ export function WorkspacesTab({
   mounted,
   handleSelectBrand,
   onNewBrand,
+  onGoToSettings,
 }: WorkspacesTabProps) {
   return (
     <div className="space-y-6 animate-fade-in text-left">
@@ -125,18 +107,24 @@ export function WorkspacesTab({
               const isLoading = brand.id === loadingBrandId;
 
               return (
-                <button
+                <div
                   key={brand.id}
-                  onClick={() => handleSelectBrand(brand)}
-                  disabled={isLoading}
+                  onClick={() => !isLoading && handleSelectBrand(brand)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      if (!isLoading) handleSelectBrand(brand);
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
                   className={cn(
-                    "group relative flex flex-col justify-between text-left p-5.5 rounded-xl",
-                    "bg-card text-card-foreground dark:bg-[#0E0E12] border cursor-pointer min-h-[110px] transition-colors duration-200",
-                    "hover:border-neutral-300 dark:hover:border-white/10",
-                    "focus:outline-none focus-visible:ring-1 focus-visible:ring-[#8B5CF6]/50",
+                    "group relative flex flex-col text-left p-3 rounded-[20px]",
+                    "bg-white dark:bg-[#0E0E12]/80 text-neutral-900 dark:text-white border border-neutral-200/90 dark:border-white/6 cursor-pointer transition-all duration-300 shadow-md shadow-neutral-100 dark:shadow-none w-full max-w-[240px] ml-0 mr-auto overflow-hidden focus:outline-none focus:ring-2 focus:ring-purple-500/50",
+                    "hover:shadow-2xl hover:shadow-purple-500/10 hover:scale-[1.03] hover:-translate-y-1",
                     isActive
-                      ? "border-purple-500/60"
-                      : "border-neutral-200 dark:border-white/5"
+                      ? "ring-2 ring-purple-500/80 border-transparent"
+                      : "hover:border-neutral-300 dark:hover:border-white/10"
                   )}
                   style={{
                     transitionDelay: mounted ? `${i * 30}ms` : "0ms",
@@ -144,63 +132,84 @@ export function WorkspacesTab({
                     transform: mounted ? "translateY(0)" : "translateY(12px)",
                   }}
                 >
-                  {/* Loading Overlay */}
-                  {isLoading && (
-                    <div className="absolute inset-0 rounded-xl flex items-center justify-center bg-black/60 backdrop-blur-[1px] z-50">
-                      <div className="w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
-                    </div>
-                  )}
-
-                  {/* Card Header: Avatar & Name */}
-                  <div className="w-full flex items-center justify-between gap-3 relative z-10">
-                    <div className="flex items-center gap-3">
-                      {/* Brand Logo or Initials */}
-                      <div
-                        className="w-8.5 h-8.5 rounded-lg overflow-hidden flex items-center justify-center text-xs font-bold text-white shadow-inner shrink-0 relative"
-                        style={{ backgroundColor: brand.logoUrl ? "transparent" : (COLOR_HEX[brand.color] ?? COLOR_HEX.violet) }}
-                      >
-                        {brand.logoUrl ? (
-                          <Image
-                            src={brand.logoUrl}
-                            alt={brand.name}
-                            fill
-                            sizes="34px"
-                            className="object-cover"
-                          />
-                        ) : (
-                          <span>{initials}</span>
-                        )}
+                  {/* 1. Brand Image Container - Very Less Padding (inherits p-3 from card) */}
+                  <div className="relative w-full aspect-square rounded-[14px] overflow-hidden bg-neutral-50 dark:bg-neutral-900/50 border border-neutral-100 dark:border-white/5 flex items-center justify-center transition-all duration-300 z-10">
+                    {/* Ambient Light Glow */}
+                    <div className="absolute inset-0 bg-gradient-to-b from-neutral-50 to-neutral-100/30 dark:from-neutral-900/50 dark:to-neutral-900/10 pointer-events-none" />
+                    
+                    {/* Loading Overlay inside the Image Container */}
+                    {isLoading && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-white/75 dark:bg-[#0E0E12]/75 backdrop-blur-[1px] z-30">
+                        <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
                       </div>
-                      <div>
-                        <h3 className="text-xs font-bold text-foreground leading-tight">
-                          {brand.name}
-                        </h3>
-                        {brand.description ? (
-                          <p className="text-[9px] text-muted-foreground mt-0.5 leading-snug line-clamp-1 max-w-[150px]">
-                            {brand.description}
-                          </p>
-                        ) : (
-                          <p className="text-[9px] text-neutral-500 font-mono mt-0.5 leading-none">
-                            {brand.slug}
-                          </p>
-                        )}
-                      </div>
-                    </div>
+                    )}
 
-                    {isActive && (
-                      <span className="text-[8px] font-bold text-purple-400 uppercase tracking-wider bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/25 select-none leading-none">
-                        Last Used
+                    {/* Edit Icon Overlay */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onGoToSettings) {
+                          onGoToSettings();
+                        }
+                      }}
+                      className="absolute top-2.5 right-2.5 z-20 w-7 h-7 rounded-full bg-white/95 dark:bg-neutral-800/95 shadow-md flex items-center justify-center text-neutral-600 dark:text-neutral-300 hover:text-purple-600 dark:hover:text-purple-400 border border-neutral-200/50 dark:border-white/10 hover:scale-105 opacity-0 group-hover:opacity-100 transition-all duration-300"
+                      title="Edit Brand"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+
+                    {brand.logoUrl ? (
+                      <Image
+                        src={brand.logoUrl}
+                        alt={brand.name}
+                        fill
+                        sizes="240px"
+                        className="object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                    ) : (
+                      <span className="text-4xl font-extrabold tracking-wider text-neutral-800 dark:text-neutral-200 font-sans select-none">
+                        {initials}
                       </span>
                     )}
                   </div>
 
-                  {/* Brand creation date */}
-                  <div className="w-full mt-4 flex items-center justify-between text-[9px] text-neutral-500 font-mono relative z-10">
-                    <span>Created</span>
-                    <span>{new Date(brand.createdAt).toLocaleDateString("en-IN", { year: 'numeric', month: 'short', day: 'numeric' })}</span>
-                  </div>
+                  {/* 2. Text Content Area */}
+                  <div className="w-full pt-4 px-2 pb-2 flex flex-col flex-grow z-10">
+                    {/* Brand Name */}
+                    <h3 className="text-base font-bold text-neutral-900 dark:text-white font-sans tracking-tight leading-tight text-center w-full uppercase">
+                      {brand.name.toUpperCase()}
+                    </h3>
 
-                </button>
+                    {/* Brand Description - Only if provided */}
+                    {brand.description && (
+                      <p className="text-[11px] text-neutral-500 dark:text-neutral-400 leading-relaxed mt-2 line-clamp-2 text-center w-full">
+                        {brand.description}
+                      </p>
+                    )}
+
+                    {/* 3. Created & Last Use Footer */}
+                    <div className="w-full mt-auto pt-4 flex items-center justify-between text-[10px] font-mono text-neutral-400 dark:text-neutral-500">
+                      <div className="flex flex-col items-start gap-0.5">
+                        <span className="text-[8px] uppercase tracking-wider text-neutral-400 dark:text-neutral-500 font-sans font-semibold">Created</span>
+                        <span className="text-neutral-500 dark:text-neutral-400">{new Date(brand.createdAt).toLocaleDateString("en-IN", { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                      </div>
+
+                      {isActive ? (
+                        <div className="flex flex-col items-end">
+                           <span className="text-[8px] uppercase tracking-wider text-purple-600 dark:text-purple-400 font-sans font-bold flex items-center gap-1 bg-purple-50 dark:bg-purple-950/30 px-2 py-0.5 rounded border border-purple-100 dark:border-purple-900/50">
+                            <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
+                            Last Used
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-end gap-0.5">
+                          <span className="text-[8px] uppercase tracking-wider text-neutral-400 dark:text-neutral-500 font-sans font-semibold">Status</span>
+                          <span className="text-neutral-500 dark:text-neutral-400">Ready</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               );
             })}
           </div>

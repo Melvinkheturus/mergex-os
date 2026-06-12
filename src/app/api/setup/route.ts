@@ -120,7 +120,7 @@ export async function POST(req: Request) {
         lastName,
         employeeId,
         roleId: superAdminRole.id,
-        isActive: true,
+        status: "ACTIVE",
         onboardingState: "PLATFORM_SETUP",
         updatedAt: new Date(),
       },

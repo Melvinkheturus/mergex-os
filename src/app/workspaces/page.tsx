@@ -18,8 +18,17 @@ export default async function WorkspacesPage() {
   });
 
   const teammates = await db.user.findMany({
-    where: { isActive: true },
-    include: { Role: true },
+    where: { status: "ACTIVE" },
+    select: {
+      id: true,
+      email: true,
+      firstName: true,
+      lastName: true,
+      avatarUrl: true,
+      designation: true,
+      status: true,
+      Role: { select: { name: true, label: true } },
+    },
     orderBy: { createdAt: "desc" },
   });
 
@@ -50,6 +59,7 @@ export default async function WorkspacesPage() {
         lastName: t.lastName,
         avatarUrl: t.avatarUrl,
         designation: t.designation,
+        status: t.status,
         role: {
           name: t.Role.name,
           label: t.Role.label,

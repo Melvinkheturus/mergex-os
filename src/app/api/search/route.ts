@@ -93,7 +93,7 @@ export async function GET(request: Request) {
   // ── Search team members ──────────────────────────────────────────────────
   const users = await db.user.findMany({
     where: {
-      isActive: true,
+      status: "ACTIVE",
       OR: [
         { firstName: { contains, mode } },
         { lastName:  { contains, mode } },

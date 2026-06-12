@@ -5,9 +5,10 @@ import { getCurrentUser } from "@/lib/auth";
 
 /**
  * GET /api/team/members
- * Returns all active members with their brand access.
+ * Returns members, filterable by status via ?status=ACTIVE|SUSPENDED|ARCHIVED|all
+ * Defaults to all statuses so the UI can show the full lifecycle.
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -19,8 +20,16 @@ export async function GET() {
     return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
   }
 
+  const statusParam = request.nextUrl.searchParams.get("status");
+  const statusFilter =
+    statusParam === "all" || !statusParam
+      ? undefined
+      : statusParam === "ACTIVE" || statusParam === "SUSPENDED" || statusParam === "ARCHIVED"
+      ? statusParam
+      : undefined;
+
   const members = await db.user.findMany({
-    where: { isActive: true },
+    where: statusFilter ? { status: statusFilter } : undefined,
     include: {
       Role: { select: { id: true, name: true, label: true } },
       UserBrandAccess: {
@@ -39,6 +48,9 @@ export async function GET() {
       avatarUrl: m.avatarUrl,
       designation: m.designation,
       clerkId: m.clerkId,
+      status: m.status,
+      suspendedAt: m.suspendedAt,
+      archivedAt: m.archivedAt,
       role: { name: m.Role.name, label: m.Role.label, id: m.Role.id },
       brandAccess: m.UserBrandAccess.map((uba) => ({
         id: uba.Brand.id,
@@ -50,8 +62,15 @@ export async function GET() {
 }
 
 /**
- * DELETE /api/team/members?id=<userId>
- * Suspends a member: deactivates in DB, deletes from Clerk.
+ * DELETE /api/team/members?id=<userId>[&force=true]
+ *
+ * Two-phase suspension:
+ *  Phase 1 (no ?force): checks owned record counts.
+ *    → 409 if user owns records (frontend shows warning modal with counts)
+ *    → 200 + suspends immediately if no owned records
+ *  Phase 2 (?force=true): suspends regardless of owned records.
+ *
+ * Uses Clerk banUser (NOT deleteUser) so the account can be restored.
  */
 export async function DELETE(request: NextRequest) {
   const { userId: callerClerkId } = await auth();
@@ -75,6 +94,9 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: "User ID is required" }, { status: 400 });
   }
 
+  const force = request.nextUrl.searchParams.get("force") === "true";
+  const checkOnly = request.nextUrl.searchParams.get("checkOnly") === "true";
+
   const target = await db.user.findUnique({ where: { id: targetId } });
   if (!target) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -91,22 +113,83 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: "Super Admin accounts cannot be suspended" }, { status: 403 });
   }
 
-  // 1. Mark as inactive in DB
+  // Prevent suspending already-suspended or archived users
+  if (target.status === "SUSPENDED") {
+    return NextResponse.json({ error: "User is already suspended" }, { status: 400 });
+  }
+  if (target.status === "ARCHIVED") {
+    return NextResponse.json({ error: "Archived users cannot be suspended. Contact Super Admin." }, { status: 400 });
+  }
+
+  // If checkOnly is requested, return counts immediately
+  if (checkOnly) {
+    const [leadCount, taskCount, clientCount] = await Promise.all([
+      db.lead.count({ where: { ownerId: targetId } }),
+      db.task.count({ where: { assigneeId: targetId } }),
+      db.client.count({ where: { engagementManagerId: targetId } }),
+    ]);
+    return NextResponse.json({
+      hasOwnedRecords: (leadCount + taskCount + clientCount) > 0,
+      counts: { leads: leadCount, tasks: taskCount, clients: clientCount },
+    });
+  }
+
+  // Phase 1 — Ownership check (no ?force)
+  if (!force) {
+    const [leadCount, taskCount, clientCount] = await Promise.all([
+      db.lead.count({ where: { ownerId: targetId } }),
+      db.task.count({ where: { assigneeId: targetId } }),
+      db.client.count({ where: { engagementManagerId: targetId } }),
+    ]);
+
+    const total = leadCount + taskCount + clientCount;
+    if (total > 0) {
+      return NextResponse.json(
+        {
+          hasOwnedRecords: true,
+          counts: { leads: leadCount, tasks: taskCount, clients: clientCount },
+        },
+        { status: 409 }
+      );
+    }
+  }
+
+  // Phase 2 — Suspend
   await db.user.update({
     where: { id: targetId },
-    data: { isActive: false, updatedAt: new Date() },
+    data: {
+      status: "SUSPENDED",
+      suspendedAt: new Date(),
+      suspendedBy: caller.id,
+      updatedAt: new Date(),
+    },
   });
 
-  // 2. Delete from Clerk (this prevents future logins)
+  // Ban on Clerk (prevents login but preserves the account for restoration)
   const isPlaceholderClerkId = target.clerkId.startsWith("pending_");
   if (!isPlaceholderClerkId) {
     try {
       const client = await clerkClient();
-      await client.users.deleteUser(target.clerkId);
+      await client.users.banUser(target.clerkId);
     } catch (clerkErr) {
-      console.error("[team/members] Failed to delete Clerk user:", clerkErr);
+      console.error("[team/members] Failed to ban Clerk user:", clerkErr);
       // Don't fail — DB is already updated
     }
+  }
+
+  // Write audit entry
+  try {
+    await db.loginAudit.create({
+      data: {
+        id: crypto.randomUUID(),
+        userId: targetId,
+        email: target.email,
+        action: "ACCOUNT_DEACTIVATED",
+        metadata: { suspendedBy: caller.id, force },
+      },
+    });
+  } catch {
+    // Non-critical — don't fail the request
   }
 
   return NextResponse.json({ ok: true, email: target.email });

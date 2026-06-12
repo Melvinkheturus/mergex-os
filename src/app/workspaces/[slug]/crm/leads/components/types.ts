@@ -8,6 +8,7 @@ export interface OptionUser {
   lastName: string | null;
   designation: string | null;
   avatarUrl: string | null;
+  status?: "ACTIVE" | "SUSPENDED" | "ARCHIVED";
 }
 
 export interface OptionStage {

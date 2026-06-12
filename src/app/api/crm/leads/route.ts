@@ -98,12 +98,19 @@ export async function GET(req: Request) {
       orderBy: { createdAt: "desc" },
     });
 
-    const mappedLeads = leads.map((l) => ({
-      ...l,
-      owner: l.User || null,
-      stage: l.LeadStage || null,
-      source: l.LeadSource || null,
-    }));
+    const mappedLeads = leads.map((l) => {
+      const lead = l as typeof l & {
+        User: { id: string; firstName: string | null; lastName: string | null; avatarUrl: string | null } | null;
+        LeadStage: { id: string; name: string; label: string; color: string | null } | null;
+        LeadSource: { id: string; name: string } | null;
+      };
+      return {
+        ...lead,
+        owner: lead.User ?? null,
+        stage: lead.LeadStage ?? null,
+        source: lead.LeadSource ?? null,
+      };
+    });
 
     return NextResponse.json(mappedLeads);
   } catch (error) {
@@ -273,11 +280,16 @@ export async function POST(req: Request) {
       });
     }
 
+    const createdLead = lead as typeof lead & {
+      User: { id: string; firstName: string | null; lastName: string | null; avatarUrl: string | null } | null;
+      LeadStage: { id: string; name: string; label: string; color: string | null } | null;
+      LeadSource: { id: string; name: string } | null;
+    };
     const mappedLead = {
-      ...lead,
-      owner: lead.User || null,
-      stage: lead.LeadStage || null,
-      source: lead.LeadSource || null,
+      ...createdLead,
+      owner: createdLead.User ?? null,
+      stage: createdLead.LeadStage ?? null,
+      source: createdLead.LeadSource ?? null,
     };
 
     return NextResponse.json(mappedLead);

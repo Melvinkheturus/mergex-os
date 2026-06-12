@@ -8,6 +8,7 @@ import {
   Loader2,
   Calendar,
   RefreshCw,
+  AlertTriangle,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -126,6 +127,8 @@ export function LeadInfoPanel({
   const strokeDashoffset = circumference - (healthScore / 100) * circumference;
 
   const activeOwner = owners?.find((o) => o.id === lead.ownerId);
+  // If lead has an owner but they are NOT in the active owners list → they are suspended/archived
+  const ownerSuspended = !!lead.ownerId && !activeOwner && !!lead.owner;
 
   return (
     <Card className="border border-border/40 shadow-sm overflow-hidden rounded-2xl bg-card/45 backdrop-blur-xs">
@@ -180,6 +183,19 @@ export function LeadInfoPanel({
             </span>
             {savingOwner && <Loader2 className="h-3 w-3 animate-spin text-[#8B5CF6]" />}
           </div>
+
+          {/* ⚠ Suspended owner banner */}
+          {ownerSuspended && lead.owner && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20">
+              <AlertTriangle className="h-3 w-3 text-amber-500 shrink-0" />
+              <div className="min-w-0">
+                <p className="text-[9px] font-bold text-amber-500 uppercase tracking-wide">Owner Suspended</p>
+                <p className="text-[10px] font-semibold text-foreground/70 truncate">
+                  {`${lead.owner.firstName || ""} ${lead.owner.lastName || ""}`.trim() || "Unknown"}
+                </p>
+              </div>
+            </div>
+          )}
           
           <Select
             value={lead.ownerId || ""}

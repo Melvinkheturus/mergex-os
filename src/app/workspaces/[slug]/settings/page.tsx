@@ -13,7 +13,11 @@ export default async function Page({ params }: PageProps) {
   const user = await getCurrentUser();
   const dbUser = user ? await db.user.findUnique({
     where: { id: user.id },
-    include: { Role: true }
+    select: {
+      id: true, email: true, firstName: true, lastName: true,
+      username: true, designation: true, avatarUrl: true,
+      Role: { select: { name: true, label: true } },
+    },
   }) : null;
 
   const brands = await db.brand.findMany({
@@ -21,9 +25,17 @@ export default async function Page({ params }: PageProps) {
   });
 
   const teammates = await db.user.findMany({
-    where: { isActive: true },
-    include: { Role: true },
-    orderBy: { createdAt: "desc" }
+    where: { status: "ACTIVE" },
+    select: {
+      id: true,
+      email: true,
+      firstName: true,
+      lastName: true,
+      designation: true,
+      status: true,
+      Role: { select: { name: true, label: true } },
+    },
+    orderBy: { createdAt: "desc" },
   });
 
   // Sort active brand matching the route slug to the first position
@@ -62,6 +74,7 @@ export default async function Page({ params }: PageProps) {
         firstName: t.firstName,
         lastName: t.lastName,
         designation: t.designation,
+        status: t.status,
         role: {
           name: t.Role.name,
           label: t.Role.label

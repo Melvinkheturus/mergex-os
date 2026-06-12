@@ -57,7 +57,7 @@ export async function GET(req: Request) {
             { Role: { name: { in: ["super_admin", "admin"] } } },
             { UserBrandAccess: { some: { brandId } } },
           ],
-          isActive: true,
+          status: "ACTIVE",
         },
         select: {
           id: true,
@@ -65,6 +65,7 @@ export async function GET(req: Request) {
           lastName: true,
           designation: true,
           avatarUrl: true,
+          status: true,
         },
       }),
     ]);

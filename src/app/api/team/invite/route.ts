@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
 
   // Check for existing active user
   const existingUser = await db.user.findUnique({ where: { email: normalizedEmail } });
-  if (existingUser?.isActive) {
+  if (existingUser?.status === "ACTIVE") {
     return NextResponse.json(
       { error: "A user with this email already exists" },
       { status: 409 }
@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
         email: normalizedEmail,
         employeeId,
         roleId,
-        isActive: false,
+        status: "SUSPENDED", // Not yet active — activated when invite is accepted
         onboardingState: "PROFILE_SETUP",
         updatedAt: new Date(),
       },
@@ -208,10 +208,10 @@ export async function DELETE(request: NextRequest) {
     data: { status: "REVOKED" },
   });
 
-  // Also deactivate the pre-created pending user record if it exists
+  // Also update the pre-created pending user record if it exists
   try {
     await db.user.updateMany({
-      where: { email: invite.email, isActive: false },
+      where: { email: invite.email, status: "SUSPENDED" },
       data: { updatedAt: new Date() },
     });
   } catch { /* ignore */ }

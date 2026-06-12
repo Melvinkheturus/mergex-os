@@ -103,7 +103,7 @@ export async function POST(req: Request) {
           lastName: data.last_name,
           avatarUrl: data.image_url,
           roleId,
-          isActive: true,
+          status: "ACTIVE",
           onboardingState: "PROFILE_SETUP",
           updatedAt: new Date(),
         },
@@ -152,7 +152,7 @@ export async function POST(req: Request) {
   if (type === "user.deleted") {
     await db.user.updateMany({
       where: { clerkId: data.id },
-      data: { isActive: false },
+      data: { status: "SUSPENDED", updatedAt: new Date() },
     });
   }
 

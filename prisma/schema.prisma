@@ -9,15 +9,16 @@ datasource db {
 model Activity {
   id          String   @id @default(dbgenerated("(gen_random_uuid())::text"))
   leadId      String
-  userId      String
+  userId      String?  // nullable — preserved when user is suspended/archived
   type        String
   content     String
   performedAt DateTime @default(now())
   createdAt   DateTime @default(now())
   Lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  User        User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  User        User?    @relation(fields: [userId], references: [id], onDelete: SetNull, onUpdate: NoAction)
 
   @@index([leadId])
+  @@index([userId])
 }
 
 model Task {
@@ -45,14 +46,15 @@ model AuditLog {
   action    String
   oldValue  String?
   newValue  String?
-  changedBy String
+  changedBy String?  // nullable — preserved when user is suspended/archived
   changedAt DateTime @default(now())
-  User      User     @relation(fields: [changedBy], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  User      User?    @relation(fields: [changedBy], references: [id], onDelete: SetNull, onUpdate: NoAction)
   Lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([brandId])
   @@index([changedAt])
   @@index([leadId])
+  @@index([changedBy])
 }
 
 model Brand {
@@ -280,7 +282,7 @@ model LoginAudit {
 model Meeting {
   id          String   @id @default(dbgenerated("(gen_random_uuid())::text"))
   leadId      String
-  organizerId String
+  organizerId String?  // nullable — preserved when user is suspended/archived
   title       String
   scheduledAt DateTime
   duration    Int      @default(30)
@@ -292,9 +294,10 @@ model Meeting {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now())
   Lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  User        User     @relation(fields: [organizerId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  User        User?    @relation(fields: [organizerId], references: [id], onDelete: SetNull, onUpdate: NoAction)
 
   @@index([leadId])
+  @@index([organizerId])
 }
 
 model Note {
@@ -304,16 +307,17 @@ model Note {
   title      String?
   content    String
   visibility String    @default("TEAM")
-  createdBy  String
+  createdBy  String?   // nullable — preserved when user is suspended/archived
   isActive   Boolean   @default(true)
   deletedAt  DateTime?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @default(now())
-  User       User      @relation(fields: [createdBy], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  User       User?     @relation(fields: [createdBy], references: [id], onDelete: SetNull, onUpdate: NoAction)
   Lead       Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([brandId])
   @@index([leadId])
+  @@index([createdBy])
 }
 
 model Notification {
@@ -405,7 +409,11 @@ model User {
   lastName               String?
   avatarUrl              String?
   roleId                 String
-  isActive               Boolean                 @default(true)
+  status                 UserStatus              @default(ACTIVE)
+  suspendedAt            DateTime?
+  archivedAt             DateTime?
+  suspendedBy            String?
+  archivedBy             String?
   createdAt              DateTime                @default(now())
   updatedAt              DateTime
   employeeId             String?                 @unique
@@ -431,6 +439,7 @@ model User {
 
   @@index([clerkId])
   @@index([roleId])
+  @@index([status])
 }
 
 model UserBrandAccess {
@@ -483,12 +492,20 @@ model PlatformSettings {
   initialAdminId String?
 }
 
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+}
+
 enum AuditAction {
   LOGIN_SUCCESS
   LOGIN_FAILED
   LOGOUT
   ROLE_CHANGED
   ACCOUNT_DEACTIVATED
+  ACCOUNT_ARCHIVED
+  ACCOUNT_RESTORED
 }
 
 enum InviteStatus {

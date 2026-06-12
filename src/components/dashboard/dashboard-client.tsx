@@ -70,6 +70,7 @@ interface Teammate {
   firstName: string | null;
   lastName: string | null;
   designation?: string | null;
+  status: "ACTIVE" | "SUSPENDED" | "ARCHIVED";
   role: {
     label: string;
   };

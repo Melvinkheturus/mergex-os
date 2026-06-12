@@ -232,9 +232,6 @@ export default async function LandingPage() {
       {/* ── FOOTER ────────────────────────────────────────────────────── */}
       <footer className="relative z-10 bg-black pt-20 pb-12 border-t border-white/4 text-xs text-muted-foreground">
         
-        {/* Glow point behind divider */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-px bg-linear-to-r from-transparent via-purple-500/40 to-transparent" />
-        
         <div className="w-full max-w-none px-8 md:px-16 lg:px-24 pb-2 flex items-center justify-center">
 
           {/* Center: Tagline ("Experience liftoff" size) */}

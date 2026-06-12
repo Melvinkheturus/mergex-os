@@ -12,6 +12,8 @@ import {
   Check,
   Loader2,
   AlertTriangle,
+  RefreshCw,
+  Archive,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,6 +22,18 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/r-alert-dialog";
+
+type UserStatus = "ACTIVE" | "SUSPENDED" | "ARCHIVED";
 
 interface Teammate {
   id: string;
@@ -29,6 +43,9 @@ interface Teammate {
   avatarUrl: string | null;
   designation?: string | null;
   clerkId?: string;
+  status: UserStatus;
+  suspendedAt?: string | null;
+  archivedAt?: string | null;
   role: {
     name: string;
     label: string;
@@ -123,88 +140,79 @@ export function TeamTab({ teammates, brands }: TeamTabProps) {
   );
 }
 
-// ── Confirmation Modal ────────────────────────────────────────────────────────
-function ConfirmSuspendModal({
-  name,
-  email,
-  onConfirm,
-  onCancel,
-  loading,
-}: {
-  name: string;
-  email: string;
-  onConfirm: () => void;
-  onCancel: () => void;
-  loading: boolean;
-}) {
+// ── Status badge ──────────────────────────────────────────────────────────────
+function StatusBadge({ status }: { status: UserStatus }) {
+  if (status === "ACTIVE") return null; // active is default, no badge needed
+  if (status === "SUSPENDED") {
+    return (
+      <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 border border-amber-500/20">
+        Suspended
+      </span>
+    );
+  }
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onCancel} />
-      {/* Modal */}
-      <div className="relative z-10 w-full max-w-md bg-white dark:bg-[#0A0A0E] rounded-2xl border border-neutral-200 dark:border-white/10 shadow-2xl p-6 space-y-4">
-        <div className="flex items-start gap-3">
-          <div className="h-9 w-9 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0">
-            <AlertTriangle className="w-4.5 h-4.5 text-red-500" />
-          </div>
-          <div>
-            <h3 className="text-sm font-bold text-foreground">Suspend Account</h3>
-            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-              Are you sure you want to suspend <span className="font-bold text-foreground">{name}</span>?
-              Their account (<span className="font-mono text-[10px]">{email}</span>) will be deactivated
-              and removed from the platform. This action cannot be undone from here.
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center justify-end gap-2 pt-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onCancel}
-            disabled={loading}
-            className="h-8 text-xs font-semibold cursor-pointer"
-          >
-            Cancel
-          </Button>
-          <Button
-            size="sm"
-            onClick={onConfirm}
-            disabled={loading}
-            className="h-8 text-xs font-bold bg-red-500 hover:bg-red-600 text-white cursor-pointer flex items-center gap-1.5"
-          >
-            {loading ? (
-              <><Loader2 className="w-3.5 h-3.5 animate-spin" />Suspending…</>
-            ) : (
-              <>Confirm Suspend</>
-            )}
-          </Button>
-        </div>
-      </div>
-    </div>
+    <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-red-500/10 text-red-500 border border-red-500/20">
+      Archived
+    </span>
   );
 }
 
 // ── 1. Members ────────────────────────────────────────────────────────────────
-function MembersSection({ teammates: initialTeammates }: { teammates: Teammate[] }) {
+function MembersSection({ teammates: initialTeammates, currentUserRole }: { teammates: Teammate[]; currentUserRole?: string }) {
   const [members, setMembers] = useState<Teammate[]>(initialTeammates);
+  const [statusFilter, setStatusFilter] = useState<"all" | UserStatus>("ACTIVE");
   const [suspendTarget, setSuspendTarget] = useState<Teammate | null>(null);
   const [suspending, setSuspending] = useState(false);
+  const [suspendCounts, setSuspendCounts] = useState<{ leads: number; tasks: number; clients: number } | null>(null);
+  const [suspendCountsLoading, setSuspendCountsLoading] = useState(false);
+  const [restoring, setRestoring] = useState<string | null>(null);
+  const [archiving, setArchiving] = useState<string | null>(null);
+  const isSuperAdmin = currentUserRole === "super_admin";
+
+  // Reload all members (all statuses) from API
+  useEffect(() => {
+    fetch("/api/team/members?status=all")
+      .then((r) => r.json())
+      .then((data) => { if (Array.isArray(data)) setMembers(data as Teammate[]); })
+      .catch(() => {/* use initialTeammates */});
+  }, []);
+
+  const handleClickSuspend = async (target: Teammate) => {
+    setSuspendTarget(target);
+    setSuspendCounts(null);
+    setSuspendCountsLoading(true);
+    try {
+      const res = await fetch(`/api/team/members?id=${target.id}&checkOnly=true`, { method: "DELETE" });
+      if (res.ok) {
+        const data = await res.json();
+        setSuspendCounts(data.counts ?? { leads: 0, tasks: 0, clients: 0 });
+      } else {
+        const data = await res.json();
+        toast.error(data.error ?? "Failed to check account records.");
+        setSuspendTarget(null);
+      }
+    } catch {
+      toast.error("Network error checking user records.");
+      setSuspendTarget(null);
+    } finally {
+      setSuspendCountsLoading(false);
+    }
+  };
 
   const handleConfirmSuspend = async () => {
     if (!suspendTarget) return;
     setSuspending(true);
     try {
-      const res = await fetch(`/api/team/members?id=${suspendTarget.id}`, { method: "DELETE" });
+      const res = await fetch(`/api/team/members?id=${suspendTarget.id}&force=true`, { method: "DELETE" });
       const data = await res.json();
       if (!res.ok) {
         toast.error(data.error ?? "Failed to suspend account.");
         return;
       }
-      setMembers((prev) => prev.filter((m) => m.id !== suspendTarget.id));
-      toast.success("Account suspended", {
-        description: `${suspendTarget.email} has been deactivated and removed from the platform.`,
-      });
+      setMembers((prev) => prev.map((m) => m.id === suspendTarget.id ? { ...m, status: "SUSPENDED" as UserStatus } : m));
+      toast.success("Account suspended", { description: `${suspendTarget.email} has been locked. Records remain intact.` });
       setSuspendTarget(null);
+      setSuspendCounts(null);
     } catch {
       toast.error("Network error — please try again.");
     } finally {
@@ -212,71 +220,271 @@ function MembersSection({ teammates: initialTeammates }: { teammates: Teammate[]
     }
   };
 
+  const handleRestore = async (target: Teammate) => {
+    setRestoring(target.id);
+    try {
+      const res = await fetch("/api/team/members/restore", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: target.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error ?? "Failed to restore account."); return; }
+      setMembers((prev) => prev.map((m) => m.id === target.id ? { ...m, status: "ACTIVE" as UserStatus, suspendedAt: null } : m));
+      toast.success("Account restored", { description: `${target.email} can now log in again.` });
+    } catch {
+      toast.error("Network error — please try again.");
+    } finally {
+      setRestoring(null);
+    }
+  };
+
+  const handleArchive = async (target: Teammate) => {
+    setArchiving(target.id);
+    try {
+      const res = await fetch("/api/team/members/archive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: target.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error ?? "Failed to archive account."); return; }
+      setMembers((prev) => prev.map((m) => m.id === target.id ? { ...m, status: "ARCHIVED" as UserStatus } : m));
+      toast.success("Account archived", { description: `${target.email} has been permanently archived.` });
+    } catch {
+      toast.error("Network error — please try again.");
+    } finally {
+      setArchiving(null);
+    }
+  };
+
+  const filteredMembers = statusFilter === "all" ? members : members.filter((m) => m.status === statusFilter);
+
+  const counts = {
+    all: members.length,
+    ACTIVE: members.filter((m) => m.status === "ACTIVE").length,
+    SUSPENDED: members.filter((m) => m.status === "SUSPENDED").length,
+    ARCHIVED: members.filter((m) => m.status === "ARCHIVED").length,
+  };
+
+  const filterTabs: { key: "all" | UserStatus; label: string }[] = [
+    { key: "all",       label: `All (${counts.all})` },
+    { key: "ACTIVE",    label: `Active (${counts.ACTIVE})` },
+    { key: "SUSPENDED", label: `Suspended (${counts.SUSPENDED})` },
+    { key: "ARCHIVED",  label: `Archived (${counts.ARCHIVED})` },
+  ];
+
+  const hasRecords = suspendCounts && (suspendCounts.leads + suspendCounts.tasks + suspendCounts.clients) > 0;
+
   return (
     <>
-      {suspendTarget && (
-        <ConfirmSuspendModal
-          name={suspendTarget.firstName ? `${suspendTarget.firstName} ${suspendTarget.lastName ?? ""}`.trim() : suspendTarget.email}
-          email={suspendTarget.email}
-          onConfirm={handleConfirmSuspend}
-          onCancel={() => setSuspendTarget(null)}
-          loading={suspending}
-        />
-      )}
+      <AlertDialog open={!!suspendTarget} onOpenChange={(open) => { if (!open) { setSuspendTarget(null); setSuspendCounts(null); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <div className="flex items-start gap-3">
+              <div className="h-9 w-9 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-4.5 h-4.5 text-amber-500" />
+              </div>
+              <div className="space-y-1">
+                <AlertDialogTitle className="text-sm font-bold text-foreground">Suspend Account</AlertDialogTitle>
+                <AlertDialogDescription className="text-xs text-muted-foreground leading-normal">
+                  <span className="font-bold text-foreground">
+                    {suspendTarget ? (suspendTarget.firstName ? `${suspendTarget.firstName} ${suspendTarget.lastName ?? ""}`.trim() : suspendTarget.email) : ""}
+                  </span>
+                  {suspendTarget && <span className="font-mono text-[10px]"> ({suspendTarget.email})</span>}
+                </AlertDialogDescription>
+              </div>
+            </div>
+          </AlertDialogHeader>
+
+          <div className="py-2">
+            {suspendCountsLoading ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : suspendCounts && (suspendCounts.leads + suspendCounts.tasks + suspendCounts.clients) > 0 ? (
+              <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 space-y-3">
+                <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">
+                  This member currently owns:
+                </p>
+                <ul className="space-y-1.5">
+                  {suspendCounts.leads > 0 && (
+                    <li className="flex items-center gap-2 text-xs text-foreground">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                      <span className="font-bold">{suspendCounts.leads}</span> Lead{suspendCounts.leads !== 1 ? "s" : ""}
+                    </li>
+                  )}
+                  {suspendCounts.clients > 0 && (
+                    <li className="flex items-center gap-2 text-xs text-foreground">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                      <span className="font-bold">{suspendCounts.clients}</span> Client{suspendCounts.clients !== 1 ? "s" : ""}
+                    </li>
+                  )}
+                  {suspendCounts.tasks > 0 && (
+                    <li className="flex items-center gap-2 text-xs text-foreground">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                      <span className="font-bold">{suspendCounts.tasks}</span> Task{suspendCounts.tasks !== 1 ? "s" : ""}
+                    </li>
+                  )}
+                </ul>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  These records will remain assigned after suspension.
+                  You can manually reassign them from the CRM.
+                </p>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                This member has no active record ownership. Their account will be locked immediately
+                and they will not be able to log in.
+              </p>
+            )}
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => { setSuspendTarget(null); setSuspendCounts(null); }}
+              disabled={suspending}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleConfirmSuspend();
+              }}
+              disabled={suspending || suspendCountsLoading}
+              className="bg-amber-500 hover:bg-amber-600 text-white cursor-pointer font-bold"
+            >
+              {suspending ? (
+                <><Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />Suspending…</>
+              ) : hasRecords ? (
+                "Suspend Anyway →"
+              ) : (
+                "Suspend Account"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <div className="glass-frost-card rounded-[20px] shadow-sm border border-neutral-200 dark:border-white/5 p-5.5 bg-neutral-50/20 dark:bg-white/1 space-y-4">
-        <div>
-          <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-            <Users className="w-4.5 h-4.5 text-[#8B5CF6]" />
-            Active Members
-          </h3>
-          <p className="text-xs text-muted-foreground mt-1">
-            {members.length} authorized member{members.length !== 1 ? "s" : ""} in this organization.
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+              <Users className="w-4.5 h-4.5 text-[#8B5CF6]" />
+              Team Members
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              {counts.ACTIVE} active · {counts.SUSPENDED > 0 ? `${counts.SUSPENDED} suspended · ` : ""}{members.length} total
+            </p>
+          </div>
+          {/* Filter tabs */}
+          <div className="flex items-center gap-1 bg-neutral-100 dark:bg-white/5 rounded-lg p-1">
+            {filterTabs.map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setStatusFilter(key)}
+                className={cn(
+                  "px-2.5 py-1 text-[10px] font-bold rounded-md transition-all cursor-pointer",
+                  statusFilter === key
+                    ? "bg-white dark:bg-white/10 text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="space-y-2">
-          {members.map((t) => {
+          {filteredMembers.length === 0 && (
+            <p className="text-xs text-muted-foreground text-center py-6">
+              No members in this category.
+            </p>
+          )}
+          {filteredMembers.map((t) => {
             const initials = getInitials(t);
             const name = t.firstName ? `${t.firstName} ${t.lastName ?? ""}`.trim() : t.email;
+            const isSuspended = t.status === "SUSPENDED";
+            const isArchived = t.status === "ARCHIVED";
             return (
               <div
                 key={t.id}
-                className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 border border-neutral-200 dark:border-white/5 rounded-xl bg-white dark:bg-[#0A0A0E] shadow-sm"
+                className={cn(
+                  "flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 border rounded-xl shadow-sm transition-colors",
+                  isSuspended
+                    ? "border-amber-500/20 bg-amber-500/3 dark:bg-amber-500/5"
+                    : isArchived
+                    ? "border-red-500/15 bg-red-500/3 dark:bg-red-500/5 opacity-70"
+                    : "border-neutral-200 dark:border-white/5 bg-white dark:bg-[#0A0A0E]"
+                )}
               >
                 <div className="flex items-center gap-3">
                   {t.avatarUrl ? (
                     <img
                       src={t.avatarUrl}
                       alt={name}
-                      className="h-8 w-8 rounded-lg object-cover border border-neutral-200 dark:border-white/6 shrink-0"
+                      className={cn("h-8 w-8 rounded-lg object-cover border border-neutral-200 dark:border-white/6 shrink-0", (isSuspended || isArchived) && "grayscale opacity-60")}
                     />
                   ) : (
-                    <div className="h-8 w-8 rounded-lg bg-[#8B5CF6]/5 border border-[#8B5CF6]/20 flex items-center justify-center text-xs font-extrabold text-[#8B5CF6] shrink-0">
+                    <div className={cn(
+                      "h-8 w-8 rounded-lg border flex items-center justify-center text-xs font-extrabold shrink-0",
+                      isSuspended ? "bg-amber-500/5 border-amber-500/20 text-amber-600"
+                      : isArchived ? "bg-red-500/5 border-red-500/20 text-red-400"
+                      : "bg-[#8B5CF6]/5 border-[#8B5CF6]/20 text-[#8B5CF6]"
+                    )}>
                       {initials}
                     </div>
                   )}
                   <div className="min-w-0">
-                    <p className="text-xs font-bold text-foreground truncate leading-none">{name}</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className={cn("text-xs font-bold truncate leading-none", (isSuspended || isArchived) && "text-muted-foreground")}>{name}</p>
+                      <StatusBadge status={t.status} />
+                    </div>
                     <p className="text-[10px] text-muted-foreground/60 truncate mt-1">{t.email}</p>
                     {t.designation && (
                       <p className="text-[10px] text-muted-foreground/40 truncate mt-0.5">{t.designation}</p>
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-3 self-end sm:self-auto">
+                <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap justify-end">
                   <Badge variant="outline" className="text-[9px] uppercase tracking-wider border-emerald-500/20 text-emerald-600 bg-emerald-500/5 font-semibold">
                     {t.role.label}
                   </Badge>
-                  {t.role.name !== "super_admin" && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setSuspendTarget(t)}
-                      className="h-7 text-[10px] font-bold text-neutral-500 hover:text-red-500 hover:bg-red-500/5 cursor-pointer"
+
+                  {/* Active user — show Suspend */}
+                  {t.status === "ACTIVE" && t.role.name !== "super_admin" && (
+                    <button
+                      onClick={() => handleClickSuspend(t)}
+                      className="h-7 px-3 text-[10px] font-bold text-neutral-500 hover:text-amber-600 hover:bg-amber-500/8 rounded-lg transition-colors cursor-pointer"
                     >
                       Suspend
-                    </Button>
+                    </button>
+                  )}
+
+                  {/* Suspended user — show Restore + Archive (super_admin only) */}
+                  {t.status === "SUSPENDED" && (
+                    <>
+                      <button
+                        onClick={() => handleRestore(t)}
+                        disabled={restoring === t.id}
+                        className="h-7 px-3 text-[10px] font-bold text-emerald-600 hover:bg-emerald-500/8 rounded-lg transition-colors cursor-pointer flex items-center gap-1 disabled:opacity-50"
+                      >
+                        {restoring === t.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                        Restore
+                      </button>
+                      {isSuperAdmin && (
+                        <button
+                          onClick={() => handleArchive(t)}
+                          disabled={archiving === t.id}
+                          className="h-7 px-3 text-[10px] font-bold text-red-400 hover:bg-red-500/8 rounded-lg transition-colors cursor-pointer flex items-center gap-1 disabled:opacity-50"
+                        >
+                          {archiving === t.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Archive className="w-3 h-3" />}
+                          Archive
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>

@@ -7,6 +7,13 @@ import {
   Users,
   Building2,
   LayoutGrid,
+  CheckCircle2,
+  Sparkles,
+  Command,
+  Globe,
+  Lock,
+  Rocket,
+  Award,
 } from "lucide-react";
 import { useClerk, useUser } from "@clerk/nextjs";
 import { toast } from "sonner";
@@ -46,6 +53,7 @@ interface Teammate {
   lastName: string | null;
   avatarUrl: string | null;
   designation?: string | null;
+  status: "ACTIVE" | "SUSPENDED" | "ARCHIVED";
   role: {
     name: string;
     label: string;
@@ -67,6 +75,90 @@ const SIDEBAR_TABS = [
   { id: "team"       as ActiveTab, label: "Team & Access",        icon: Users,      adminOnly: true  },
   { id: "settings"   as ActiveTab, label: "Organization Settings", icon: Building2,  adminOnly: true  },
 ];
+
+const CAROUSEL_STAGES = [
+  { label: "AUTHENTICATING SESSION", icon: Lock },
+  { label: "LOADING SECURE PROTOCOLS", icon: CheckCircle2 },
+  { label: "CONNECTING MERGEX ENGINE", icon: Command },
+  { label: "SYNCING SALES PIPELINES", icon: Globe },
+  { label: "FETCHING WORKSPACE CONFIG", icon: LayoutGrid },
+  { label: "TUNING PERFORMANCE CHANNELS", icon: Sparkles },
+  { label: "LAUNCHING MERGEX WORKSPACE", icon: Rocket },
+];
+
+function LoadingTransitionScreen({ brand, onComplete }: { brand: Brand; onComplete: () => void }) {
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveIndex((prev) => {
+        if (prev >= CAROUSEL_STAGES.length - 1) {
+          clearInterval(interval);
+          setTimeout(onComplete, 1200);
+          return prev;
+        }
+        return prev + 1;
+      });
+    }, 1200);
+
+    return () => clearInterval(interval);
+  }, [onComplete]);
+
+  return (
+    <div className="fixed inset-0 bg-white dark:bg-[#09090c] z-[9999] flex flex-col items-center justify-center overflow-hidden animate-fade-in">
+      <div className="text-center mb-8 flex flex-col items-center gap-2">
+        {brand.logoUrl ? (
+          <div className="w-12 h-12 relative overflow-hidden rounded-lg border border-neutral-200 dark:border-white/10 shadow-sm">
+            <img src={brand.logoUrl} alt={brand.name} className="w-full h-full object-cover" />
+          </div>
+        ) : (
+          <div className="w-12 h-12 rounded-lg bg-[#8B5CF6] text-white flex items-center justify-center font-bold text-sm">
+            {brand.name.slice(0, 2).toUpperCase()}
+          </div>
+        )}
+        <span className="text-[10px] font-bold tracking-widest text-neutral-400 dark:text-neutral-500 uppercase mt-2">
+          Initializing secure gateway
+        </span>
+      </div>
+
+      {/* Vertical scrolling viewport (height is 5 * 56px = 280px) */}
+      <div className="relative h-[280px] w-full max-w-[320px] overflow-hidden flex flex-col items-center">
+        {/* Soft top and bottom fade mask */}
+        <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-white dark:from-[#09090c] to-transparent z-10 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white dark:from-[#09090c] to-transparent z-10 pointer-events-none" />
+
+        {/* Scrolling Inner Container */}
+        <div 
+          className="flex flex-col gap-3 w-full transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+          style={{ 
+            transform: `translateY(${-activeIndex * 56}px)`,
+            paddingTop: '118px',
+            paddingBottom: '118px'
+          }}
+        >
+          {CAROUSEL_STAGES.map((stage, idx) => {
+            const Icon = stage.icon;
+            const isActive = idx === activeIndex;
+            return (
+              <div
+                key={stage.label}
+                className={cn(
+                  "h-11 px-5 rounded-full flex items-center justify-center gap-3 border transition-all duration-300 font-sans tracking-wide text-xs font-bold w-[280px] mx-auto shrink-0 select-none",
+                  isActive
+                    ? "bg-[#8B5CF6] text-white border-transparent shadow-lg shadow-[#8B5CF6]/20 scale-100 opacity-100"
+                    : "bg-[#8B5CF6]/5 text-[#8B5CF6]/60 border-[#8B5CF6]/20 scale-95 opacity-40"
+                )}
+              >
+                <Icon className={cn("w-4 h-4 shrink-0", isActive ? "text-white animate-pulse" : "text-[#8B5CF6]/70")} />
+                <span>{stage.label}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function WorkspaceSelectorClient({ brands, user, userRole, teammates }: Props) {
   const canCreateBrand = userRole === "super_admin" || userRole === "admin";
@@ -97,6 +189,7 @@ export function WorkspaceSelectorClient({ brands, user, userRole, teammates }: P
   const [activeBrandId, setActiveBrandIdState] = useState<string | null>(user.activeBrandId);
   const [loadingBrandId, setLoadingBrandId]    = useState<string | null>(null);
   const [searchQuery, setSearchQuery]          = useState("");
+  const [transitionBrand, setTransitionBrand]  = useState<Brand | null>(null);
 
   // ── Brand list (synced from props) ────────────────────────────────────
   const [brandList, setBrandList] = useState<Brand[]>(brands);
@@ -106,8 +199,6 @@ export function WorkspaceSelectorClient({ brands, user, userRole, teammates }: P
   useEffect(() => { setMounted(true); }, []);
 
   // ── Workspace settings state ──────────────────────────────────────────
-  const [newBrandName, setNewBrandName]     = useState("");
-  const [savingBrand, setSavingBrand]       = useState(false);
   const [deletingBrandId, setDeletingBrandId] = useState<string | null>(null);
   const [defaultTimezone, setDefaultTimezone] = useState("Asia/Kolkata");
   const [defaultCurrency, setDefaultCurrency] = useState("INR");
@@ -130,9 +221,12 @@ export function WorkspaceSelectorClient({ brands, user, userRole, teammates }: P
 
   // ── Handlers ──────────────────────────────────────────────────────────
   const handleSelectBrand = async (brand: Brand) => {
+    // Show transition screen immediately
+    setTransitionBrand(brand);
     setLoadingBrandId(brand.id);
     setActiveBrandIdState(brand.id);
-    // Persist active brand to DB with server-side access validation
+
+    // Persist active brand to DB in the background
     try {
       await fetch("/api/user/active-brand", {
         method: "PATCH",
@@ -141,34 +235,6 @@ export function WorkspaceSelectorClient({ brands, user, userRole, teammates }: P
       });
     } catch (e) {
       console.error("[handleSelectBrand] Failed to persist activeBrandId:", e);
-    }
-    setTimeout(() => router.push(`/workspaces/${brand.slug}/dashboard`), 250);
-  };
-
-  const handleCreateBrand = async () => {
-    if (!newBrandName.trim()) return;
-    setSavingBrand(true);
-    try {
-      const res  = await fetch("/api/brands", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newBrandName.trim() }),
-      });
-      const data = await res.json();
-      if (!res.ok) { toast.error(data.error ?? "Failed to create brand workspace."); return; }
-      const newBrand: Brand = {
-        id: data.id, name: data.name, slug: data.slug,
-        logoUrl: data.logoUrl ?? null, color: data.color ?? "violet",
-        description: data.description ?? null,
-        createdAt: data.createdAt ? new Date(data.createdAt).toISOString() : new Date().toISOString(),
-      };
-      setBrandList((prev) => [newBrand, ...prev]);
-      setNewBrandName("");
-      toast.success("Workspace brand division created successfully.");
-    } catch {
-      toast.error("Network error - please try again.");
-    } finally {
-      setSavingBrand(false);
     }
   };
 
@@ -332,6 +398,7 @@ export function WorkspaceSelectorClient({ brands, user, userRole, teammates }: P
                 mounted={mounted}
                 handleSelectBrand={handleSelectBrand}
                 onNewBrand={() => setWorkspacesView("create")}
+                onGoToSettings={() => setActiveTab("settings")}
               />
             )}
 
@@ -345,16 +412,16 @@ export function WorkspaceSelectorClient({ brands, user, userRole, teammates }: P
             {activeTab === "settings" && (
               <SettingsTabComponent
                 brandList={brandList}
-                newBrandName={newBrandName}
-                setNewBrandName={setNewBrandName}
-                savingBrand={savingBrand}
                 deletingBrandId={deletingBrandId}
-                handleCreateBrand={handleCreateBrand}
                 handleArchiveBrand={handleArchiveBrand}
                 defaultTimezone={defaultTimezone}
                 setDefaultTimezone={setDefaultTimezone}
                 defaultCurrency={defaultCurrency}
                 setDefaultCurrency={setDefaultCurrency}
+                onNewBrand={() => {
+                  setActiveTab("workspaces");
+                  setWorkspacesView("create");
+                }}
               />
             )}
 
@@ -362,6 +429,13 @@ export function WorkspaceSelectorClient({ brands, user, userRole, teammates }: P
         </div>
 
       </main>
+
+      {transitionBrand && (
+        <LoadingTransitionScreen
+          brand={transitionBrand}
+          onComplete={() => router.push(`/workspaces/${transitionBrand.slug}/dashboard`)}
+        />
+      )}
     </div>
   );
 }
