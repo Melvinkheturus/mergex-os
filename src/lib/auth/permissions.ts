@@ -52,6 +52,10 @@ export const PERMISSIONS = {
   // ── Settings ──────────────────────────────────────────────────
   "settings.view":   { module: "settings", action: "view"   },
   "settings.manage": { module: "settings", action: "manage" },
+
+  // ── Projects & Finance ────────────────────────────────────────
+  "projects.view":   { module: "projects", action: "view"   },
+  "finance.view":    { module: "finance",  action: "view"   },
 } as const;
 
 export type PermissionKey = keyof typeof PERMISSIONS;
@@ -72,6 +76,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     "knowledge.view", "knowledge.create", "knowledge.edit", "knowledge.publish",
     "users.view", "users.invite", "users.manage",
     "settings.view", "settings.manage",
+    "projects.view", "finance.view",
   ],
 
   sales_manager: [
@@ -84,6 +89,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     "knowledge.view", "knowledge.create", "knowledge.edit",
     "users.view", "users.invite",
     "settings.view",
+    "projects.view",
   ],
 
   cx_executive: [
@@ -94,6 +100,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     "documents.view",
     "knowledge.view",
     "users.view",
+    "projects.view",
   ],
 
   proposal_manager: [
@@ -103,6 +110,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     "clients.view",
     "knowledge.view", "knowledge.create", "knowledge.edit",
     "documents.view", "documents.upload",
+    "projects.view",
   ],
 
   analyst: [
@@ -112,6 +120,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     "clients.view",
     "knowledge.view",
     "documents.view",
+    "projects.view",
   ],
 
   viewer: [
@@ -121,6 +130,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     "clients.view",
     "knowledge.view",
     "documents.view",
+    "projects.view",
   ],
 };
 

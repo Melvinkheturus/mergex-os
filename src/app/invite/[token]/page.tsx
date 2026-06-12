@@ -590,13 +590,20 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
                   </div>
                 )}
                 {invite.moduleAccess && invite.moduleAccess.length > 0 && (
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col gap-1.5 pt-2 border-t border-white/5">
                     <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
-                      Modules
+                      Module Access
                     </span>
-                    <span className="text-xs font-semibold text-zinc-300">
-                      {invite.moduleAccess.join(", ")}
-                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {invite.moduleAccess.map((m) => (
+                        <span
+                          key={m}
+                          className="px-2 py-0.5 rounded bg-purple-500/10 border border-purple-500/20 text-[10px] font-semibold text-purple-300"
+                        >
+                          {m}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

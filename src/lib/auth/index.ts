@@ -109,6 +109,27 @@ function buildAuthUser(user: UserWithRole, overrideRole?: UserWithRole["Role"]):
     : activeRole.RolePermission.map(
         (rp) => `${rp.Permission.module}.${rp.Permission.action}` as PermissionString
       );
+
+  // Derive modules from role permissions
+  const roleModules = Array.from(
+    new Set(
+      activeRole.RolePermission.map((rp) => {
+        const mod = rp.Permission.module.split(".")[0];
+        if (mod === "crm") return "CRM";
+        return mod.charAt(0).toUpperCase() + mod.slice(1);
+      })
+    )
+  );
+
+  // Inject default/shared modules if they have permissions
+  if (roleModules.length > 0) {
+    if (!roleModules.includes("Projects")) roleModules.push("Projects");
+  }
+
+  const moduleAccess = user.moduleAccess && user.moduleAccess.length > 0
+    ? user.moduleAccess
+    : roleModules;
+
   return {
     id: user.id,
     clerkId: user.clerkId,
@@ -126,7 +147,7 @@ function buildAuthUser(user: UserWithRole, overrideRole?: UserWithRole["Role"]):
       label: activeRole.label,
     },
     permissions,
-    moduleAccess: user.moduleAccess ?? [],
+    moduleAccess,
     permissionAccess: user.permissionAccess ?? [],
   };
 }

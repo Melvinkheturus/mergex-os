@@ -109,8 +109,20 @@ export async function POST(req: Request) {
         },
       });
 
-      // If invited to a specific brand, grant brand access
-      if (brandId) {
+      // If invited to specific brands, grant brand access (supports multiple brands)
+      const inviteBrands = await db.userInviteBrand.findMany({
+        where: { inviteId: invite.id },
+      });
+
+      if (inviteBrands.length > 0) {
+        await db.userBrandAccess.createMany({
+          data: inviteBrands.map((ib) => ({
+            id: crypto.randomUUID(),
+            userId: newUser.id,
+            brandId: ib.brandId,
+          })),
+        });
+      } else if (brandId) {
         await db.userBrandAccess.create({
           data: { id: crypto.randomUUID(), userId: newUser.id, brandId },
         });

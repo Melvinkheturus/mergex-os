@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import crypto from "crypto";
 
 /**
  * GET /api/team/members
@@ -47,6 +48,8 @@ export async function GET(request: NextRequest) {
       lastName: m.lastName,
       avatarUrl: m.avatarUrl,
       designation: m.designation,
+      employeeId: m.employeeId,
+      moduleAccess: m.moduleAccess,
       clerkId: m.clerkId,
       status: m.status,
       suspendedAt: m.suspendedAt,
@@ -197,8 +200,8 @@ export async function DELETE(request: NextRequest) {
 
 /**
  * PATCH /api/team/members?id=<userId>
- * Updates brand access for a member.
- * Body: { brandIds: string[] }
+ * Updates access configuration for a member (Role, Brand Access, Module Access, employeeId, designation).
+ * Saves audits and updates Clerk metadata.
  */
 export async function PATCH(request: NextRequest) {
   const caller = await getCurrentUser();
@@ -217,27 +220,151 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "User ID is required" }, { status: 400 });
   }
 
-  const body = await request.json() as { brandIds?: string[] };
-  const { brandIds } = body;
+  const body = await request.json() as {
+    employeeId?: string;
+    designation?: string;
+    roleId?: string;
+    brandIds?: string[];
+    moduleAccess?: string[];
+  };
+  const { employeeId, designation, roleId, brandIds, moduleAccess } = body;
 
-  if (!Array.isArray(brandIds)) {
-    return NextResponse.json({ error: "brandIds must be an array" }, { status: 400 });
-  }
+  const target = await db.user.findUnique({
+    where: { id: targetId },
+    include: {
+      Role: true,
+      UserBrandAccess: {
+        include: { Brand: true }
+      }
+    }
+  });
 
-  const target = await db.user.findUnique({ where: { id: targetId } });
   if (!target) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  // Replace all brand access records
-  await db.$transaction([
-    db.userBrandAccess.deleteMany({ where: { userId: targetId } }),
-    ...brandIds.map((brandId) =>
-      db.userBrandAccess.create({
-        data: { userId: targetId, brandId },
-      })
-    ),
-  ]);
+  // Self-role protection
+  if (target.id === caller.id && roleId && roleId !== target.roleId) {
+    return NextResponse.json({ error: "You cannot change your own role" }, { status: 400 });
+  }
+
+  const updates: Record<string, any> = {};
+  if (employeeId !== undefined) updates.employeeId = employeeId.trim() || null;
+  if (designation !== undefined) updates.designation = designation.trim() || null;
+
+  let roleChanged = false;
+  let oldRoleName = target.Role.label;
+  let newRoleName = "";
+
+  if (roleId !== undefined && roleId !== target.roleId) {
+    const newRole = await db.role.findUnique({ where: { id: roleId } });
+    if (!newRole) {
+      return NextResponse.json({ error: "New role not found" }, { status: 404 });
+    }
+    updates.roleId = roleId;
+    roleChanged = true;
+    newRoleName = newRole.label;
+
+    // Update Clerk metadata role
+    const isPlaceholderClerkId = target.clerkId.startsWith("pending_");
+    if (!isPlaceholderClerkId) {
+      try {
+        const client = await clerkClient();
+        const clerkRole = newRole.name === "super_admin" ? "admin" : "user";
+        await client.users.updateUserMetadata(target.clerkId, {
+          publicMetadata: {
+            role: clerkRole,
+          },
+        });
+      } catch (clerkErr) {
+        console.error("[team/members/patch] Failed to update Clerk metadata:", clerkErr);
+      }
+    }
+  }
+
+  if (moduleAccess !== undefined) {
+    updates.moduleAccess = moduleAccess;
+  }
+
+  // Save core user changes
+  await db.user.update({
+    where: { id: targetId },
+    data: updates,
+  });
+
+  // Handle brand access updates if provided
+  let brandAccessChanged = false;
+  const oldBrandIds = target.UserBrandAccess.map((uba) => uba.brandId);
+  const oldBrandNames = target.UserBrandAccess.map((uba) => uba.Brand.name);
+
+  if (brandIds !== undefined) {
+    const setsEqual =
+      brandIds.length === oldBrandIds.length &&
+      brandIds.every((id) => oldBrandIds.includes(id));
+
+    if (!setsEqual) {
+      brandAccessChanged = true;
+      await db.userBrandAccess.deleteMany({ where: { userId: targetId } });
+      if (brandIds.length > 0) {
+        await db.userBrandAccess.createMany({
+          data: brandIds.map((brandId) => ({
+            userId: targetId,
+            brandId,
+          })),
+        });
+      }
+    }
+  }
+
+  // Audit Logs
+  if (roleChanged) {
+    try {
+      await db.loginAudit.create({
+        data: {
+          id: crypto.randomUUID(),
+          userId: targetId,
+          email: target.email,
+          action: "ROLE_CHANGED",
+          metadata: {
+            oldRole: oldRoleName,
+            newRole: newRoleName,
+            changedBy: caller.id,
+          },
+        },
+      });
+    } catch (err) {
+      console.error("[team/members/patch] Role audit log creation failed:", err);
+    }
+  }
+
+  if (brandAccessChanged || moduleAccess !== undefined || employeeId !== undefined || designation !== undefined) {
+    try {
+      const newBrands = brandIds
+        ? await db.brand.findMany({
+            where: { id: { in: brandIds } },
+            select: { name: true },
+          }).then((res) => res.map((b) => b.name))
+        : [];
+
+      await db.loginAudit.create({
+        data: {
+          id: crypto.randomUUID(),
+          userId: targetId,
+          email: target.email,
+          action: "ACCESS_UPDATED",
+          metadata: {
+            changedBy: caller.id,
+            ...(brandAccessChanged && { oldBrands: oldBrandNames, newBrands }),
+            ...(moduleAccess !== undefined && { oldModules: target.moduleAccess, newModules: moduleAccess }),
+            ...(employeeId !== undefined && { oldEmployeeId: target.employeeId, newEmployeeId: employeeId }),
+            ...(designation !== undefined && { oldDesignation: target.designation, newDesignation: designation }),
+          },
+        },
+      });
+    } catch (err) {
+      console.error("[team/members/patch] Access audit log creation failed:", err);
+    }
+  }
 
   return NextResponse.json({ ok: true });
 }

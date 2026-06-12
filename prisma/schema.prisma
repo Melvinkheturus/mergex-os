@@ -510,6 +510,7 @@ enum AuditAction {
   ACCOUNT_DEACTIVATED
   ACCOUNT_ARCHIVED
   ACCOUNT_RESTORED
+  ACCESS_UPDATED
 }
 
 enum InviteStatus {
