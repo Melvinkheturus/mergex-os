@@ -105,7 +105,7 @@ function LoadingTransitionScreen({ brand, onComplete }: { brand: Brand; onComple
   }, [onComplete]);
 
   return (
-    <div className="fixed inset-0 bg-white dark:bg-[#09090c] z-[9999] flex flex-col items-center justify-center overflow-hidden animate-fade-in">
+    <div className="fixed inset-0 bg-white dark:bg-[#09090c] z-9999 flex flex-col items-center justify-center overflow-hidden animate-fade-in">
       <div className="text-center mb-8 flex flex-col items-center gap-2">
         {brand.logoUrl ? (
           <div className="w-12 h-12 relative overflow-hidden rounded-lg border border-neutral-200 dark:border-white/10 shadow-sm">
@@ -124,8 +124,8 @@ function LoadingTransitionScreen({ brand, onComplete }: { brand: Brand; onComple
       {/* Vertical scrolling viewport (height is 5 * 56px = 280px) */}
       <div className="relative h-[280px] w-full max-w-[320px] overflow-hidden flex flex-col items-center">
         {/* Soft top and bottom fade mask */}
-        <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-white dark:from-[#09090c] to-transparent z-10 pointer-events-none" />
-        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white dark:from-[#09090c] to-transparent z-10 pointer-events-none" />
+        <div className="absolute top-0 left-0 right-0 h-16 bg-linear-to-b from-white dark:from-[#09090c] to-transparent z-10 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 right-0 h-16 bg-linear-to-t from-white dark:from-[#09090c] to-transparent z-10 pointer-events-none" />
 
         {/* Scrolling Inner Container */}
         <div 

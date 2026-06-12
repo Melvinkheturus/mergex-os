@@ -27,11 +27,13 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { email, roleId, brandIds, employeeId: rawEmployeeId } = body as {
+  const { email, roleId, brandIds, employeeId: rawEmployeeId, moduleAccess, permissionAccess } = body as {
     email?: string;
     roleId?: string;
     brandIds?: string[];
     employeeId?: string;
+    moduleAccess?: string[];
+    permissionAccess?: string[];
   };
 
   if (!email || !roleId) {
@@ -48,6 +50,8 @@ export async function POST(request: NextRequest) {
   }
 
   const normalizedEmail = email.toLowerCase().trim();
+  const finalModuleAccess = Array.isArray(moduleAccess) ? moduleAccess : [];
+  const finalPermissionAccess = Array.isArray(permissionAccess) ? permissionAccess : [];
 
   // Check for existing active user
   const existingUser = await db.user.findUnique({ where: { email: normalizedEmail } });
@@ -105,6 +109,8 @@ export async function POST(request: NextRequest) {
         status: "PENDING",
         expiresAt,
         invitedBy: user.id,
+        moduleAccess: finalModuleAccess,
+        permissionAccess: finalPermissionAccess,
         UserInviteBrand: {
           create: brandIds.map((brandId) => ({ id: crypto.randomBytes(16).toString("hex"), brandId })),
         },
@@ -121,11 +127,15 @@ export async function POST(request: NextRequest) {
         roleId,
         status: "SUSPENDED", // Not yet active — activated when invite is accepted
         onboardingState: "PROFILE_SETUP",
+        moduleAccess: finalModuleAccess,
+        permissionAccess: finalPermissionAccess,
         updatedAt: new Date(),
       },
       update: {
         employeeId,
         roleId,
+        moduleAccess: finalModuleAccess,
+        permissionAccess: finalPermissionAccess,
         updatedAt: new Date(),
       },
     }),
@@ -145,6 +155,8 @@ export async function POST(request: NextRequest) {
         employeeId,
         roleId,
         invitedBy: user.id,
+        moduleAccess: finalModuleAccess,
+        permissionAccess: finalPermissionAccess,
       },
     });
   } catch (clerkErr) {
@@ -253,6 +265,8 @@ export async function GET(request: NextRequest) {
     status: inv.status,
     expiresAt: inv.expiresAt,
     createdAt: inv.createdAt,
+    moduleAccess: inv.moduleAccess,
+    permissionAccess: inv.permissionAccess,
     brands: inv.UserInviteBrand.map((ib) => ({
       id: ib.brandId,
       name: ib.Brand.name,

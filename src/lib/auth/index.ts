@@ -25,6 +25,8 @@ export type AuthUser = {
     label: string;
   };
   permissions: PermissionString[];
+  moduleAccess: string[];
+  permissionAccess: string[];
 };
 
 // ── Ability helper ─────────────────────────────────────────────
@@ -53,6 +55,8 @@ const USER_SELECT = {
   archivedAt: true,
   activeBrandId: true,
   roleId: true,
+  moduleAccess: true,
+  permissionAccess: true,
   Role: {
     select: {
       id: true,
@@ -83,6 +87,8 @@ type UserWithRole = {
   archivedAt: Date | null;
   activeBrandId: string | null;
   roleId: string;
+  moduleAccess: string[];
+  permissionAccess: string[];
   Role: {
     id: string;
     name: string;
@@ -98,9 +104,11 @@ type UserWithRole = {
 
 function buildAuthUser(user: UserWithRole, overrideRole?: UserWithRole["Role"]): AuthUser {
   const activeRole = overrideRole ?? user.Role;
-  const permissions = activeRole.RolePermission.map(
-    (rp) => `${rp.Permission.module}.${rp.Permission.action}` as PermissionString
-  );
+  const permissions = user.permissionAccess && user.permissionAccess.length > 0
+    ? (user.permissionAccess as PermissionString[])
+    : activeRole.RolePermission.map(
+        (rp) => `${rp.Permission.module}.${rp.Permission.action}` as PermissionString
+      );
   return {
     id: user.id,
     clerkId: user.clerkId,
@@ -118,6 +126,8 @@ function buildAuthUser(user: UserWithRole, overrideRole?: UserWithRole["Role"]):
       label: activeRole.label,
     },
     permissions,
+    moduleAccess: user.moduleAccess ?? [],
+    permissionAccess: user.permissionAccess ?? [],
   };
 }
 

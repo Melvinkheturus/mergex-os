@@ -423,6 +423,8 @@ model User {
   onboardingState        OnboardingState         @default(PROFILE_SETUP)
   activeBrandId          String?
   theme                  String?                 @default("system")
+  moduleAccess           String[]                @default([])
+  permissionAccess       String[]                @default([])
   Activity               Activity[]
   AuditLog               AuditLog[]
   Client                 Client[]
@@ -466,6 +468,8 @@ model UserInvite {
   invitedBy       String?
   acceptedAt      DateTime?
   createdAt       DateTime          @default(now())
+  moduleAccess    String[]          @default([])
+  permissionAccess String[]         @default([])
   Brand           Brand?            @relation(fields: [brandId], references: [id], onUpdate: NoAction)
   UserInviteBrand UserInviteBrand[]
 

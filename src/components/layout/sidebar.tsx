@@ -51,6 +51,22 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
   const params = useParams();
   const slug = params?.slug as string;
   const [openAccordions, setOpenAccordions] = useState<Record<string, boolean>>({});
+  const [moduleAccess, setModuleAccess] = useState<string[] | null>(null);
+
+  useEffect(() => {
+    fetch("/api/profile")
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (data?.ok && data?.user) {
+          if (data.user.Role?.name === "super_admin") {
+            setModuleAccess(null);
+          } else {
+            setModuleAccess(data.user.moduleAccess ?? []);
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const getDynamicHref = (href: string) => {
     return href.replace(/^\/dashboard/, `/workspaces/${slug}`);
@@ -142,8 +158,13 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
 
         {/* ── Primary Navigation ── */}
         <nav className="flex-1 overflow-y-auto pt-6 pb-3 px-3 space-y-1.5">
-          {navGroups.flatMap((group) =>
-            group.items.map((item) => {
+          {navGroups.flatMap((group) => {
+            const filteredItems = group.items.filter((item) => {
+              if (item.title === "Dashboard") return true;
+              return !moduleAccess || moduleAccess.some((m) => m.toLowerCase() === item.title.toLowerCase());
+            });
+
+            return filteredItems.map((item) => {
               const Icon = item.icon;
               const dynamicHref = getDynamicHref(item.href);
               const isActive =
@@ -151,7 +172,12 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
                   ? pathname === dynamicHref || pathname === `${dynamicHref}/dashboard`
                   : pathname.startsWith(dynamicHref);
               const isFrozen = !!item.isComingSoon;
-              const subItems = SUB_ITEMS[item.title];
+              const subItems = SUB_ITEMS[item.title]?.filter((sub) => {
+                if (sub.title === "Projects") {
+                  return !moduleAccess || moduleAccess.some((m) => m.toLowerCase() === "projects");
+                }
+                return true;
+              });
               const hasActiveSubItem = subItems?.some((sub) => pathname.startsWith(getDynamicHref(sub.href)));
               const isParentHighlighted = isActive && !hasActiveSubItem;
               const isAccordionOpen = !!openAccordions[item.title];
@@ -168,7 +194,7 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
                     collapsed ? "justify-center" : "",
                     isActive
                       ? isParentHighlighted
-                        ? "text-[#8B5CF6] dark:text-[#A78BFA] bg-gradient-to-b from-white to-[#8B5CF6]/12 dark:from-[#121118] dark:to-[#8B5CF6]/15 font-bold shadow-[0_1px_2px_rgba(139,92,246,0.05)]"
+                        ? "text-[#8B5CF6] dark:text-[#A78BFA] bg-linear-to-b from-white to-[#8B5CF6]/12 dark:from-[#121118] dark:to-[#8B5CF6]/15 font-bold shadow-[0_1px_2px_rgba(139,92,246,0.05)]"
                         : "text-[#8B5CF6] dark:text-[#A78BFA] font-bold hover:bg-black/5 dark:hover:bg-white/5"
                       : isFrozen
                       ? "text-neutral-400/30 dark:text-neutral-600/30 pointer-events-none"
@@ -249,7 +275,7 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
                               className={cn(
                                 "group flex items-center px-2.5 py-2 rounded-md text-[11px] transition-all duration-100 w-full",
                                 isSubActive
-                                  ? "text-[#8B5CF6] dark:text-[#A78BFA] bg-gradient-to-b from-white to-[#8B5CF6]/12 dark:from-[#121118] dark:to-[#8B5CF6]/15 font-bold shadow-[0_1px_2px_rgba(139,92,246,0.05)]"
+                                  ? "text-[#8B5CF6] dark:text-[#A78BFA] bg-linear-to-b from-white to-[#8B5CF6]/12 dark:from-[#121118] dark:to-[#8B5CF6]/15 font-bold shadow-[0_1px_2px_rgba(139,92,246,0.05)]"
                                   : "text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 font-medium hover:bg-black/5 dark:hover:bg-white/5"
                               )}
                             >
@@ -262,64 +288,66 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
                   )}
                 </div>
               );
-            })
-          )}
+            });
+          })}
         </nav>
 
         {/* ── Settings (Bottom) ── */}
-        <div className="border-t border-neutral-200/60 dark:border-white/5 p-3 space-y-1">
-          {collapsed ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Link
-                  href={`/workspaces/${slug}/settings`}
-                  className={cn(
-                    "flex items-center justify-center h-9 w-9 mx-auto rounded-md transition-all duration-100",
-                    pathname.startsWith(`/workspaces/${slug}/settings`)
-                      ? "text-[#8B5CF6] dark:text-[#A78BFA] bg-gradient-to-b from-white to-[#8B5CF6]/12 dark:from-[#121118] dark:to-[#8B5CF6]/15 shadow-[0_1px_2px_rgba(139,92,246,0.05)]"
-                      : "text-neutral-700 dark:text-neutral-300 hover:text-neutral-950 dark:hover:text-neutral-50 hover:bg-black/5 dark:hover:bg-white/5"
-                  )}
-                >
-                  <Settings
+        {(!moduleAccess || moduleAccess.some((m) => m.toLowerCase() === "settings")) && (
+          <div className="border-t border-neutral-200/60 dark:border-white/5 p-3 space-y-1">
+            {collapsed ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link
+                    href={`/workspaces/${slug}/settings`}
                     className={cn(
-                      "h-[16px] w-[16px] shrink-0 transition-colors",
+                      "flex items-center justify-center h-9 w-9 mx-auto rounded-md transition-all duration-100",
                       pathname.startsWith(`/workspaces/${slug}/settings`)
-                        ? "text-[#8B5CF6] dark:text-[#A78BFA]"
-                        : "text-neutral-500 dark:text-neutral-400"
+                        ? "text-[#8B5CF6] dark:text-[#A78BFA] bg-linear-to-b from-white to-[#8B5CF6]/12 dark:from-[#121118] dark:to-[#8B5CF6]/15 shadow-[0_1px_2px_rgba(139,92,246,0.05)]"
+                        : "text-neutral-700 dark:text-neutral-300 hover:text-neutral-950 dark:hover:text-neutral-50 hover:bg-black/5 dark:hover:bg-white/5"
                     )}
-                    strokeWidth={pathname.startsWith(`/workspaces/${slug}/settings`) ? 2 : 1.5}
-                  />
-                </Link>
-              </TooltipTrigger>
-              <TooltipContent side="right" sideOffset={12} className="text-[10px] font-medium">
-                Settings
-              </TooltipContent>
-            </Tooltip>
-          ) : (
-            <Link
-              href={`/workspaces/${slug}/settings`}
-              className={cn(
-                "flex items-center gap-3 px-2 py-[7px] rounded-md text-[13px] transition-all duration-100",
-                pathname.startsWith(`/workspaces/${slug}/settings`)
-                  ? "text-[#8B5CF6] dark:text-[#A78BFA] bg-gradient-to-b from-white to-[#8B5CF6]/12 dark:from-[#121118] dark:to-[#8B5CF6]/15 font-bold shadow-[0_1px_2px_rgba(139,92,246,0.05)]"
-                  : "text-neutral-800 dark:text-neutral-200 hover:text-neutral-950 dark:hover:text-neutral-50 hover:bg-black/5 dark:hover:bg-white/5 font-semibold"
-              )}
-            >
-              <Settings
+                  >
+                    <Settings
+                      className={cn(
+                        "h-[16px] w-[16px] shrink-0 transition-colors",
+                        pathname.startsWith(`/workspaces/${slug}/settings`)
+                          ? "text-[#8B5CF6] dark:text-[#A78BFA]"
+                          : "text-neutral-500 dark:text-neutral-400"
+                      )}
+                      strokeWidth={pathname.startsWith(`/workspaces/${slug}/settings`) ? 2 : 1.5}
+                    />
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent side="right" sideOffset={12} className="text-[10px] font-medium">
+                  Settings
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <Link
+                href={`/workspaces/${slug}/settings`}
                 className={cn(
-                  "h-[16px] w-[16px] shrink-0 transition-colors",
+                  "flex items-center gap-3 px-2 py-[7px] rounded-md text-[13px] transition-all duration-100",
                   pathname.startsWith(`/workspaces/${slug}/settings`)
-                    ? "text-[#8B5CF6] dark:text-[#A78BFA]"
-                    : "text-neutral-500 dark:text-neutral-400"
+                    ? "text-[#8B5CF6] dark:text-[#A78BFA] bg-linear-to-b from-white to-[#8B5CF6]/12 dark:from-[#121118] dark:to-[#8B5CF6]/15 font-bold shadow-[0_1px_2px_rgba(139,92,246,0.05)]"
+                    : "text-neutral-800 dark:text-neutral-200 hover:text-neutral-950 dark:hover:text-neutral-50 hover:bg-black/5 dark:hover:bg-white/5 font-semibold"
                 )}
-                strokeWidth={pathname.startsWith(`/workspaces/${slug}/settings`) ? 2 : 1.5}
-              />
-              <span>Settings</span>
-            </Link>
-          )}
+              >
+                <Settings
+                  className={cn(
+                    "h-[16px] w-[16px] shrink-0 transition-colors",
+                    pathname.startsWith(`/workspaces/${slug}/settings`)
+                      ? "text-[#8B5CF6] dark:text-[#A78BFA]"
+                      : "text-neutral-500 dark:text-neutral-400"
+                  )}
+                  strokeWidth={pathname.startsWith(`/workspaces/${slug}/settings`) ? 2 : 1.5}
+                />
+                <span>Settings</span>
+              </Link>
+            )}
 
-          {/* Expand is now handled by the logo hover in the collapsed header */}
-        </div>
+            {/* Expand is now handled by the logo hover in the collapsed header */}
+          </div>
+        )}
       </aside>
     </div>
   );

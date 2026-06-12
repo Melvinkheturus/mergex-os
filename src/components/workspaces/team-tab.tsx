@@ -82,6 +82,8 @@ interface PendingInvite {
   expiresAt: string;
   createdAt: string;
   brands: { id: string; name: string; slug: string }[];
+  moduleAccess?: string[];
+  permissionAccess?: string[];
 }
 
 type TeamTabSection = "members" | "invitations" | "roles" | "brand-access";
@@ -504,6 +506,27 @@ function MembersSection({ teammates: initialTeammates, currentUserRole }: { team
 }
 
 // ── 2. Invitations ────────────────────────────────────────────────────────────
+const MODULE_OPTIONS = [
+  { id: "CRM", label: "CRM" },
+  { id: "Clients", label: "Clients" },
+  { id: "Documents", label: "Documents" },
+  { id: "Projects", label: "Projects" },
+  { id: "Finance", label: "Finance" },
+  { id: "Knowledge", label: "Knowledge" },
+  { id: "Settings", label: "Settings" },
+];
+
+const PERMISSION_OPTIONS = [
+  { id: "crm.leads.create", label: "CRM: Create Lead" },
+  { id: "crm.leads.edit", label: "CRM: Edit Lead" },
+  { id: "crm.leads.delete", label: "CRM: Delete Lead" },
+  { id: "crm.leads.assign", label: "CRM: Assign Lead" },
+  { id: "clients.create", label: "Clients: Create Client" },
+  { id: "clients.edit", label: "Clients: Edit Client" },
+  { id: "documents.upload", label: "Documents: Upload" },
+  { id: "settings.manage", label: "Settings: Manage" },
+];
+
 function InvitationsSection({ brands }: { brands: Brand[] }) {
   const [dbRoles, setDbRoles]       = useState<DbRole[]>([]);
   const [pending, setPending]       = useState<PendingInvite[]>([]);
@@ -516,7 +539,33 @@ function InvitationsSection({ brands }: { brands: Brand[] }) {
   const [employeeId, setEmployeeId] = useState("");
   const [roleId, setRoleId]         = useState("");
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
+  const [selectedModules, setSelectedModules] = useState<string[]>([]);
+  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
+
   const [brandDropOpen, setBrandDropOpen]   = useState(false);
+  const [moduleDropOpen, setModuleDropOpen]   = useState(false);
+  const [permissionDropOpen, setPermissionDropOpen] = useState(false);
+
+  const brandRef = useRef<HTMLDivElement>(null);
+  const moduleRef = useRef<HTMLDivElement>(null);
+  const permissionRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdowns on click outside
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (brandRef.current && !brandRef.current.contains(e.target as Node)) {
+        setBrandDropOpen(false);
+      }
+      if (moduleRef.current && !moduleRef.current.contains(e.target as Node)) {
+        setModuleDropOpen(false);
+      }
+      if (permissionRef.current && !permissionRef.current.contains(e.target as Node)) {
+        setPermissionDropOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   // Load roles + pending invites
   useEffect(() => {
@@ -532,6 +581,50 @@ function InvitationsSection({ brands }: { brands: Brand[] }) {
       .catch(() => toast.error("Failed to load roles / invitations."))
       .finally(() => setLoading(false));
   }, []);
+
+  // Role templates auto-fill when roleId changes
+  useEffect(() => {
+    if (!roleId || dbRoles.length === 0) return;
+    const selectedRoleObj = dbRoles.find((r) => r.id === roleId);
+    if (!selectedRoleObj) return;
+
+    const roleName = selectedRoleObj.name;
+    if (roleName === "admin") {
+      setSelectedModules(["CRM", "Clients", "Documents", "Projects", "Finance", "Knowledge", "Settings"]);
+      setSelectedPermissions([
+        "crm.leads.create",
+        "crm.leads.edit",
+        "crm.leads.delete",
+        "crm.leads.assign",
+        "clients.create",
+        "clients.edit",
+        "documents.upload",
+        "settings.manage",
+      ]);
+      setSelectedBrands(brands.map((b) => b.id));
+    } else if (roleName.includes("manager")) {
+      setSelectedModules(["CRM", "Clients", "Projects", "Documents"]);
+      setSelectedPermissions([
+        "crm.leads.create",
+        "crm.leads.edit",
+        "crm.leads.assign",
+        "clients.create",
+        "clients.edit",
+        "documents.upload",
+      ]);
+      if (brands.length > 0) setSelectedBrands([brands[0].id]);
+    } else {
+      // Member / Viewer / generic template
+      setSelectedModules(["CRM", "Clients"]);
+      setSelectedPermissions([
+        "crm.leads.create",
+        "crm.leads.edit",
+        "clients.create",
+        "clients.edit",
+      ]);
+      if (brands.length > 0) setSelectedBrands([brands[0].id]);
+    }
+  }, [roleId, dbRoles, brands]);
 
   const toggleBrand = (id: string) => {
     setSelectedBrands((prev) =>
@@ -567,6 +660,8 @@ function InvitationsSection({ brands }: { brands: Brand[] }) {
           employeeId: employeeId.trim(),
           roleId,
           brandIds: selectedBrands,
+          moduleAccess: selectedModules,
+          permissionAccess: selectedPermissions,
         }),
       });
 
@@ -585,6 +680,8 @@ function InvitationsSection({ brands }: { brands: Brand[] }) {
       setEmail("");
       setEmployeeId("");
       setSelectedBrands([]);
+      setSelectedModules([]);
+      setSelectedPermissions([]);
       if (dbRoles.length > 0) setRoleId(dbRoles[0].id);
 
       // Refresh pending list
@@ -658,7 +755,7 @@ function InvitationsSection({ brands }: { brands: Brand[] }) {
 
         {loading ? (
           <div className="grid sm:grid-cols-2 gap-4 pt-1 animate-pulse">
-            {[...Array(4)].map((_, i) => (
+            {[...Array(6)].map((_, i) => (
               <div key={i} className="space-y-1.5">
                 <Skeleton className="h-3 w-20 rounded" />
                 <Skeleton className="h-9 w-full rounded-lg" />
@@ -708,7 +805,7 @@ function InvitationsSection({ brands }: { brands: Brand[] }) {
             </div>
 
             {/* Brand Access */}
-            <div className="space-y-1.5 relative">
+            <div ref={brandRef} className="space-y-1.5 relative">
               <Label className="text-[10px] font-bold uppercase text-muted-foreground">Brand Access</Label>
               <button
                 type="button"
@@ -722,20 +819,100 @@ function InvitationsSection({ brands }: { brands: Brand[] }) {
               </button>
               {brandDropOpen && (
                 <div className="absolute z-30 top-full mt-1 left-0 right-0 bg-white dark:bg-[#0A0A0E] border border-neutral-200 dark:border-white/8 rounded-xl shadow-xl overflow-hidden">
-                  {brands.map((b) => {
-                    const selected = selectedBrands.includes(b.id);
-                    return (
-                      <button
-                        key={b.id}
-                        type="button"
-                        onClick={() => toggleBrand(b.id)}
-                        className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-foreground hover:bg-neutral-50 dark:hover:bg-white/5 transition-colors cursor-pointer"
-                      >
-                        <span>{b.name}</span>
-                        {selected && <Check className="w-3.5 h-3.5 text-[#8B5CF6]" />}
-                      </button>
-                    );
-                  })}
+                  <div className="max-h-48 overflow-y-auto">
+                    {brands.map((b) => {
+                      const selected = selectedBrands.includes(b.id);
+                      return (
+                        <button
+                          key={b.id}
+                          type="button"
+                          onClick={() => toggleBrand(b.id)}
+                          className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-foreground hover:bg-neutral-50 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                        >
+                          <span>{b.name}</span>
+                          {selected && <Check className="w-3.5 h-3.5 text-[#8B5CF6]" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Module Access */}
+            <div ref={moduleRef} className="space-y-1.5 relative">
+              <Label className="text-[10px] font-bold uppercase text-muted-foreground">Module Access</Label>
+              <button
+                type="button"
+                onClick={() => setModuleDropOpen((o) => !o)}
+                className="w-full h-9 px-3 rounded-lg bg-white dark:bg-[#0A0A0E] border border-neutral-200 dark:border-white/6 text-xs text-foreground flex items-center justify-between gap-2 hover:border-neutral-300 dark:hover:border-white/12 transition-all cursor-pointer"
+              >
+                <span className={cn("truncate", selectedModules.length === 0 && "text-muted-foreground")}>
+                  {selectedModules.join(", ") || "Select modules…"}
+                </span>
+                <ChevronDown className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
+              </button>
+              {moduleDropOpen && (
+                <div className="absolute z-35 top-full mt-1 left-0 right-0 bg-white dark:bg-[#0A0A0E] border border-neutral-200 dark:border-white/8 rounded-xl shadow-xl overflow-hidden">
+                  <div className="max-h-48 overflow-y-auto">
+                    {MODULE_OPTIONS.map((m) => {
+                      const selected = selectedModules.includes(m.id);
+                      return (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedModules((prev) =>
+                              prev.includes(m.id) ? prev.filter((x) => x !== m.id) : [...prev, m.id]
+                            );
+                          }}
+                          className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-foreground hover:bg-neutral-50 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                        >
+                          <span>{m.label}</span>
+                          {selected && <Check className="w-3.5 h-3.5 text-[#8B5CF6]" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Permission Access */}
+            <div ref={permissionRef} className="space-y-1.5 relative">
+              <Label className="text-[10px] font-bold uppercase text-muted-foreground">Permission Access</Label>
+              <button
+                type="button"
+                onClick={() => setPermissionDropOpen((o) => !o)}
+                className="w-full h-9 px-3 rounded-lg bg-white dark:bg-[#0A0A0E] border border-neutral-200 dark:border-white/6 text-xs text-foreground flex items-center justify-between gap-2 hover:border-neutral-300 dark:hover:border-white/12 transition-all cursor-pointer"
+              >
+                <span className={cn("truncate", selectedPermissions.length === 0 && "text-muted-foreground")}>
+                  {selectedPermissions.map(p => PERMISSION_OPTIONS.find(o => o.id === p)?.label || p).join(", ") || "Select permissions…"}
+                </span>
+                <ChevronDown className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
+              </button>
+              {permissionDropOpen && (
+                <div className="absolute z-35 top-full mt-1 left-0 right-0 bg-white dark:bg-[#0A0A0E] border border-neutral-200 dark:border-white/8 rounded-xl shadow-xl overflow-hidden">
+                  <div className="max-h-48 overflow-y-auto">
+                    {PERMISSION_OPTIONS.map((p) => {
+                      const selected = selectedPermissions.includes(p.id);
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedPermissions((prev) =>
+                              prev.includes(p.id) ? prev.filter((x) => x !== p.id) : [...prev, p.id]
+                            );
+                          }}
+                          className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-foreground hover:bg-neutral-50 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                        >
+                          <span>{p.label}</span>
+                          {selected && <Check className="w-3.5 h-3.5 text-[#8B5CF6]" />}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </div>
@@ -812,7 +989,8 @@ function InvitationsSection({ brands }: { brands: Brand[] }) {
                       <p className="text-xs font-bold text-foreground truncate leading-none">{inv.email}</p>
                       <p className="text-[10px] text-muted-foreground/60 mt-1">
                         Expires {expiresDate}
-                        {inv.brands.length > 0 && ` · ${inv.brands.map((b) => b.name).join(", ")}`}
+                        {inv.brands.length > 0 && ` · Brands: ${inv.brands.map((b) => b.name).join(", ")}`}
+                        {inv.moduleAccess && inv.moduleAccess.length > 0 && ` · Modules: ${inv.moduleAccess.join(", ")}`}
                       </p>
                     </div>
                   </div>

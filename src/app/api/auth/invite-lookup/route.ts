@@ -81,5 +81,7 @@ export async function GET(request: NextRequest) {
     roleLabel: preCreatedUser?.Role?.label ?? "Team Member",
     brands,
     inviteId: invite.id,
+    moduleAccess: invite.moduleAccess ?? [],
+    permissionAccess: invite.permissionAccess ?? [],
   });
 }

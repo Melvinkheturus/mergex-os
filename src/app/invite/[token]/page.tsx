@@ -23,6 +23,8 @@ type InviteData = {
   roleLabel: string;
   brands: { id: string; name: string; slug: string; logoUrl: string | null }[];
   inviteId: string;
+  moduleAccess?: string[];
+  permissionAccess?: string[];
   error?: string;
 };
 
@@ -585,6 +587,16 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
                         {invite.brands.map((b) => b.name).join(", ")}
                       </span>
                     </div>
+                  </div>
+                )}
+                {invite.moduleAccess && invite.moduleAccess.length > 0 && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+                      Modules
+                    </span>
+                    <span className="text-xs font-semibold text-zinc-300">
+                      {invite.moduleAccess.join(", ")}
+                    </span>
                   </div>
                 )}
               </div>
