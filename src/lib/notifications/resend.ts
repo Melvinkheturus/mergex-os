@@ -264,38 +264,85 @@ export async function sendTeamInviteEmail({
     from: FROM_EMAIL,
     to,
     subject: `You've been invited to MergeX OS`,
-    html: buildEmailHtml({
-      title: "You're invited to MergeX OS",
-      preheader: `${invitedByName} has invited you to join MergeX OS as ${roleLabel}.`,
-      body: `
-        <strong style="color:#fafafa;">${invitedByName}</strong> has invited you to join the MergeX OS platform.<br/><br/>
-
-        <table cellpadding="0" cellspacing="0" border="0" style="background:#1c1c1f;border-radius:10px;padding:16px 20px;width:100%;margin:12px 0;">
+    html: `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>You're invited to MergeX OS</title>
+  <link href="https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&display=swap" rel="stylesheet" />
+</head>
+<body style="margin:0;padding:0;background:#0F1115;font-family:'Clash Display',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0F1115;min-height:100vh;">
+    <tr>
+      <td align="center" style="padding:40px 16px;">
+        <table width="400" cellpadding="0" cellspacing="0" border="0" style="max-width:400px;width:100%;">
+          <!-- Header -->
           <tr>
-            <td style="color:#a1a1aa;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;padding-bottom:4px;">Your Employee ID</td>
+            <td align="center" style="padding-bottom: 24px;">
+              <div style="font-size: 11px; font-weight: 600; color: #9CA3AF; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">You're invited to</div>
+              <div style="font-size: 26px; font-weight: 600; color: #FFFFFF; letter-spacing: 0.15em; text-transform: uppercase; font-family: 'Clash Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">MergeX <span style="color:#8B5CF6;">OS</span></div>
+            </td>
           </tr>
+          
+          <!-- Subtitle -->
           <tr>
-            <td style="color:#fafafa;font-size:20px;font-weight:700;font-family:monospace;letter-spacing:0.15em;">${employeeId}</td>
+            <td align="center" style="padding-bottom: 32px; font-size: 14px; color: #9CA3AF; line-height: 1.6; font-weight: 400;">
+              <strong style="color: #FFFFFF; font-weight: 600;">${invitedByName}</strong> has invited you to join the<br/>MergeX OS platform.
+            </td>
+          </tr>
+          
+          <!-- Employee ID Card -->
+          <tr>
+            <td style="padding-bottom: 28px;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#16181D;border: 1px solid #242731;border-radius:12px;text-align:center;">
+                <tr>
+                  <td style="padding: 24px;">
+                    <div style="font-size: 10px; font-weight: 700; color: #6B7280; letter-spacing: 0.15em; margin-bottom: 12px; text-transform: uppercase;">Your Employee ID</div>
+                    <div style="font-size: 24px; font-weight: 700; color: #FFFFFF; letter-spacing: 0.15em; font-family: monospace;">${employeeId}</div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          
+          <!-- Info List -->
+          <tr>
+            <td style="padding-bottom: 32px;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse;">
+                <tr>
+                  <td style="color:#9CA3AF;font-size:14px;padding:8px 0;text-align:left;">Role</td>
+                  <td style="color:#FFFFFF;font-size:14px;font-weight:600;padding:8px 0;text-align:right;">${roleLabel}</td>
+                </tr>
+                <tr>
+                  <td style="color:#9CA3AF;font-size:14px;padding:8px 0;text-align:left;">Brand Access</td>
+                  <td style="color:#FFFFFF;font-size:14px;font-weight:600;padding:8px 0;text-align:right;">${brandsText}</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          
+          <!-- Instructions -->
+          <tr>
+            <td style="padding-bottom: 24px; font-size: 14px; color: #9CA3AF; line-height: 1.6; text-align: left;">
+              Click the button below to activate your account and create your password. This link expires in <strong style="color: #FFFFFF; font-weight: 600;">7 days</strong>.
+            </td>
+          </tr>
+          
+          <!-- CTA Button -->
+          <tr>
+            <td>
+              <a href="${activationUrl}" style="display: block; background: #5B39C9; color: #FFFFFF; font-size: 14px; font-weight: 600; text-decoration: none; border-radius: 8px; padding: 14px 20px; text-align: center; box-shadow: 0 4px 12px rgba(91, 57, 201, 0.2);">
+                Activate Account &nbsp;&rarr;
+              </a>
+            </td>
           </tr>
         </table>
-
-        <table cellpadding="0" cellspacing="0" border="0" style="width:100%;margin:8px 0;">
-          <tr>
-            <td style="color:#71717a;font-size:13px;padding:3px 0;">Role:</td>
-            <td style="color:#fafafa;font-size:13px;font-weight:600;padding:3px 0 3px 12px;">${roleLabel}</td>
-          </tr>
-          <tr>
-            <td style="color:#71717a;font-size:13px;padding:3px 0;">Brand Access:</td>
-            <td style="color:#fafafa;font-size:13px;font-weight:600;padding:3px 0 3px 12px;">${brandsText}</td>
-          </tr>
-        </table>
-
-        <p style="color:#71717a;font-size:13px;margin:16px 0 0;">Click the button below to activate your account and create your password. This link expires in <strong style="color:#a1a1aa;">7 days</strong>.</p>
-      `,
-      ctaLabel: "Activate Account →",
-      ctaUrl: activationUrl,
-      priorityColor: "#8b5cf6",
-    }),
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
   });
 }
 

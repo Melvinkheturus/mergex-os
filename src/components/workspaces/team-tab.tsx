@@ -23,6 +23,13 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -502,6 +509,7 @@ function InvitationsSection({ brands }: { brands: Brand[] }) {
   const [pending, setPending]       = useState<PendingInvite[]>([]);
   const [loading, setLoading]       = useState(true);
   const [sending, setSending]       = useState(false);
+  const [resendingId, setResendingId] = useState<string | null>(null);
 
   // Form fields
   const [email, setEmail]           = useState("");
@@ -604,6 +612,31 @@ function InvitationsSection({ brands }: { brands: Brand[] }) {
     }
   };
 
+  const handleResendInvite = async (id: string, inviteEmail: string) => {
+    setResendingId(id);
+    try {
+      const res = await fetch("/api/team/invite/resend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inviteId: id }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        toast.error(data.error ?? "Failed to resend invitation.");
+        return;
+      }
+      toast.success("Invitation resent!", {
+        description: `A new email has been dispatched to ${inviteEmail}.`,
+      });
+      const updated = await fetch("/api/team/invite").then((r) => r.json());
+      setPending(Array.isArray(updated) ? updated : []);
+    } catch {
+      toast.error("Network error — please try again.");
+    } finally {
+      setResendingId(null);
+    }
+  };
+
   const selectedBrandNames = brands
     .filter((b) => selectedBrands.includes(b.id))
     .map((b) => b.name)
@@ -660,15 +693,18 @@ function InvitationsSection({ brands }: { brands: Brand[] }) {
             {/* Role */}
             <div className="space-y-1.5">
               <Label className="text-[10px] font-bold uppercase text-muted-foreground">Role</Label>
-              <select
-                value={roleId}
-                onChange={(e) => setRoleId(e.target.value)}
-                className="w-full h-9 px-3 rounded-lg bg-white dark:bg-[#0A0A0E] border border-neutral-200 dark:border-white/6 text-xs text-foreground focus:outline-none focus:border-[#8B5CF6]/50 transition-all cursor-pointer appearance-none"
-              >
-                {dbRoles.map((r) => (
-                  <option key={r.id} value={r.id}>{r.label}</option>
-                ))}
-              </select>
+              <Select value={roleId} onValueChange={setRoleId}>
+                <SelectTrigger className="w-full h-9 px-3 rounded-lg bg-white dark:bg-[#0A0A0E] border border-neutral-200 dark:border-white/6 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[#8B5CF6]/30 focus:border-[#8B5CF6]/40 transition-all cursor-pointer shadow-none">
+                  <SelectValue placeholder="Select a role" />
+                </SelectTrigger>
+                <SelectContent>
+                  {dbRoles.map((r) => (
+                    <SelectItem key={r.id} value={r.id}>
+                      {r.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Brand Access */}
@@ -784,6 +820,18 @@ function InvitationsSection({ brands }: { brands: Brand[] }) {
                     <Badge variant="outline" className="text-[9px] uppercase tracking-wider border-amber-500/20 text-amber-600 bg-amber-500/5 font-semibold">
                       Pending
                     </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={resendingId === inv.id}
+                      onClick={() => handleResendInvite(inv.id, inv.email)}
+                      className="h-7 text-[10px] font-bold text-neutral-500 hover:text-[#8B5CF6] hover:bg-[#8B5CF6]/5 cursor-pointer disabled:opacity-50"
+                    >
+                      {resendingId === inv.id ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin mr-1 inline" />
+                      ) : null}
+                      Resend
+                    </Button>
                     <Button
                       variant="ghost"
                       size="sm"
