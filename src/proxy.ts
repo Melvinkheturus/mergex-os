@@ -25,10 +25,7 @@ const isPublicRoute = createRouteMatcher([
   "/api/auth/active-brand(.*)", // Internal middleware → Node.js DB lookup
 ]);
 
-// Onboarding routes - blocked from normal app access
-const isOnboardingRoute = createRouteMatcher([
-  "/onboarding(.*)",
-]);
+
 
 export default clerkMiddleware(
   async (auth, request) => {
@@ -80,13 +77,7 @@ export default clerkMiddleware(
 
   // If already authenticated and trying to access auth pages (sign-in or sign-up)
   if (userId && (pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up"))) {
-    const onboardingState = (sessionClaims?.publicMetadata as { onboardingState?: string })?.onboardingState;
-    if (onboardingState === "PLATFORM_SETUP") {
-      return NextResponse.redirect(new URL("/onboarding/platform", request.url));
-    }
-    if (onboardingState === "PROFILE_SETUP") {
-      return NextResponse.redirect(new URL("/onboarding/profile", request.url));
-    }
+
     // COMPLETE - redirect to active brand workspace, or fall through to /workspaces hub
     const postLoginUrl = await resolvePostLoginRedirect(userId, request.url);
     return NextResponse.redirect(postLoginUrl ?? new URL("/workspaces", request.url));
@@ -101,34 +92,7 @@ export default clerkMiddleware(
     return;
   }
 
-  const onboardingState = (sessionClaims?.publicMetadata as { onboardingState?: string })?.onboardingState;
 
-  if (onboardingState === "PLATFORM_SETUP") {
-    // Must complete platform setup first
-    if (!isOnboardingRoute(request)) {
-      return NextResponse.redirect(new URL("/onboarding/platform", request.url));
-    }
-    // Block access to profile onboarding until platform setup is done
-    if (pathname.startsWith("/onboarding/profile")) {
-      return NextResponse.redirect(new URL("/onboarding/platform", request.url));
-    }
-    return;
-  }
-
-  if (onboardingState === "PROFILE_SETUP") {
-    // Must complete personal profile setup
-    if (!isOnboardingRoute(request)) {
-      return NextResponse.redirect(new URL("/onboarding/profile", request.url));
-    }
-    return;
-  }
-
-  // onboardingState === "COMPLETE" or undefined (existing users before this feature)
-  // Block access to onboarding routes once complete
-  if (isOnboardingRoute(request)) {
-    const postLoginUrl = await resolvePostLoginRedirect(userId, request.url);
-    return NextResponse.redirect(postLoginUrl ?? new URL("/workspaces", request.url));
-  }
 
   // ── Already on /workspaces (the hub) — let it render, no further redirect ──
   // This prevents an infinite loop: resolvePostLoginRedirect falls back to

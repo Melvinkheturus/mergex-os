@@ -104,7 +104,7 @@ export async function POST(req: Request) {
           avatarUrl: data.image_url,
           roleId,
           status: "ACTIVE",
-          onboardingState: "PROFILE_SETUP",
+          onboardingState: "COMPLETE",
           updatedAt: new Date(),
         },
       });
@@ -132,7 +132,7 @@ export async function POST(req: Request) {
       const client = await clerkClient();
       await client.users.updateUserMetadata(data.id, {
         publicMetadata: {
-          onboardingState: "PROFILE_SETUP",
+          onboardingState: "COMPLETE",
           role: "user",
         },
       });
@@ -140,7 +140,7 @@ export async function POST(req: Request) {
       await writeAuditLog({
         email: primaryEmail,
         action: "LOGIN_SUCCESS",
-        metadata: { event: "user.created", clerkId: data.id, onboardingState: "PROFILE_SETUP" },
+        metadata: { event: "user.created", clerkId: data.id, onboardingState: "COMPLETE" },
       });
     } catch (err) {
       console.error("[clerk-webhook] user.created error", err);

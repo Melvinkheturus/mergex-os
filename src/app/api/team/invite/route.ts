@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
         employeeId,
         roleId,
         status: "SUSPENDED", // Not yet active — activated when invite is accepted
-        onboardingState: "PROFILE_SETUP",
+        onboardingState: "COMPLETE",
         moduleAccess: finalModuleAccess,
         permissionAccess: finalPermissionAccess,
         updatedAt: new Date(),

@@ -121,7 +121,7 @@ export async function POST(req: Request) {
         employeeId,
         roleId: superAdminRole.id,
         status: "ACTIVE",
-        onboardingState: "PLATFORM_SETUP",
+        onboardingState: "COMPLETE",
         updatedAt: new Date(),
       },
       select: { id: true },
@@ -143,7 +143,7 @@ export async function POST(req: Request) {
   // ── 7. Set Clerk publicMetadata for zero-DB-hit proxy routing ─────────────
   await client.users.updateUserMetadata(clerkUser.id, {
     publicMetadata: {
-      onboardingState: "PLATFORM_SETUP",
+      onboardingState: "COMPLETE",
       role: "super_admin",
     },
   });

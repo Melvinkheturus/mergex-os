@@ -420,7 +420,7 @@ model User {
   username               String?                 @unique
   phone                  String?
   designation            String?
-  onboardingState        OnboardingState         @default(PROFILE_SETUP)
+  onboardingState        OnboardingState         @default(COMPLETE)
   activeBrandId          String?
   theme                  String?                 @default("system")
   moduleAccess           String[]                @default([])

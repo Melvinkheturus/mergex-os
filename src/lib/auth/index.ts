@@ -187,7 +187,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
 
           // Platform initialized — handle invite-based provisioning only.
           let roleId: string | null = null;
-          const onboardingState = "PROFILE_SETUP" as const;
+          const onboardingState = "COMPLETE" as const;
 
           const invite = await db.userInvite.findFirst({
             where: { email: primaryEmail, status: "PENDING" },
@@ -229,7 +229,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
                   avatarUrl: clerkUser.imageUrl ?? existingByEmail.avatarUrl,
                   status: "ACTIVE",
                   roleId: existingByEmail.roleId ?? roleId,
-                  onboardingState: existingByEmail.onboardingState ?? "PROFILE_SETUP",
+                  onboardingState: existingByEmail.onboardingState ?? "COMPLETE",
                   updatedAt: new Date(),
                 },
               });

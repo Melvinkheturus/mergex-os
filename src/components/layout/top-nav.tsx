@@ -359,7 +359,7 @@ function ProfileMenu() {
           {/* Popover Action Links */}
           <div className="py-1">
             <Link
-              href="/onboarding/profile"
+              href={slug ? `/workspaces/${slug}/settings` : "/workspaces"}
               className="w-full flex items-center px-3.5 py-2 text-xs font-semibold text-foreground hover:bg-muted/50 transition-colors"
               onClick={() => setOpen(false)}
             >

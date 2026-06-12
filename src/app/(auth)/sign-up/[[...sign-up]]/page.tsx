@@ -172,7 +172,7 @@ export default function SignUpPage() {
       if (signUp.status === "complete") {
         setStep("success");
         // Session is active — proxy will route based on onboardingState
-        setTimeout(() => router.push("/onboarding/profile"), 1200);
+        setTimeout(() => router.push("/workspaces"), 1200);
       }
     } catch { setError("Invalid code. Please try again."); setOtp(""); }
     finally { setLoading(false); }

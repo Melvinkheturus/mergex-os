@@ -5,7 +5,6 @@ import { useSignUp } from "@clerk/nextjs/legacy";
 import { useRouter } from "next/navigation";
 import {
   Loader2,
-  CheckCircle2,
   ShieldCheck,
   Eye,
   EyeOff,
@@ -15,6 +14,7 @@ import {
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LiquidMetalButton } from "@/components/ui/liquid-metal-button";
+import styles from "./success-animation.module.css";
 
 type InviteData = {
   valid: boolean;
@@ -209,7 +209,7 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
       if (sessionId) {
         setActive?.({ session: sessionId }).then(() => {
           setStep("success");
-          setTimeout(() => router.push("/onboarding/profile"), 1500);
+          setTimeout(() => router.push("/workspaces"), 1500);
         });
       }
     }
@@ -253,7 +253,7 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
   const activateAndRedirect = async (sessionId: string) => {
     await setActive?.({ session: sessionId });
     setStep("success");
-    setTimeout(() => router.push("/onboarding/profile"), 1500);
+    setTimeout(() => router.push("/workspaces"), 1500);
   };
 
   const handleVerify = async () => {
@@ -525,8 +525,37 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
         >
           {step === "success" && (
             <div className="text-center py-6 space-y-4">
-              <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-500/20">
-                <CheckCircle2 className="w-8 h-8 text-emerald-400 animate-bounce" />
+              <div className={styles.animationCtn}>
+                <div className={`${styles.successIcon} w-16 h-16`}>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 154 154"
+                    className="w-full h-full"
+                  >
+                    <g fill="none" stroke="#22AE73" strokeWidth="2">
+                      <circle
+                        cx="77"
+                        cy="77"
+                        r="72"
+                        style={{ strokeDasharray: "480px, 480px", strokeDashoffset: "960px" }}
+                      />
+                      <circle
+                        className={styles.coloredCircle}
+                        fill="#22AE73"
+                        cx="77"
+                        cy="77"
+                        r="72"
+                        style={{ strokeDasharray: "480px, 480px", strokeDashoffset: "960px" }}
+                      />
+                      <polyline
+                        stroke="#fff"
+                        strokeWidth="10"
+                        points="43.5,77.8 63.7,97.9 112.2,49.4"
+                        style={{ strokeDasharray: "100px, 100px", strokeDashoffset: "200px" }}
+                      />
+                    </g>
+                  </svg>
+                </div>
               </div>
               <h2 className="text-xl font-bold tracking-tight text-white">
                 Account Activated!
