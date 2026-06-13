@@ -9,21 +9,28 @@ export interface PermissionDef {
   description: string;
 }
 
+export interface SubpageDef {
+  id: string;
+  label: string;
+  description: string;
+  viewPermission: PermissionKey;
+  permissions: PermissionDef[];
+}
+
 export interface ModuleDef {
   id: string;
   label: string;
   description: string;
   permissions: PermissionDef[];
+  subpages?: SubpageDef[];
 }
 
 export function useRoleActions() {
   const [roles, setRoles] = useState<DbRole[]>([]);
   const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
   const [editTarget, setEditTarget] = useState<DbRole | null>(null);
+  const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
-  // `mounted` tracks hydration without triggering a re-render
-  const mountedRef = useRef(false);
-  const mounted = mountedRef.current;
 
   // Custom role form state
   const [newRoleTitle, setNewRoleTitle] = useState("");
@@ -69,7 +76,7 @@ export function useRoleActions() {
   }, []);
 
   useEffect(() => {
-    mountedRef.current = true;
+    setMounted(true);
     loadRoles();
   }, [loadRoles]);
 
@@ -160,25 +167,44 @@ export function useRoleActions() {
   };
 
   const toggleModule = (mod: ModuleDef) => {
-    const state = getModuleState(mod);
-    const updated = new Set(checkedPermissions);
+    setCheckedPermissions((prev) => {
+      const total = mod.permissions.length;
+      const checkedCount = mod.permissions.filter((p) => prev.has(p.id)).length;
+      const state = checkedCount === 0 ? "unchecked" : checkedCount === total ? "checked" : "indeterminate";
 
-    if (state === "checked") {
-      mod.permissions.forEach((p) => updated.delete(p.id));
-    } else {
-      mod.permissions.forEach((p) => updated.add(p.id));
-    }
-    setCheckedPermissions(updated);
+      const updated = new Set(prev);
+      if (state === "checked") {
+        mod.permissions.forEach((p) => updated.delete(p.id));
+      } else {
+        mod.permissions.forEach((p) => updated.add(p.id));
+      }
+      return updated;
+    });
+  };
+
+  const toggleSubpage = (sub: SubpageDef) => {
+    setCheckedPermissions((prev) => {
+      const updated = new Set(prev);
+      const isSubEnabled = updated.has(sub.viewPermission);
+      if (isSubEnabled) {
+        sub.permissions.forEach((p) => updated.delete(p.id));
+      } else {
+        sub.permissions.forEach((p) => updated.add(p.id));
+      }
+      return updated;
+    });
   };
 
   const togglePermission = (id: PermissionKey) => {
-    const updated = new Set(checkedPermissions);
-    if (updated.has(id)) {
-      updated.delete(id);
-    } else {
-      updated.add(id);
-    }
-    setCheckedPermissions(updated);
+    setCheckedPermissions((prev) => {
+      const updated = new Set(prev);
+      if (updated.has(id)) {
+        updated.delete(id);
+      } else {
+        updated.add(id);
+      }
+      return updated;
+    });
   };
 
   const toggleExpandModule = (modId: string) => {
@@ -267,6 +293,7 @@ export function useRoleActions() {
     handleCreateRole,
     handleDeleteRole,
     toggleModule,
+    toggleSubpage,
     togglePermission,
     toggleExpandModule,
     handleSaveChanges,

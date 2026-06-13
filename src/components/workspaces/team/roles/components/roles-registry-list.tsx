@@ -29,12 +29,21 @@ export function RolesRegistryList({
       </div>
 
       {loading && roles.length === 0 ? (
-        <div className="space-y-2 animate-pulse">
+        <div className="space-y-2">
           {[...Array(3)].map((_, i) => (
             <div
               key={i}
-              className="h-14 border border-neutral-200 dark:border-white/5 rounded-xl bg-white dark:bg-[#0A0A0E]"
-            />
+              className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 border border-neutral-200 dark:border-white/5 rounded-xl bg-white dark:bg-[#0A0A0E] shadow-sm animate-pulse"
+            >
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <div className="h-8 w-8 rounded-lg bg-neutral-200/60 dark:bg-white/5 shrink-0" />
+                <div className="min-w-0 flex-1 space-y-1.5">
+                  <div className="h-3.5 bg-neutral-200/80 dark:bg-white/10 rounded-md w-1/4" />
+                  <div className="h-2 bg-neutral-200/50 dark:bg-white/5 rounded-md w-1/2" />
+                </div>
+              </div>
+              <div className="h-8 bg-neutral-200/70 dark:bg-white/10 rounded-lg w-28 shrink-0 self-end sm:self-auto" />
+            </div>
           ))}
         </div>
       ) : (

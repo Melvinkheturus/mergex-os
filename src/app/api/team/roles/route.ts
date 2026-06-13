@@ -6,18 +6,30 @@ import crypto from "crypto";
 
 async function ensurePermissionsExist() {
   const allPermissions = Object.entries(PERMISSIONS);
-  await Promise.all(
-    allPermissions.map(([id, p]) =>
-      db.permission.upsert({
-        where: { id },
-        create: { id, module: p.module, action: p.action },
-        update: {},
-      })
-    )
-  );
+  const existingIds = (
+    await db.permission.findMany({
+      select: { id: true },
+    })
+  ).map((p) => p.id);
+
+  const missingPermissions = allPermissions.filter(([id]) => !existingIds.includes(id));
+
+  if (missingPermissions.length > 0) {
+    await db.permission.createMany({
+      data: missingPermissions.map(([id, p]) => ({
+        id,
+        module: p.module,
+        action: p.action,
+      })),
+      skipDuplicates: true,
+    });
+  }
 }
 
+let defaultRolesSeeded = false;
+
 async function seedDefaultRolesIfNeeded() {
+  if (defaultRolesSeeded) return;
   const count = await db.role.count();
   if (count <= 2) {
     await ensurePermissionsExist();
@@ -54,6 +66,7 @@ async function seedDefaultRolesIfNeeded() {
       });
     }
   }
+  defaultRolesSeeded = true;
 }
 
 export async function GET() {

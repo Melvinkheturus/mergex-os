@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth";
 
 interface ProfileUpdateBody {
   firstName: string;
@@ -35,7 +36,15 @@ export async function GET() {
       return NextResponse.json({ error: "User not found in database" }, { status: 404 });
     }
 
-    return NextResponse.json({ ok: true, user: dbUser });
+    const currentUser = await getCurrentUser();
+
+    return NextResponse.json({
+      ok: true,
+      user: {
+        ...dbUser,
+        permissions: currentUser?.permissions ?? [],
+      },
+    });
   } catch (err: any) {
     console.error("[profile-get] error:", err);
     return NextResponse.json({ error: err.message || "Failed to retrieve profile" }, { status: 500 });

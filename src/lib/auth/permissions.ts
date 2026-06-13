@@ -18,6 +18,12 @@ export const PERMISSIONS = {
   "crm.leads.assign": { module: "crm.leads",   action: "assign" },
   "crm.leads.export": { module: "crm.leads",   action: "export" },
 
+  // ── CRM — Opportunities ──────────────────────────────────────
+  "crm.opportunities.view":   { module: "crm.opportunities",   action: "view"   },
+  "crm.opportunities.create": { module: "crm.opportunities",   action: "create" },
+  "crm.opportunities.edit":   { module: "crm.opportunities",   action: "edit"   },
+  "crm.opportunities.delete": { module: "crm.opportunities",   action: "delete" },
+
   // ── CRM — Meetings ────────────────────────────────────────────
   "crm.meetings.view":     { module: "crm.meetings",   action: "view"     },
   "crm.meetings.create":   { module: "crm.meetings",   action: "create"   },
@@ -62,7 +68,7 @@ export const PERMISSIONS = {
   "org.workspaces.manage": { module: "org.workspaces", action: "manage" },
   "org.team.manage":       { module: "org.team",       action: "manage" },
   "org.settings.manage":   { module: "org.settings",  action: "manage" },
-} as const;
+};
 
 export type PermissionKey = keyof typeof PERMISSIONS;
 export type PermissionString = PermissionKey;
@@ -75,6 +81,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
   admin: [
     "crm.leads.view", "crm.leads.create", "crm.leads.edit", "crm.leads.delete",
     "crm.leads.assign", "crm.leads.export",
+    "crm.opportunities.view", "crm.opportunities.create", "crm.opportunities.edit", "crm.opportunities.delete",
     "crm.meetings.view", "crm.meetings.create", "crm.meetings.complete",
     "crm.proposals.view", "crm.proposals.create", "crm.proposals.edit",
     "clients.view", "clients.create", "clients.edit",
@@ -90,6 +97,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
   sales_manager: [
     "crm.leads.view", "crm.leads.create", "crm.leads.edit",
     "crm.leads.assign", "crm.leads.export",
+    "crm.opportunities.view", "crm.opportunities.create", "crm.opportunities.edit",
     "crm.meetings.view", "crm.meetings.create", "crm.meetings.complete",
     "crm.proposals.view", "crm.proposals.create", "crm.proposals.edit",
     "clients.view", "clients.create", "clients.edit",
@@ -103,6 +111,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
 
   cx_executive: [
     "crm.leads.view", "crm.leads.create", "crm.leads.edit", "crm.leads.assign",
+    "crm.opportunities.view", "crm.opportunities.create",
     "crm.meetings.view", "crm.meetings.create", "crm.meetings.complete",
     "crm.proposals.view", "crm.proposals.create",
     "clients.view",
@@ -114,6 +123,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
 
   proposal_manager: [
     "crm.leads.view",
+    "crm.opportunities.view",
     "crm.proposals.view", "crm.proposals.create", "crm.proposals.edit",
     "crm.meetings.view",
     "clients.view",
@@ -124,6 +134,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
 
   analyst: [
     "crm.leads.view", "crm.leads.export",
+    "crm.opportunities.view",
     "crm.proposals.view",
     "crm.meetings.view",
     "clients.view",
@@ -134,6 +145,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
 
   viewer: [
     "crm.leads.view",
+    "crm.opportunities.view",
     "crm.proposals.view",
     "crm.meetings.view",
     "clients.view",

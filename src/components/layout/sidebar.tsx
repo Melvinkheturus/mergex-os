@@ -52,12 +52,16 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
   const slug = params?.slug as string;
   const [openAccordions, setOpenAccordions] = useState<Record<string, boolean>>({});
   const [moduleAccess, setModuleAccess] = useState<string[] | null>(null);
+  const [userPermissions, setUserPermissions] = useState<string[]>([]);
+  const [userRole, setUserRole] = useState<string>("");
 
   useEffect(() => {
     fetch("/api/profile")
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
         if (data?.ok && data?.user) {
+          setUserPermissions(data.user.permissions ?? []);
+          setUserRole(data.user.Role?.name ?? "");
           if (data.user.Role?.name === "super_admin") {
             setModuleAccess(null);
           } else {
@@ -182,6 +186,15 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
               const subItems = SUB_ITEMS[item.title]?.filter((sub) => {
                 if (sub.title === "Projects") {
                   return !moduleAccess || moduleAccess.some((m) => m.toLowerCase() === "projects");
+                }
+                const isSuperAdmin = userRole === "super_admin";
+                if (isSuperAdmin) return true;
+
+                if (sub.title === "Lead Operations") {
+                  return userPermissions.includes("crm.leads.view");
+                }
+                if (sub.title === "Sales Conversion") {
+                  return userPermissions.includes("crm.opportunities.view");
                 }
                 return true;
               });

@@ -35,6 +35,7 @@ export function RolesSection() {
     handleCreateRole,
     handleDeleteRole,
     toggleModule,
+    toggleSubpage,
     togglePermission,
     handleSaveChanges,
     handleResetChanges,
@@ -114,6 +115,7 @@ export function RolesSection() {
               setOpenAccordions={setOpenAccordions}
               togglePermission={togglePermission}
               toggleModule={toggleModule}
+              toggleSubpage={toggleSubpage}
               getModuleState={getModuleState}
               hasUnsavedChanges={hasUnsavedChanges()}
               onSave={handleSaveChanges}
