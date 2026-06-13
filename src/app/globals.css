@@ -190,14 +190,7 @@
 }
 
 .dark .dashboard-bg {
-  background: linear-gradient(
-    to bottom,
-    #07060a 0%,
-    #0a090f 40%,
-    #0f0c17 70%,
-    #140e20 90%,
-    #19102b 100%
-  ) !important;
+  background: #000000 !important;
 }
 
 /* ── Frosted Glassmorphism Card Style ──────────────────────────── */

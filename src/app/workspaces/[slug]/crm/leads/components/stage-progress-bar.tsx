@@ -148,7 +148,7 @@ export function StageProgressBar({
                       isCompleted
                         ? "bg-[#8B5CF6] border-[#8B5CF6] text-white"
                         : isCurrent
-                        ? "bg-gradient-to-t from-[#8B5CF6]/15 via-white/40 to-white dark:from-purple-950/20 dark:to-zinc-900 border-[#8B5CF6] text-[#8B5CF6] shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_1px_2px_rgba(139,92,246,0.15)] ring-2 ring-[#8B5CF6]/25"
+                        ? "bg-gradient-to-t from-[#8B5CF6]/15 via-white/40 to-white dark:from-purple-950/20 dark:via-transparent dark:to-zinc-900 border-[#8B5CF6] text-[#8B5CF6] shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_1px_2px_rgba(139,92,246,0.15)] ring-2 ring-[#8B5CF6]/25"
                         : "bg-muted/30 border-border/40 text-muted-foreground group-hover:border-[#8B5CF6]/40 group-hover:bg-[#8B5CF6]/5"
                     )}
                   >

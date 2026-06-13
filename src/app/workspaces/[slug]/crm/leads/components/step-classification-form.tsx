@@ -261,7 +261,6 @@ export function StepClassificationForm({
                   <CheckSquare className="h-3.5 w-3.5 text-[#8B5CF6]/80" />
                   Nurturing Direction
                 </Label>
-                <div className="text-[10px] text-muted-foreground font-semibold mb-1">How should we nurture this lead?</div>
                 <Select
                   value={nurturingDirection || "none"}
                   onValueChange={(v) => setValue("nurturingDirection", v === "none" ? null : v as any, { shouldDirty: true })}

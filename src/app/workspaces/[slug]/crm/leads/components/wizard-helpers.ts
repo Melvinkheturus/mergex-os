@@ -83,21 +83,8 @@ export function buildSteps(lead: Lead, currentStep: number): WizardStep[] {
     },
   ];
 
-  if (needsNurturing) {
-    stepsList.push({
-      id: 5,
-      label: "Nurturing",
-      sublabel: "Manage holding state & engagement",
-      isComplete: s5,
-      // Nurturing is locked if: classification step not done, OR lead is HOT, OR lead is ARCHIVE
-      isLocked: !s4 || isHot || isArchive,
-      canAdvance: isHot || (needsNurturing && s5),
-      badge: lead.nurturingStatus || undefined,
-    });
-  }
-
   stepsList.push({
-    id: 6,
+    id: 5,
     label: "Meeting Readiness",
     sublabel: "Gate review & discovery meeting prep",
     isComplete: false,

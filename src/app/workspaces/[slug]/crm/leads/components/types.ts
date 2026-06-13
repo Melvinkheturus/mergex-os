@@ -416,13 +416,11 @@ export type QualificationFormValues = z.infer<typeof qualificationSchema>;
 export const classificationSchema = z.object({
   classification: z.enum(["HOT", "WARM", "COLD", "ARCHIVE"]).nullable().default(null),
   nurturingDirection: z.enum([
-    "IMMEDIATE_SALES",
     "SHORT_TERM",
     "MEDIUM_TERM",
     "LONG_TERM",
     "PARTNER_FOLLOWUP",
     "MANUAL_FOLLOWUP",
-    "ARCHIVE"
   ]).nullable().default(null),
   services: z.array(z.string()).default([]),
   expectedValue: z.string().optional().or(z.literal("")),
@@ -433,10 +431,18 @@ export const classificationSchema = z.object({
 export type ClassificationFormValues = z.infer<typeof classificationSchema>;
 
 export const nurturingSchema = z.object({
-  nurturingStatus: z.enum(["NO_RESPONSE", "ENGAGED", "INTERESTED", "MEETING_REQUESTED"]).nullable().default(null),
+  nurturingStatus: z.enum([
+    "ACTIVE",
+    "WAITING_BUDGET",
+    "WAITING_APPROVAL",
+    "WAITING_TIMING",
+    "UNRESPONSIVE",
+    "PAUSED",
+  ]).nullable().default(null),
   nurturingChannel: z.enum(["WHATSAPP", "EMAIL", "CALL", "MEETING", "LINKEDIN"]).nullable().default(null),
   nextFollowUpAt: z.string().optional().or(z.literal("")),
   conversationNotes: z.string().optional().or(z.literal("")),
+  nurturingObjective: z.string().optional().or(z.literal("")),
 });
 export type NurturingFormValues = z.infer<typeof nurturingSchema>;
 

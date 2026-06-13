@@ -454,7 +454,7 @@ export async function PUT(
     }
 
     // ─── System-Generated Timeline Activity Logging ──────────────────────────
-    // 1. Stage Changed
+    // 1. Stage Changed (audit only — prefixed SYS_ so frontend can hide)
     if (finalStageId !== lead.stageId) {
       const oldStageLabel = lead.LeadStage?.label ?? "Intake";
       const newStage = finalStageId ? stages.find(s => s.id === finalStageId) : null;
@@ -463,13 +463,13 @@ export async function PUT(
         data: {
           leadId: id,
           userId: user.id,
-          type: "STAGE",
+          type: "SYS_STAGE",
           content: `Stage changed: ${oldStageLabel} → ${newStageLabel}`,
         },
       });
     }
 
-    // 2. Owner Changed
+    // 2. Owner Changed (audit only)
     if (ownerId !== undefined && ownerId !== lead.ownerId) {
       const newOwner = ownerId ? await db.user.findUnique({ where: { id: ownerId } }) : null;
       const newOwnerName = newOwner ? `${newOwner.firstName || ""} ${newOwner.lastName || ""}`.trim() : "Unassigned";
@@ -477,13 +477,13 @@ export async function PUT(
         data: {
           leadId: id,
           userId: user.id,
-          type: "OWNER",
+          type: "SYS_OWNER",
           content: `Owner assigned: ${newOwnerName}`,
         },
       });
     }
 
-    // 3. Business Review Saved
+    // 3. Business Review Saved (audit only)
     const brFields = [
       "businessModel", "businessAge", "teamSize", "revenueRange",
       "primaryChannel", "opportunities", "outreachAngle", "relevantServices",
@@ -496,13 +496,13 @@ export async function PUT(
         data: {
           leadId: id,
           userId: user.id,
-          type: "DEFAULT",
+          type: "SYS_BR",
           content: "Business Review saved",
         },
       });
     }
 
-    // 4. Qualification Completed
+    // 4. Qualification Completed (audit only)
     const qualFieldsList = [
       "qualIcpFit", "qualBudgetLikelihood", "qualDecisionMakerAccess",
       "qualOperationalFeasibility", "qualServiceAlignment", "qualGrowthPotential"
@@ -513,29 +513,58 @@ export async function PUT(
         data: {
           leadId: id,
           userId: user.id,
-          type: "DEFAULT",
+          type: "SYS_QUAL",
           content: `Qualification completed (Score: ${finalQualScore ?? lead.qualScore ?? 0})`,
         },
       });
     }
 
-    // 5. Classification Updated
+    // 5. Classification Updated (audit only)
+    // But also fire a story-level NURTURING_ENTERED event when first entering nurturing (WARM)
     if (
       (classification !== undefined && classification !== lead.classification) ||
       (nurturingDirection !== undefined && nurturingDirection !== lead.nurturingDirection)
     ) {
-      const val = classification || lead.classification || "None";
+      const newClass = classification ?? (lead as any).classification;
+      const oldClass = (lead as any).classification;
+
+      // Story event: Lead entered nurturing for the first time
+      if (newClass === "WARM" && oldClass !== "WARM") {
+        const directionLabel = (nurturingDirection ?? (lead as any).nurturingDirection ?? "").replace(/_/g, " ");
+        await db.activity.create({
+          data: {
+            leadId: id,
+            userId: user.id,
+            type: "NURTURING_ENTERED",
+            content: `Entered nurturing${directionLabel ? ` · Direction: ${directionLabel}` : ""}`,
+          },
+        });
+      }
+
+      // Story event: Lead promoted to Ready Now (HOT) from nurturing
+      if (newClass === "HOT" && oldClass === "WARM") {
+        await db.activity.create({
+          data: {
+            leadId: id,
+            userId: user.id,
+            type: "PROMOTED_READY",
+            content: "Promoted to Ready Now — Meeting Readiness unlocked",
+          },
+        });
+      }
+
+      // Audit log: classification change detail
       await db.activity.create({
         data: {
           leadId: id,
           userId: user.id,
-          type: "DEFAULT",
-          content: `Classification updated: ${val}`,
+          type: "SYS_CLASS",
+          content: `Classification updated: ${newClass || "None"}`,
         },
       });
     }
 
-    // 6. Nurturing Updated
+    // 6. Nurturing Status Updated (audit only)
     if (
       (nurturingStatus !== undefined && nurturingStatus !== lead.nurturingStatus) ||
       (nurturingChannel !== undefined && nurturingChannel !== lead.nurturingChannel)
@@ -546,31 +575,31 @@ export async function PUT(
         data: {
           leadId: id,
           userId: user.id,
-          type: "DEFAULT",
+          type: "SYS_NURTURING",
           content: `Nurturing updated: Status: ${statusVal.replace(/_/g, " ")}, Channel: ${channelVal}`,
         },
       });
     }
 
-    // 7. Lead Closed
+    // 7. Lead Closed (audit only)
     if (winLossStatus !== undefined && winLossStatus !== lead.winLossStatus) {
       await db.activity.create({
         data: {
           leadId: id,
           userId: user.id,
-          type: "DEFAULT",
+          type: "SYS_CLOSED",
           content: `Lead Closed: ${winLossStatus}`,
         },
       });
     }
 
-    // 8. Lead Reopened / Scheduled
+    // 8. Lead Reopened / Scheduled (audit only)
     if (reopenAt === null && lead.reopenAt !== null) {
       await db.activity.create({
         data: {
           leadId: id,
           userId: user.id,
-          type: "DEFAULT",
+          type: "SYS_REOPEN",
           content: "Lead Reopened",
         },
       });
@@ -584,7 +613,7 @@ export async function PUT(
         data: {
           leadId: id,
           userId: user.id,
-          type: "DEFAULT",
+          type: "SYS_REOPEN",
           content: `Reactivation scheduled for ${formattedDate}`,
         },
       });

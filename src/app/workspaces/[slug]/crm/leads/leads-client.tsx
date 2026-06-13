@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { LayoutList, LayoutGrid, Plus, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -20,6 +20,7 @@ import { LeadsStats } from "./components/leads-stats";
 import { LeadFilters } from "./components/lead-filters";
 import { LeadsTable } from "./components/leads-table";
 import { LeadsGridView } from "./components/leads-grid-view";
+import { NurturingView } from "./components/nurturing-view";
 import {
   Lead,
   OptionStage,
@@ -120,7 +121,7 @@ export function LeadsPage() {
 
 
 
-  // Local filtering calculation
+  // Local filtering calculation — only for pipeline sub-tab
   const filteredLeads = leads.filter((l) => {
     const matchSearch =
       `${l.companyName} ${l.contactPerson} ${l.email || ""} ${l.phone || ""}`
@@ -129,10 +130,10 @@ export function LeadsPage() {
     const matchStage = stageFilter === "all" || l.stageId === stageFilter;
     const matchSource = sourceFilter === "all" || l.sourceId === sourceFilter;
     const matchOwner = ownerFilter === "all" || l.ownerId === ownerFilter;
-    
-    // Sub-tab filter: Pipeline displays non-nurturing leads, Nurturing displays WARM leads
-    const matchSubTab = subTab === "pipeline" ? l.classification !== "WARM" : l.classification === "WARM";
-    
+
+    // Pipeline tab: exclude WARM (nurturing) leads
+    const matchSubTab = l.classification !== "WARM";
+
     return matchSearch && matchStage && matchSource && matchOwner && matchSubTab;
   });
 
@@ -146,7 +147,7 @@ export function LeadsPage() {
             className="flex items-center gap-2 cursor-pointer group select-none"
           >
             <h2 className="text-xl font-bold tracking-tight text-foreground group-hover:text-purple-400 transition-colors">
-              Lead Pipeline
+              {subTab === "pipeline" ? "Lead Pipeline" : "Lead Nurturing"}
             </h2>
             {showStats ? (
               <ChevronDown className="h-5 w-5 text-muted-foreground group-hover:text-purple-400 transition-colors" />
@@ -155,7 +156,9 @@ export function LeadsPage() {
             )}
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Identify, qualify, and track your active sales pipeline.
+            {subTab === "pipeline"
+              ? "Identify, qualify, and track your active sales pipeline."
+              : "Leads that are not ready for immediate conversion."}
           </p>
         </div>
 
@@ -184,34 +187,6 @@ export function LeadsPage() {
             </button>
           </div>
 
-          {/* View Toggle */}
-          <div className="flex items-center gap-1 border border-border/40 rounded-lg p-1 bg-muted/20">
-            <button
-              id="crm-view-list"
-              onClick={() => setViewMode("list")}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-semibold transition-colors ${
-                viewMode === "list"
-                  ? "bg-card text-foreground shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <LayoutList className="h-3.5 w-3.5" />
-              List
-            </button>
-             <button
-               id="crm-view-grid"
-               onClick={() => setViewMode("grid")}
-               className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-semibold transition-colors ${
-                 viewMode === "grid"
-                   ? "bg-card text-foreground shadow-xs"
-                   : "text-muted-foreground hover:text-foreground"
-               }`}
-             >
-               <LayoutGrid className="h-3.5 w-3.5" />
-               Grid
-             </button>
-          </div>
-
           <Button
             size="sm"
             onClick={() => router.push(`/workspaces/${slug}/crm/leads/new`)}
@@ -223,41 +198,48 @@ export function LeadsPage() {
         </div>
       </div>
 
-      {/* Stats Summary Strip */}
-      {showStats && <LeadsStats leads={leads} />}
-
-      {/* Filter strip - both in list and grid mode */}
-      {(viewMode === "list" || viewMode === "grid") && (
-        <LeadFilters
-          search={search}
-          setSearch={setSearch}
-          stageFilter={stageFilter}
-          setStageFilter={setStageFilter}
-          ownerFilter={ownerFilter}
-          setOwnerFilter={setOwnerFilter}
-          sourceFilter={sourceFilter}
-          setSourceFilter={setSourceFilter}
-          stages={stages}
-          owners={owners}
-          sources={sources}
-        />
-      )}
-
-      {/* Main Content */}
-      {viewMode === "list" ? (
-        <LeadsTable
-          leads={filteredLeads}
-          loading={loading}
-          onDelete={handleDeleteLead}
-          onAddClick={() => router.push(`/workspaces/${slug}/crm/leads/new`)}
-        />
+      {/* ── NURTURING TAB ── */}
+      {subTab === "nurturing" ? (
+        <NurturingView leads={leads} loading={loading} owners={owners} showStats={showStats} />
       ) : (
-        <LeadsGridView
-          leads={filteredLeads}
-          loading={loading}
-          onDelete={handleDeleteLead}
-          onAddClick={() => router.push(`/workspaces/${slug}/crm/leads/new`)}
-        />
+        <>
+          {/* Stats Summary Strip */}
+          {showStats && <LeadsStats leads={leads} />}
+
+          {/* Filter strip */}
+          <LeadFilters
+            search={search}
+            setSearch={setSearch}
+            stageFilter={stageFilter}
+            setStageFilter={setStageFilter}
+            ownerFilter={ownerFilter}
+            setOwnerFilter={setOwnerFilter}
+            sourceFilter={sourceFilter}
+            setSourceFilter={setSourceFilter}
+            stages={stages}
+            owners={owners}
+            sources={sources}
+            viewMode={viewMode}
+            setViewMode={setViewMode}
+          />
+
+          {/* Main Content */}
+          {viewMode === "list" ? (
+            <LeadsTable
+              leads={filteredLeads}
+              loading={loading}
+              onDelete={handleDeleteLead}
+              onAddClick={() => router.push(`/workspaces/${slug}/crm/leads/new`)}
+            />
+          ) : (
+            <LeadsGridView
+              leads={filteredLeads}
+              loading={loading}
+              onDelete={handleDeleteLead}
+              onAddClick={() => router.push(`/workspaces/${slug}/crm/leads/new`)}
+            />
+          )}
+        </>
       )}
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>

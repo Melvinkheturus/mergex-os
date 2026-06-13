@@ -488,7 +488,7 @@ export function OpportunityDetailClient({ opportunityId }: { opportunityId: stri
                       className={cn(
                         "flex items-center gap-1 px-1.5 py-0.5 rounded-md transition-all select-none cursor-pointer disabled:cursor-not-allowed disabled:opacity-40",
                         isCurrent
-                          ? "bg-gradient-to-t from-[#8B5CF6]/15 via-white/40 to-white dark:from-purple-950/20 dark:to-zinc-900 border border-[#8B5CF6]/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_1px_2px_rgba(139,92,246,0.15)] text-[#8B5CF6] dark:text-[#a78bfa] font-bold"
+                          ? "bg-gradient-to-t from-[#8B5CF6]/15 via-white/40 to-white dark:from-purple-950/20 dark:via-transparent dark:to-zinc-900 border border-[#8B5CF6]/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_1px_2px_rgba(139,92,246,0.15)] text-[#8B5CF6] dark:text-[#a78bfa] font-bold"
                           : isCompleted
                           ? "text-[#8B5CF6]/70 dark:text-[#a78bfa]/75 font-semibold"
                           : isOpenedFromLock

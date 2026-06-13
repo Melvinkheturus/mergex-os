@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, Filter } from "lucide-react";
+import { Search, Filter, LayoutList, LayoutGrid } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -19,6 +19,8 @@ interface LeadFiltersProps {
   stages: OptionStage[];
   owners: OptionUser[];
   sources: OptionSource[];
+  viewMode?: "list" | "grid";
+  setViewMode?: (mode: "list" | "grid") => void;
 }
 
 export function LeadFilters({
@@ -33,6 +35,8 @@ export function LeadFilters({
   stages,
   owners,
   sources,
+  viewMode,
+  setViewMode,
 }: LeadFiltersProps) {
   return (
     <div className="flex gap-2 flex-wrap items-center bg-card/30 p-3 rounded-xl border border-border/40">
@@ -84,6 +88,35 @@ export function LeadFilters({
           ))}
         </SelectContent>
       </Select>
+
+      {viewMode && setViewMode && (
+        <div className="flex items-center gap-1 border border-border/40 rounded-lg p-1 bg-muted/20 ml-auto shrink-0">
+          <button
+            id="crm-view-list"
+            onClick={() => setViewMode("list")}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors ${
+              viewMode === "list"
+                ? "bg-card text-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <LayoutList className="h-3 w-3" />
+            List
+          </button>
+          <button
+            id="crm-view-grid"
+            onClick={() => setViewMode("grid")}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors ${
+              viewMode === "grid"
+                ? "bg-card text-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <LayoutGrid className="h-3 w-3" />
+            Grid
+          </button>
+        </div>
+      )}
     </div>
   );
 }
