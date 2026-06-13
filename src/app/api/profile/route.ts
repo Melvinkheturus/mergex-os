@@ -23,6 +23,11 @@ export async function GET() {
       where: { clerkId: userId },
       include: {
         Role: true,
+        UserBrandAccess: {
+          include: {
+            Brand: { select: { id: true, name: true, slug: true } }
+          }
+        }
       },
     });
 

@@ -221,6 +221,8 @@ export async function PUT(
       const classStage = stages.find((s) => s.name === "LEAD_CLASSIFICATION");
       const nurturingStage = stages.find((s) => s.name === "LEAD_NURTURING");
       const meetingStage = stages.find((s) => s.name === "MEETING");
+      const lostStage = stages.find((s) => s.name === "LOST");
+      const onHoldStage = stages.find((s) => s.name === "ON_HOLD");
 
       // Validate stages sequentially
       const hasContact = !!(mergedLead.phone || mergedLead.email);
@@ -236,9 +238,15 @@ export async function PUT(
         mergedLead.qualTimeline > 0
       );
 
-      const s4Complete = !!(mergedLead.classification && mergedLead.services?.length > 0);
+      let s4Complete = !!(mergedLead.classification && mergedLead.services?.length > 0);
+      if (mergedLead.classification === "WARM" && !mergedLead.nurturingDirection) {
+        s4Complete = false;
+      }
+      if ((mergedLead.classification === "COLD" || mergedLead.classification === "ARCHIVE") && !mergedLead.winLossReason) {
+        s4Complete = false;
+      }
 
-      const needsNurturing = mergedLead.classification === "WARM" || mergedLead.classification === "COLD";
+      const needsNurturing = mergedLead.classification === "WARM";
       const s5Complete = needsNurturing ? !!(mergedLead.nurturingStatus) : true;
 
       if (!s1Complete) {
@@ -249,6 +257,10 @@ export async function PUT(
         finalStageId = qualStage?.id || lead.stageId;
       } else if (!s4Complete) {
         finalStageId = classStage?.id || lead.stageId;
+      } else if (mergedLead.classification === "COLD") {
+        finalStageId = lostStage?.id || lead.stageId;
+      } else if (mergedLead.classification === "ARCHIVE") {
+        finalStageId = onHoldStage?.id || lostStage?.id || lead.stageId;
       } else if (needsNurturing && !s5Complete) {
         finalStageId = nurturingStage?.id || lead.stageId;
       } else {

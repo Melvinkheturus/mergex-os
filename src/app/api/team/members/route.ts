@@ -59,6 +59,7 @@ export async function GET(request: NextRequest) {
         id: uba.Brand.id,
         name: uba.Brand.name,
         slug: uba.Brand.slug,
+        moduleAccess: uba.moduleAccess,
       })),
     }))
   );
@@ -226,8 +227,9 @@ export async function PATCH(request: NextRequest) {
     roleId?: string;
     brandIds?: string[];
     moduleAccess?: string[];
+    brandModuleAccess?: Record<string, string[]>;
   };
-  const { employeeId, designation, roleId, brandIds, moduleAccess } = body;
+  const { employeeId, designation, roleId, brandIds, moduleAccess, brandModuleAccess } = body;
 
   const target = await db.user.findUnique({
     where: { id: targetId },
@@ -297,22 +299,19 @@ export async function PATCH(request: NextRequest) {
   const oldBrandIds = target.UserBrandAccess.map((uba) => uba.brandId);
   const oldBrandNames = target.UserBrandAccess.map((uba) => uba.Brand.name);
 
-  if (brandIds !== undefined) {
-    const setsEqual =
-      brandIds.length === oldBrandIds.length &&
-      brandIds.every((id) => oldBrandIds.includes(id));
-
-    if (!setsEqual) {
-      brandAccessChanged = true;
-      await db.userBrandAccess.deleteMany({ where: { userId: targetId } });
-      if (brandIds.length > 0) {
-        await db.userBrandAccess.createMany({
-          data: brandIds.map((brandId) => ({
-            userId: targetId,
-            brandId,
-          })),
-        });
-      }
+  if (brandIds !== undefined || brandModuleAccess !== undefined) {
+    brandAccessChanged = true;
+    const finalBrandIds = brandIds ?? oldBrandIds;
+    await db.userBrandAccess.deleteMany({ where: { userId: targetId } });
+    if (finalBrandIds.length > 0) {
+      await db.userBrandAccess.createMany({
+        data: finalBrandIds.map((brandId) => ({
+          userId: targetId,
+          brandId,
+          moduleAccess: brandModuleAccess?.[brandId] ??
+            target.UserBrandAccess.find((uba) => uba.brandId === brandId)?.moduleAccess ?? [],
+        })),
+      });
     }
   }
 

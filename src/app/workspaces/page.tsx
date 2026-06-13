@@ -7,7 +7,14 @@ export const metadata = {
   title: "Workspaces | MergeX OS",
 };
 
-export default async function WorkspacesPage() {
+export default async function WorkspacesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const resolvedSearchParams = await searchParams;
+  const view = typeof resolvedSearchParams.view === "string" ? resolvedSearchParams.view : undefined;
+
   const user = await getCurrentUser();
   if (!user) redirect("/sign-in");
 
@@ -34,6 +41,7 @@ export default async function WorkspacesPage() {
 
   return (
     <WorkspaceSelectorClient
+      defaultView={view}
       user={{
         id: user.id,
         firstName: user.firstName,

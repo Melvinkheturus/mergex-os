@@ -90,3 +90,76 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
+
+export async function PATCH(req: Request) {
+  const { userId: clerkId } = await auth();
+  if (!clerkId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const body = await req.json();
+    const { id, name, description, logoUrl } = body;
+
+    if (!id || typeof id !== "string") {
+      return NextResponse.json({ error: "ID is required" }, { status: 400 });
+    }
+
+    const currentBrand = await db.brand.findUnique({ where: { id } });
+    if (!currentBrand) {
+      return NextResponse.json({ error: "Brand not found" }, { status: 404 });
+    }
+
+    const updateData: Record<string, any> = {};
+
+    if (name !== undefined) {
+      if (typeof name !== "string" || !name.trim()) {
+        return NextResponse.json({ error: "Name must be a valid string" }, { status: 400 });
+      }
+      const trimmedName = name.trim();
+      updateData.name = trimmedName;
+
+      if (trimmedName !== currentBrand.name) {
+        const slug = trimmedName
+          .toLowerCase()
+          .replace(/\s+/g, "-")
+          .replace(/[^a-z0-9-]/g, "");
+
+        const existing = await db.brand.findFirst({
+          where: {
+            slug,
+            id: { not: id },
+          },
+        });
+        if (existing) {
+          return NextResponse.json(
+            { error: "A brand workspace with this name already exists." },
+            { status: 400 }
+          );
+        }
+        updateData.slug = slug;
+      }
+    }
+
+    if (description !== undefined) {
+      updateData.description = typeof description === "string" ? description.trim() || null : null;
+    }
+
+    if (logoUrl !== undefined) {
+      updateData.logoUrl = typeof logoUrl === "string" ? logoUrl : null;
+    }
+
+    updateData.updatedAt = new Date();
+
+    const updatedBrand = await db.brand.update({
+      where: { id },
+      data: updateData,
+    });
+
+    return NextResponse.json(updatedBrand);
+  } catch (error) {
+    console.error("Failed to update brand:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}
+

@@ -65,6 +65,7 @@ interface Props {
   user: WorkspaceUser;
   userRole: string;
   teammates: Teammate[];
+  defaultView?: string;
 }
 
 // ── Sidebar nav definition ────────────────────────────────────────────────
@@ -77,13 +78,13 @@ const SIDEBAR_TABS = [
 ];
 
 const CAROUSEL_STAGES = [
-  { label: "AUTHENTICATING SESSION", icon: Lock },
-  { label: "LOADING SECURE PROTOCOLS", icon: CheckCircle2 },
-  { label: "CONNECTING MERGEX ENGINE", icon: Command },
-  { label: "SYNCING SALES PIPELINES", icon: Globe },
-  { label: "FETCHING WORKSPACE CONFIG", icon: LayoutGrid },
-  { label: "TUNING PERFORMANCE CHANNELS", icon: Sparkles },
-  { label: "LAUNCHING MERGEX WORKSPACE", icon: Rocket },
+  { label: "VERIFYING SESSION", icon: Lock },
+  { label: "LOADING PROTOCOLS", icon: CheckCircle2 },
+  { label: "CONNECTING ENGINE", icon: Command },
+  { label: "SYNCING PIPELINES", icon: Globe },
+  { label: "FETCHING CONFIG", icon: LayoutGrid },
+  { label: "TUNING PERFORMANCE", icon: Sparkles },
+  { label: "LAUNCHING WORKSPACE", icon: Rocket },
 ];
 
 function LoadingTransitionScreen({ brand, onComplete }: { brand: Brand; onComplete: () => void }) {
@@ -145,12 +146,12 @@ function LoadingTransitionScreen({ brand, onComplete }: { brand: Brand; onComple
                 className={cn(
                   "h-11 px-5 rounded-full flex items-center justify-center gap-3 border transition-all duration-300 font-sans tracking-wide text-xs font-bold w-[280px] mx-auto shrink-0 select-none",
                   isActive
-                    ? "bg-[#8B5CF6] text-white border-transparent shadow-lg shadow-[#8B5CF6]/20 scale-100 opacity-100"
+                    ? "bg-linear-to-t from-[#8B5CF6]/15 via-white/40 to-white dark:from-purple-950/20 dark:to-zinc-900 border-[#8B5CF6]/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_1px_2px_rgba(139,92,246,0.15)] text-[#8B5CF6] dark:text-[#a78bfa] scale-100 opacity-100"
                     : "bg-[#8B5CF6]/5 text-[#8B5CF6]/60 border-[#8B5CF6]/20 scale-95 opacity-40"
                 )}
               >
-                <Icon className={cn("w-4 h-4 shrink-0", isActive ? "text-white animate-pulse" : "text-[#8B5CF6]/70")} />
-                <span>{stage.label}</span>
+                <Icon className={cn("w-4 h-4 shrink-0", isActive ? "text-[#8B5CF6] dark:text-[#a78bfa] animate-pulse" : "text-[#8B5CF6]/70")} />
+                <span className="whitespace-nowrap">{stage.label}</span>
               </div>
             );
           })}
@@ -160,7 +161,7 @@ function LoadingTransitionScreen({ brand, onComplete }: { brand: Brand; onComple
   );
 }
 
-export function WorkspaceSelectorClient({ brands, user, userRole, teammates }: Props) {
+export function WorkspaceSelectorClient({ brands, user, userRole, teammates, defaultView }: Props) {
   const canCreateBrand = userRole === "super_admin" || userRole === "admin";
   const router = useRouter();
   const { signOut } = useClerk();
@@ -184,7 +185,9 @@ export function WorkspaceSelectorClient({ brands, user, userRole, teammates }: P
 
   // ── UI state ──────────────────────────────────────────────────────────
   const [activeTab, setActiveTab]              = useState<ActiveTab>("workspaces");
-  const [workspacesView, setWorkspacesView]    = useState<"list" | "create">("list");
+  const [workspacesView, setWorkspacesView]    = useState<"list" | "create">(
+    defaultView === "create" ? "create" : "list"
+  );
   const [mounted, setMounted]                  = useState(false);
   const [activeBrandId, setActiveBrandIdState] = useState<string | null>(user.activeBrandId);
   const [loadingBrandId, setLoadingBrandId]    = useState<string | null>(null);
@@ -194,6 +197,15 @@ export function WorkspaceSelectorClient({ brands, user, userRole, teammates }: P
   // ── Brand list (synced from props) ────────────────────────────────────
   const [brandList, setBrandList] = useState<Brand[]>(brands);
   useEffect(() => { setBrandList(brands); }, [brands]);
+
+  // Sync workspacesView state if defaultView prop changes
+  useEffect(() => {
+    if (defaultView === "create") {
+      setWorkspacesView("create");
+    } else if (defaultView === "list") {
+      setWorkspacesView("list");
+    }
+  }, [defaultView]);
 
   // ── Hydration ─────────────────────────────────────────────────────────
   useEffect(() => { setMounted(true); }, []);
@@ -412,6 +424,9 @@ export function WorkspaceSelectorClient({ brands, user, userRole, teammates }: P
             {activeTab === "settings" && (
               <SettingsTabComponent
                 brandList={brandList}
+                onBrandUpdated={(updated) => {
+                  setBrandList((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
+                }}
                 deletingBrandId={deletingBrandId}
                 handleArchiveBrand={handleArchiveBrand}
                 defaultTimezone={defaultTimezone}

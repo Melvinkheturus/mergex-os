@@ -21,8 +21,10 @@ export function getStep3Complete(lead: Lead) {
 }
 
 export function getStep4Complete(lead: Lead) {
-  // Classification step is complete when: classification is set + at least one service selected
-  return !!(lead.classification && lead.services?.length > 0);
+  if (!lead.classification) return false;
+  if (lead.classification === "WARM" && !lead.nurturingDirection) return false;
+  if ((lead.classification === "COLD" || lead.classification === "ARCHIVE") && !lead.winLossReason) return false;
+  return lead.services?.length > 0;
 }
 
 // Build the wizard steps array from lead data
@@ -37,8 +39,8 @@ export function buildSteps(lead: Lead, currentStep: number): WizardStep[] {
   const isCold = lead.classification === "COLD";
   const isArchive = lead.classification === "ARCHIVE";
 
-  // Nurturing is only relevant for WARM/COLD leads, not HOT
-  const needsNurturing = isWarm || isCold;
+  // Nurturing is only relevant for WARM leads, not HOT, COLD, or ARCHIVE
+  const needsNurturing = isWarm;
 
   // Step 5 (Nurturing) complete = has nurturing status set
   const s5 = !!(lead.nurturingStatus);
@@ -75,8 +77,8 @@ export function buildSteps(lead: Lead, currentStep: number): WizardStep[] {
       sublabel: "Set status, services, and deal value",
       isComplete: s4,
       isLocked: !s3,
-      // Can advance from classification if classification is HOT, WARM, or COLD
-      canAdvance: isHot || isWarm || isCold,
+      // Can advance from classification if classification is HOT or WARM
+      canAdvance: isHot || isWarm,
       badge: lead.classification || undefined,
     },
   ];

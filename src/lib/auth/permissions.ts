@@ -56,6 +56,12 @@ export const PERMISSIONS = {
   // ── Projects & Finance ────────────────────────────────────────
   "projects.view":   { module: "projects", action: "view"   },
   "finance.view":    { module: "finance",  action: "view"   },
+
+  // ── Organization Layer ────────────────────────────────────────
+  "org.workspaces.view":   { module: "org.workspaces", action: "view"   },
+  "org.workspaces.manage": { module: "org.workspaces", action: "manage" },
+  "org.team.manage":       { module: "org.team",       action: "manage" },
+  "org.settings.manage":   { module: "org.settings",  action: "manage" },
 } as const;
 
 export type PermissionKey = keyof typeof PERMISSIONS;
@@ -77,6 +83,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     "users.view", "users.invite", "users.manage",
     "settings.view", "settings.manage",
     "projects.view", "finance.view",
+    "org.workspaces.view", "org.workspaces.manage",
+    "org.team.manage", "org.settings.manage",
   ],
 
   sales_manager: [
@@ -90,6 +98,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     "users.view", "users.invite",
     "settings.view",
     "projects.view",
+    "org.workspaces.view",
   ],
 
   cx_executive: [

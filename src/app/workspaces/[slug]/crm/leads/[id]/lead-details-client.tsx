@@ -150,13 +150,15 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
       const _s2 = getStep2Complete(data);
       const _s3 = getStep3Complete(data);
       const _s4 = getStep4Complete(data);
-      const _needsNurturing = data.classification === "WARM" || data.classification === "COLD";
+      const _needsNurturing = data.classification === "WARM";
       const _s5 = _needsNurturing ? !!(data.nurturingStatus) : true;
+      const _isTerminal = data.classification === "COLD" || data.classification === "ARCHIVE";
 
       if (!_s1) setCurrentStep(1);
       else if (!_s2) setCurrentStep(2);
       else if (!_s3) setCurrentStep(3);
       else if (!_s4) setCurrentStep(4);
+      else if (_isTerminal) setCurrentStep(4);
       else if (_needsNurturing && !_s5) setCurrentStep(5);
       else setCurrentStep(6);
 
@@ -257,10 +259,12 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
       const savedClassificationDraft = localStorage.getItem(`classification-draft-${leadId}`);
       let classificationInitial = {
         classification: (data.classification as "HOT" | "WARM" | "COLD" | "ARCHIVE" | null) || null,
-        nurturingDirection: (data.nurturingDirection as "IMMEDIATE_SALES" | "SHORT_TERM" | "LONG_TERM" | "ARCHIVE" | null) || null,
+        nurturingDirection: (data.nurturingDirection as "IMMEDIATE_SALES" | "SHORT_TERM" | "MEDIUM_TERM" | "LONG_TERM" | "PARTNER_FOLLOWUP" | "MANUAL_FOLLOWUP" | "ARCHIVE" | null) || null,
         services: data.services || [],
         expectedValue: data.expectedValue ? String(data.expectedValue) : "",
         classificationNotes: "",
+        lossReason: data.classification === "COLD" ? data.winLossReason || "" : "",
+        archiveReason: data.classification === "ARCHIVE" ? data.winLossReason || "" : "",
       };
       if (savedClassificationDraft) {
         try {
@@ -451,11 +455,25 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
   const onClassificationSubmit = async (values: ClassificationFormValues) => {
     setIsSaving(true);
     try {
-      const { classificationNotes: _, ...rest } = values;
+      const { classificationNotes: _, lossReason, archiveReason, ...rest } = values;
+      
+      let winLossStatus: string | null = null;
+      let winLossReason: string | null = null;
+      
+      if (values.classification === "COLD") {
+        winLossStatus = "LOST";
+        winLossReason = lossReason || null;
+      } else if (values.classification === "ARCHIVE") {
+        winLossStatus = "LOST";
+        winLossReason = archiveReason || null;
+      }
+
       await patchLead({
         ...rest,
         services: values.services,
         temperature: values.classification === "HOT" ? "HOT" : values.classification === "WARM" ? "WARM" : "COLD",
+        winLossStatus,
+        winLossReason,
       });
       localStorage.removeItem(`classification-draft-${leadId}`);
       classificationForm.reset(values);
@@ -535,10 +553,10 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
       const classification = classificationForm.getValues("classification");
       if (classification === "HOT") {
         setCurrentStep(6); // Skip Nurturing, go to Meeting Readiness
-      } else if (classification === "WARM" || classification === "COLD") {
+      } else if (classification === "WARM") {
         setCurrentStep(5); // Go to Nurturing
       }
-      // ARCHIVE/null: stay on step 4 (no next step to advance to)
+      // COLD/ARCHIVE/null: stay on step 4 (terminal)
     } else if (currentStep < 6) {
       setCurrentStep((p) => p + 1);
     }
@@ -689,9 +707,17 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
         const st = stages.find(s => s.name === "MEETING");
         nextStageLabel = st?.label || "Meeting Readiness";
         nextStageId = st?.id || null;
-      } else if (classification === "WARM" || classification === "COLD") {
+      } else if (classification === "WARM") {
         const st = stages.find(s => s.name === "LEAD_NURTURING");
         nextStageLabel = st?.label || "Lead Nurturing";
+        nextStageId = st?.id || null;
+      } else if (classification === "COLD") {
+        const st = stages.find(s => s.name === "LOST");
+        nextStageLabel = st?.label || "Lost";
+        nextStageId = st?.id || null;
+      } else if (classification === "ARCHIVE") {
+        const st = stages.find(s => s.name === "ON_HOLD") || stages.find(s => s.name === "LOST");
+        nextStageLabel = st?.label || "Archived";
         nextStageId = st?.id || null;
       }
     } else if (currentStep === 5) {

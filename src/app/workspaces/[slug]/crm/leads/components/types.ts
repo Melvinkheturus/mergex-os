@@ -415,10 +415,20 @@ export type QualificationFormValues = z.infer<typeof qualificationSchema>;
 // Step 4 — Classification
 export const classificationSchema = z.object({
   classification: z.enum(["HOT", "WARM", "COLD", "ARCHIVE"]).nullable().default(null),
-  nurturingDirection: z.enum(["IMMEDIATE_SALES", "SHORT_TERM", "LONG_TERM", "ARCHIVE"]).nullable().default(null),
+  nurturingDirection: z.enum([
+    "IMMEDIATE_SALES",
+    "SHORT_TERM",
+    "MEDIUM_TERM",
+    "LONG_TERM",
+    "PARTNER_FOLLOWUP",
+    "MANUAL_FOLLOWUP",
+    "ARCHIVE"
+  ]).nullable().default(null),
   services: z.array(z.string()).default([]),
   expectedValue: z.string().optional().or(z.literal("")),
   classificationNotes: z.string().optional().or(z.literal("")),
+  lossReason: z.string().optional().nullable(),
+  archiveReason: z.string().optional().nullable(),
 });
 export type ClassificationFormValues = z.infer<typeof classificationSchema>;
 

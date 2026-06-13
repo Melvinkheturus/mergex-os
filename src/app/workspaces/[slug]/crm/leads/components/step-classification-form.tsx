@@ -23,17 +23,18 @@ const PRESETS = [
 ];
 
 const CLASSIFICATION_OPTIONS = [
-  { value: "HOT", label: "Ready Now (Proceed to Meeting Readiness)" },
-  { value: "WARM", label: "Nurturing (Waiting / Relationship Building)" },
-  { value: "COLD", label: "Lost (Low immediate probability)" },
-  { value: "ARCHIVE", label: "Archived (Dead / Disqualified)" },
+  { value: "HOT", label: "Ready Now" },
+  { value: "WARM", label: "Nurture" },
+  { value: "COLD", label: "Lost" },
+  { value: "ARCHIVE", label: "Archive" },
 ] as const;
 
 const NURTURING_DIR_OPTIONS = [
-  { value: "IMMEDIATE_SALES", label: "Immediate Sales — Schedule discovery now" },
-  { value: "SHORT_TERM", label: "Short-Term Nurture — 1–4 weeks" },
-  { value: "LONG_TERM", label: "Long-Term Nurture — 1–3 months" },
-  { value: "ARCHIVE", label: "Archive — No immediate action" },
+  { value: "SHORT_TERM", label: "Short-Term (1-4 weeks)" },
+  { value: "MEDIUM_TERM", label: "Medium-Term (1-3 months)" },
+  { value: "LONG_TERM", label: "Long-Term (3-6 months)" },
+  { value: "PARTNER_FOLLOWUP", label: "Partner Follow-up" },
+  { value: "MANUAL_FOLLOWUP", label: "Manual Follow-up" },
 ] as const;
 
 interface StepClassificationFormProps {
@@ -58,6 +59,8 @@ export function StepClassificationForm({
   const services = watch("services") || [];
   const classification = watch("classification");
   const nurturingDirection = watch("nurturingDirection");
+  const lossReason = watch("lossReason");
+  const archiveReason = watch("archiveReason");
 
   const addService = (service: string) => {
     const trimmed = service.trim();
@@ -229,7 +232,13 @@ export function StepClassificationForm({
               </Label>
               <Select
                 value={classification || "none"}
-                onValueChange={(v) => setValue("classification", v === "none" ? null : v as ClassificationFormValues["classification"], { shouldDirty: true })}
+                onValueChange={(v) => {
+                  const val = v === "none" ? null : v as ClassificationFormValues["classification"];
+                  setValue("classification", val, { shouldDirty: true });
+                  if (val !== "WARM") setValue("nurturingDirection", null, { shouldDirty: true });
+                  if (val !== "COLD") setValue("lossReason", null, { shouldDirty: true });
+                  if (val !== "ARCHIVE") setValue("archiveReason", null, { shouldDirty: true });
+                }}
               >
                 <SelectTrigger className="h-9 text-xs">
                   <SelectValue placeholder="Select status..." />
@@ -246,28 +255,84 @@ export function StepClassificationForm({
             </div>
 
             {/* Nurturing Direction */}
-            <div className="space-y-1.5">
-              <Label className="font-bold text-xs flex items-center gap-1.5 text-foreground/75">
-                <CheckSquare className="h-3.5 w-3.5 text-[#8B5CF6]/80" />
-                Nurturing Direction
-              </Label>
-              <Select
-                value={nurturingDirection || "none"}
-                onValueChange={(v) => setValue("nurturingDirection", v === "none" ? null : v as ClassificationFormValues["nurturingDirection"], { shouldDirty: true })}
-              >
-                <SelectTrigger className="h-9 text-xs">
-                  <SelectValue placeholder="Select direction..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No Direction</SelectItem>
-                  {NURTURING_DIR_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value} className="text-xs">
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {classification === "WARM" && (
+              <div className="space-y-1.5">
+                <Label className="font-bold text-xs flex items-center gap-1.5 text-foreground/75">
+                  <CheckSquare className="h-3.5 w-3.5 text-[#8B5CF6]/80" />
+                  Nurturing Direction
+                </Label>
+                <div className="text-[10px] text-muted-foreground font-semibold mb-1">How should we nurture this lead?</div>
+                <Select
+                  value={nurturingDirection || "none"}
+                  onValueChange={(v) => setValue("nurturingDirection", v === "none" ? null : v as any, { shouldDirty: true })}
+                >
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue placeholder="Select strategy..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Select strategy...</SelectItem>
+                    {NURTURING_DIR_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value} className="text-xs">
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Loss Reason */}
+            {classification === "COLD" && (
+              <div className="space-y-1.5">
+                <Label className="font-bold text-xs flex items-center gap-1.5 text-foreground/75">
+                  <CheckSquare className="h-3.5 w-3.5 text-[#8B5CF6]/80" />
+                  Loss Reason
+                </Label>
+                <div className="text-[10px] text-muted-foreground font-semibold mb-1">Why was this lead lost?</div>
+                <Select
+                  value={lossReason || "none"}
+                  onValueChange={(v) => setValue("lossReason", v === "none" ? null : v, { shouldDirty: true })}
+                >
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue placeholder="Select loss reason..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Select loss reason...</SelectItem>
+                    <SelectItem value="No Budget">No Budget</SelectItem>
+                    <SelectItem value="No Need">No Need</SelectItem>
+                    <SelectItem value="Competitor">Competitor</SelectItem>
+                    <SelectItem value="No Response">No Response</SelectItem>
+                    <SelectItem value="Timing Issue">Timing Issue</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Archive Reason */}
+            {classification === "ARCHIVE" && (
+              <div className="space-y-1.5">
+                <Label className="font-bold text-xs flex items-center gap-1.5 text-foreground/75">
+                  <CheckSquare className="h-3.5 w-3.5 text-[#8B5CF6]/80" />
+                  Archive Reason
+                </Label>
+                <div className="text-[10px] text-muted-foreground font-semibold mb-1">Why is this lead being archived?</div>
+                <Select
+                  value={archiveReason || "none"}
+                  onValueChange={(v) => setValue("archiveReason", v === "none" ? null : v, { shouldDirty: true })}
+                >
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue placeholder="Select archive reason..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Select archive reason...</SelectItem>
+                    <SelectItem value="Duplicate">Duplicate</SelectItem>
+                    <SelectItem value="Invalid Lead">Invalid Lead</SelectItem>
+                    <SelectItem value="Spam">Spam</SelectItem>
+                    <SelectItem value="Wrong Contact">Wrong Contact</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {/* Estimated Value */}
             <div className="space-y-1.5">

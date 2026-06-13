@@ -61,12 +61,19 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
           if (data.user.Role?.name === "super_admin") {
             setModuleAccess(null);
           } else {
-            setModuleAccess(data.user.moduleAccess ?? []);
+            const activeAccess = data.user.UserBrandAccess?.find(
+              (uba: any) => uba.Brand?.slug === slug
+            );
+            if (activeAccess) {
+              setModuleAccess(activeAccess.moduleAccess ?? []);
+            } else {
+              setModuleAccess(data.user.moduleAccess ?? []);
+            }
           }
         }
       })
       .catch(() => {});
-  }, []);
+  }, [slug]);
 
   const getDynamicHref = (href: string) => {
     return href.replace(/^\/dashboard/, `/workspaces/${slug}`);

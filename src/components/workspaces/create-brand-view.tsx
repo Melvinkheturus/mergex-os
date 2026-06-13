@@ -241,9 +241,6 @@ export function CreateBrandView({ onBack, onCreated }: CreateBrandViewProps) {
         <div className="bg-card border border-border/80 rounded-md shadow-xs overflow-hidden text-left">
           {/* Card Header inside the card */}
           <div className="flex items-center gap-3.5 p-6 border-b border-border/40 bg-muted/5">
-            <div className="h-10 w-10 rounded-md border border-border bg-card flex items-center justify-center text-foreground/80 shrink-0 shadow-2xs">
-              <ImageIcon className="h-5 w-5 text-[#8B5CF6]" />
-            </div>
             <div>
               <h1 className="text-base font-bold text-foreground">Create Brand Workspace</h1>
               <p className="text-xs text-muted-foreground mt-0.5">
@@ -253,6 +250,91 @@ export function CreateBrandView({ onBack, onCreated }: CreateBrandViewProps) {
           </div>
 
           <div className="p-6 space-y-6">
+            {/* Brand Logo Upload */}
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold text-foreground">
+                Brand Logo
+              </Label>
+              <div
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={handleFileDrop}
+                onClick={() => fileInputRef.current?.click()}
+                className={cn(
+                  "w-28 h-28 border border-dashed rounded-md flex flex-col items-center justify-center cursor-pointer transition-all duration-200",
+                  logoPreview
+                    ? "border-[#8B5CF6]/40 bg-[#8B5CF6]/3"
+                    : "border-border/80 hover:border-[#8B5CF6]/50 hover:bg-neutral-50 dark:hover:bg-white/2"
+                )}
+              >
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleFileSelect(file);
+                  }}
+                  accept="image/jpeg,image/png,image/svg+xml,image/webp"
+                  className="hidden"
+                />
+
+                {logoPreview ? (
+                  <div className="relative w-full h-full flex items-center justify-center p-2">
+                    <Image
+                      src={logoPreview}
+                      alt="Logo Preview"
+                      width={80}
+                      height={80}
+                      className="max-h-24 max-w-24 object-contain rounded"
+                      unoptimized
+                    />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeLogo();
+                      }}
+                      className="absolute top-1 right-1 p-1 rounded bg-neutral-100 hover:bg-neutral-200 dark:bg-white/5 dark:hover:bg-white/10 text-muted-foreground hover:text-foreground transition-all border border-border/60"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                    {isUploading && (
+                      <div className="absolute inset-0 bg-black/40 rounded-md flex items-center justify-center flex-col gap-1">
+                        <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
+                        <span className="text-[9px] text-white font-medium">{uploadProgress}%</span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center p-2 text-center">
+                    <ImageIcon className="w-4.5 h-4.5 text-neutral-400 mb-1" />
+                    <span className="text-[10px] font-bold text-foreground leading-tight">Upload Logo</span>
+                    <span className="text-[8px] text-muted-foreground mt-0.5 leading-tight">Drag & drop</span>
+                  </div>
+                )}
+              </div>
+              <ImageCropperModal
+                isOpen={cropperOpen}
+                onClose={() => {
+                  setCropperOpen(false);
+                  if (fileInputRef.current) fileInputRef.current.value = "";
+                }}
+                imageSrc={cropperSrc}
+                cropShape="square"
+                title="Crop Brand Logo"
+                onCropComplete={uploadCroppedLogo}
+              />
+              <p className="text-[10px] text-muted-foreground">
+                Optional. If no logo is uploaded, the workspace initials will be used automatically. (e.g. MergeX → M, OVRN Studios → OS)
+              </p>
+
+              {uploadError && (
+                <p className="text-xs text-rose-500 font-medium bg-rose-500/5 border border-rose-500/20 px-3 py-2 rounded-md flex items-center gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  {uploadError}
+                </p>
+              )}
+            </div>
+
             {/* Brand Name */}
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-foreground">
@@ -284,93 +366,6 @@ export function CreateBrandView({ onBack, onCreated }: CreateBrandViewProps) {
                 className="w-full px-3.5 py-2.5 rounded-md bg-white dark:bg-[#050507] border border-border/80 text-sm text-foreground placeholder-neutral-400 focus:outline-none focus:ring-1 focus:ring-purple-500/30 focus:border-purple-500/40 transition-all resize-none font-sans"
               />
               <p className="text-[10px] text-muted-foreground">Optional short description for internal reference.</p>
-            </div>
-
-            {/* Brand Logo Upload */}
-            <div className="space-y-2">
-              <Label className="text-xs font-semibold text-foreground">
-                Brand Logo
-              </Label>
-              <div
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={handleFileDrop}
-                onClick={() => fileInputRef.current?.click()}
-                className={cn(
-                  "h-28 border border-dashed rounded-md flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-all duration-200",
-                  logoPreview
-                    ? "border-[#8B5CF6]/40 bg-[#8B5CF6]/3"
-                    : "border-border/80 hover:border-[#8B5CF6]/50 hover:bg-neutral-50 dark:hover:bg-white/2"
-                )}
-              >
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleFileSelect(file);
-                  }}
-                  accept="image/jpeg,image/png,image/svg+xml,image/webp"
-                  className="hidden"
-                />
-
-                {logoPreview ? (
-                  <div className="relative w-full h-full flex items-center justify-center p-3">
-                    <Image
-                      src={logoPreview}
-                      alt="Logo Preview"
-                      width={80}
-                      height={80}
-                      className="max-h-20 object-contain rounded"
-                      unoptimized
-                    />
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeLogo();
-                      }}
-                      className="absolute top-2 right-2 p-1.5 rounded-md bg-neutral-100 hover:bg-neutral-200 dark:bg-white/5 dark:hover:bg-white/10 text-muted-foreground hover:text-foreground transition-all border border-border/60"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                    {isUploading && (
-                      <div className="absolute inset-0 bg-black/40 rounded-md flex items-center justify-center gap-2">
-                        <Loader2 className="w-4 h-4 text-white animate-spin" />
-                        <span className="text-[11px] text-white font-medium">{uploadProgress}%</span>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <>
-                    <div className="w-8 h-8 rounded-md bg-neutral-100 dark:bg-white/4 flex items-center justify-center border border-border/80 text-neutral-500">
-                      <ImageIcon className="w-4 h-4" />
-                    </div>
-                    <p className="text-xs font-semibold text-foreground">Upload Logo</p>
-                    <p className="text-[10px] text-muted-foreground">Drag & drop or click to browse</p>
-                  </>
-                )}
-              </div>
-              <ImageCropperModal
-                isOpen={cropperOpen}
-                onClose={() => {
-                  setCropperOpen(false);
-                  if (fileInputRef.current) fileInputRef.current.value = "";
-                }}
-                imageSrc={cropperSrc}
-                cropShape="square"
-                title="Crop Brand Logo"
-                onCropComplete={uploadCroppedLogo}
-              />
-              <p className="text-[10px] text-muted-foreground">
-                Optional. If no logo is uploaded, the workspace initials will be used automatically. (e.g. MergeX → M, OVRN Studios → OS, MergeX Academy → MA)
-              </p>
-
-              {uploadError && (
-                <p className="text-xs text-rose-500 font-medium bg-rose-500/5 border border-rose-500/20 px-3 py-2 rounded-md flex items-center gap-1.5">
-                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                  {uploadError}
-                </p>
-              )}
             </div>
 
             {/* Form Error */}
@@ -422,7 +417,7 @@ export function CreateBrandView({ onBack, onCreated }: CreateBrandViewProps) {
         
         {/* Success Icon */}
         <div className="mx-auto w-12 h-12 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-500 shadow-xs">
-          <Check className="w-6 h-6 stroke-[3]" />
+          <Check className="w-6 h-6 stroke-3" />
         </div>
 
         {/* Titles */}

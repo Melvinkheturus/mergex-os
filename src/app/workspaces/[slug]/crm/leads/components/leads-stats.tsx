@@ -19,6 +19,38 @@ const COLOR_MAP: Record<string, { stroke: string; gradient: string }> = {
   "text-[#C084FC]": { stroke: "#C084FC", gradient: "url(#violetAreaSpark)" },
 };
 
+function formatShortForm(val: number): string {
+  if (val >= 10000000) { // 1 Crore
+    return (val / 10000000).toFixed(1).replace(/\.0$/, "") + "Cr";
+  }
+  if (val >= 100000) { // 1 Lakh
+    return (val / 100000).toFixed(1).replace(/\.0$/, "") + "L";
+  }
+  if (val >= 1000) { // 1 Thousand
+    return (val / 1000).toFixed(1).replace(/\.0$/, "") + "k";
+  }
+  return val.toString();
+}
+
+function formatValue(value: string | number): string {
+  if (typeof value === "number") {
+    return formatShortForm(value);
+  }
+  const str = value.toString();
+  if (str.startsWith("₹")) {
+    const rawNumStr = str.slice(1).replace(/,/g, "");
+    const parsed = parseFloat(rawNumStr);
+    if (!isNaN(parsed)) {
+      return "₹" + formatShortForm(parsed);
+    }
+  }
+  const parsedDirect = parseFloat(str.replace(/,/g, ""));
+  if (!isNaN(parsedDirect) && isFinite(parsedDirect)) {
+    return formatShortForm(parsedDirect);
+  }
+  return str;
+}
+
 function StatCard({
   label,
   value,
@@ -36,6 +68,18 @@ function StatCard({
 }) {
   const bgOpacityClass = colorClass.replace("text-", "bg-") + "/10";
   const theme = COLOR_MAP[colorClass] || { stroke: "#8B5CF6", gradient: "url(#violetAreaSpark)" };
+
+  const displayValue = formatValue(value);
+  const isLong = displayValue.length > 8;
+  const isVeryLong = displayValue.length > 12;
+
+  const fontSizeClass = isVeryLong
+    ? "text-base"
+    : isLong
+    ? "text-lg"
+    : "text-xl sm:text-2xl";
+
+  const graphWidthClass = isVeryLong ? "w-10" : (isLong ? "w-12" : "w-16");
 
   return (
     <div className="relative group border border-zinc-200/50 dark:border-zinc-800/50 bg-white/70 dark:bg-[#111114]/70 backdrop-blur-md rounded-2xl p-5 transition-all flex flex-col justify-between h-[135px] text-left hover:shadow-[0_12px_32px_rgba(0,0,0,0.04)] dark:hover:shadow-[0_16px_40px_rgba(0,0,0,0.3)] shadow-[0_2px_8px_rgba(0,0,0,0.01)] overflow-hidden">
@@ -55,13 +99,13 @@ function StatCard({
         </div>
 
         {/* Bottom row: Value + Sparkline */}
-        <div className="flex items-end justify-between w-full mt-2 gap-4">
-          <h3 className="text-2xl font-extrabold tracking-tight text-foreground font-mono leading-none group-hover:text-[#8B5CF6] transition-colors duration-300 truncate">
-            {value}
+        <div className="flex items-end justify-between w-full mt-2 gap-2">
+          <h3 className={`font-extrabold tracking-tight text-foreground font-mono leading-none group-hover:text-[#8B5CF6] transition-colors duration-300 ${fontSizeClass}`}>
+            {displayValue}
           </h3>
           
           {/* Sparkline chart */}
-          <div className="h-8 w-16 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity duration-300">
+          <div className={`h-8 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity duration-300 ${graphWidthClass}`}>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart 
                 data={sparklineData.map((v, i) => ({ id: i, value: v }))}

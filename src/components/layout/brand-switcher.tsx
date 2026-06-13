@@ -60,12 +60,17 @@ export function BrandSwitcher({ brands }: { brands: BrandOption[] }) {
     if (!brand) return;
     setOpen(false);
     // Persist active brand to DB
-    await fetch("/api/profile", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ activeBrandId: id }),
-    });
-    router.push(`/workspaces/${brand.slug}/dashboard`);
+    try {
+      await fetch("/api/user/active-brand", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ brandId: id }),
+      });
+    } catch (e) {
+      console.error("[BrandSwitcher] Failed to persist active brand:", e);
+    }
+    // Force a full page reload to clear Next.js route cache and completely reload server state
+    window.location.href = `/workspaces/${brand.slug}/dashboard`;
   };
 
   if (brands.length === 0) return null;
@@ -169,7 +174,7 @@ export function BrandSwitcher({ brands }: { brands: BrandOption[] }) {
           </button>
 
           <button
-            onClick={() => { setOpen(false); router.push(activeBrand ? `/workspaces/${activeBrand.slug}/settings` : "/workspaces"); }}
+            onClick={() => { setOpen(false); window.location.href = "/workspaces?view=create"; }}
             className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors text-left"
           >
             <Plus className="w-3.5 h-3.5 shrink-0" />

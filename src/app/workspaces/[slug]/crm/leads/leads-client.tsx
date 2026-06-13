@@ -45,6 +45,9 @@ export function LeadsPage() {
   // View Mode
   const [viewMode, setViewMode] = useState<ViewMode>("list");
 
+  // Sub-tab: Pipeline vs Nurturing
+  const [subTab, setSubTab] = useState<"pipeline" | "nurturing">("pipeline");
+
   // Filter States
   const [search, setSearch] = useState("");
   const [stageFilter, setStageFilter] = useState("all");
@@ -126,7 +129,11 @@ export function LeadsPage() {
     const matchStage = stageFilter === "all" || l.stageId === stageFilter;
     const matchSource = sourceFilter === "all" || l.sourceId === sourceFilter;
     const matchOwner = ownerFilter === "all" || l.ownerId === ownerFilter;
-    return matchSearch && matchStage && matchSource && matchOwner;
+    
+    // Sub-tab filter: Pipeline displays non-nurturing leads, Nurturing displays WARM leads
+    const matchSubTab = subTab === "pipeline" ? l.classification !== "WARM" : l.classification === "WARM";
+    
+    return matchSearch && matchStage && matchSource && matchOwner && matchSubTab;
   });
 
   return (
@@ -153,6 +160,30 @@ export function LeadsPage() {
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          {/* Sub-tab: Pipeline vs Nurturing Toggle */}
+          <div className="flex items-center gap-1 border border-border/40 rounded-lg p-1 bg-muted/20">
+            <button
+              onClick={() => setSubTab("pipeline")}
+              className={`flex items-center px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+                subTab === "pipeline"
+                  ? "bg-card text-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Pipeline
+            </button>
+            <button
+              onClick={() => setSubTab("nurturing")}
+              className={`flex items-center px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+                subTab === "nurturing"
+                  ? "bg-card text-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Nurturing
+            </button>
+          </div>
+
           {/* View Toggle */}
           <div className="flex items-center gap-1 border border-border/40 rounded-lg p-1 bg-muted/20">
             <button
