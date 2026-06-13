@@ -358,12 +358,47 @@ export function useLeadDetails({ leadId, slug }: UseLeadDetailsProps) {
     return () => subscription.unsubscribe();
   }, [classificationForm, leadId, isDataLoaded]);
 
+  // Autosave nurturing form to database (debounced)
   useEffect(() => {
     if (!isDataLoaded) return;
+
+    let timer: NodeJS.Timeout;
+
     const subscription = nurturingForm.watch((value) => {
+      // 1. Save to local storage draft immediately
       localStorage.setItem(`nurturing-draft-${leadId}`, JSON.stringify(value));
+
+      // 2. If form is dirty, debounce save to DB
+      if (nurturingForm.formState.isDirty) {
+        clearTimeout(timer);
+        timer = setTimeout(async () => {
+          try {
+            setIsSaving(true);
+            await patchLead({
+              nurturingStatus: value.nurturingStatus || null,
+              nurturingChannel: value.nurturingChannel || null,
+              nextFollowUpAt: value.nextFollowUpAt || "",
+              conversationNotes: value.conversationNotes || "",
+              nurturingObjective: value.nurturingObjective || "",
+              classification: "WARM",
+              temperature: "WARM",
+            });
+            localStorage.removeItem(`nurturing-draft-${leadId}`);
+            // Reset form state so it's not dirty anymore, keeping current values
+            nurturingForm.reset(value);
+          } catch (e) {
+            console.error("Autosave failed:", e);
+          } finally {
+            setIsSaving(false);
+          }
+        }, 1000);
+      }
     });
-    return () => subscription.unsubscribe();
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timer);
+    };
   }, [nurturingForm, leadId, isDataLoaded]);
 
   // ─── Save helpers ────────────────────────────────────────────────────────────

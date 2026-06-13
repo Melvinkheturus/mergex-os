@@ -742,8 +742,9 @@ export function StepNurturingForm({
             const storyMilestones = [
               ...storyEvents.map((act) => {
                 const cfg = getActivityConfig(act.type, act.content);
-                const actorName = act.user
-                  ? `${act.user.firstName || ""} ${act.user.lastName || ""}`.trim() || "System"
+                const actUser = act.User || act.user;
+                const actorName = actUser
+                  ? `${actUser.firstName || ""} ${actUser.lastName || ""}`.trim() || "System"
                   : "System";
                 return {
                   title: act.type === "TASK"
@@ -755,7 +756,7 @@ export function StepNurturingForm({
                   time: format(new Date(act.performedAt), "h:mm a"),
                   desc: act.content,
                   icon: cfg.icon,
-                  actor: act.user,
+                  actor: actUser,
                   actorName,
                 };
               }),

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useParams } from "next/navigation";
-import { ChevronLeft, Trophy, XCircle, Rocket, Sprout } from "lucide-react";
+import { ChevronLeft, Trophy, XCircle, Rocket, Sprout, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -270,19 +270,17 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
                 />
               </div>
               {/* Footer */}
-              <div className="flex items-center justify-between px-5 py-4 border-t border-border/10 bg-muted/5 rounded-b-2xl">
-                <span className="text-[10px] text-muted-foreground/60 font-medium">
-                  Changes are saved immediately
+              <div className="flex items-center px-5 py-4 border-t border-border/10 bg-muted/5 rounded-b-2xl">
+                <span className="text-[10px] text-muted-foreground/60 font-medium flex items-center gap-1.5">
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="h-3 w-3 animate-spin text-amber-500" />
+                      Saving changes…
+                    </>
+                  ) : (
+                    "Changes are saved immediately"
+                  )}
                 </span>
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={() => nurturingForm.handleSubmit(onNurturingSubmit)()}
-                  disabled={isSaving}
-                  className="h-8 text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-all"
-                >
-                  {isSaving ? "Saving…" : "Save Nurturing"}
-                </Button>
               </div>
             </div>
           ) : (
