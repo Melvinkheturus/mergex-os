@@ -6,7 +6,7 @@ import {
   CheckCircle2, Circle, Phone, MessageSquare, Mail, Video, ExternalLink,
   CalendarClock, Clock, Sparkles, ArrowRight, Loader2,
   Target, Activity, ChevronDown, ChevronUp, Zap, X,
-  Wallet, UserCheck, Ghost, Pause,
+  Wallet, UserCheck, Ghost, Pause, Check, Lock, Unlock, AlertTriangle,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,9 @@ import { cn } from "@/lib/utils";
 import { NurturingFormValues, Lead } from "./types";
 import { format, formatDistanceToNow, isPast } from "date-fns";
 import { motion, useScroll, useSpring, useMotionValue, useTransform } from "motion/react";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -122,7 +125,7 @@ interface StepNurturingFormProps {
   form: UseFormReturn<NurturingFormValues>;
   onSubmit: (values: NurturingFormValues) => Promise<void>;
   lead: Lead;
-  onPromoteToReadyNow?: () => Promise<void>;
+  onPromoteToReadyNow?: (overrideReason?: string) => Promise<void>;
   promoting?: boolean;
 }
 
@@ -251,6 +254,31 @@ export function StepNurturingForm({
   const [signals, setSignals] = useState<string[]>([]);
   const [objectiveOpen, setObjectiveOpen] = useState(false);
 
+  // Load current user for role validation (admin override)
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  useEffect(() => {
+    fetch("/api/profile")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.user) setCurrentUser(data.user);
+      });
+  }, []);
+
+  const isAdmin = currentUser?.Role?.name === "super_admin" || currentUser?.Role?.name === "admin";
+
+  // Emergency override states
+  const [overrideDialogOpen, setOverrideDialogOpen] = useState(false);
+  const [overrideReason, setOverrideReason] = useState("");
+
+  const handleForcePromote = async () => {
+    if (!overrideReason.trim()) return;
+    if (onPromoteToReadyNow) {
+      await onPromoteToReadyNow(overrideReason.trim());
+      setOverrideDialogOpen(false);
+      setOverrideReason("");
+    }
+  };
+
   useEffect(() => {
     const saved = localStorage.getItem(`buying-signals-${lead.id}`);
     if (saved) {
@@ -328,7 +356,58 @@ export function StepNurturingForm({
       setExpandedTimelineIndex(followUpDate ? activities.length : activities.length - 1);
     }
   }, [activities, followUpDate, expandedTimelineIndex]);
+  // ─── Meeting Readiness Gate calculations ─────────────────────────────────────
+  // 1. Decision Maker Identified (Weight: 20)
+  const hasDecisionMaker = !!lead.decisionMaker;
 
+  // 2. Lead Has Responded Recently (Weight: 20)
+  const lastActive = lead.lastActivityAt || lead.lastContactAt;
+  const hasRecentResponse = lastActive
+    ? (Date.now() - new Date(lastActive).getTime()) <= 30 * 24 * 60 * 60 * 1000
+    : false;
+
+  // 3. Follow-up Completed (Weight: 15)
+  const hasFollowUp = activities.some(
+    (act) =>
+      ["CALL", "EMAIL", "WHATSAPP", "MEETING"].includes(act.type) ||
+      (act.type === "TASK" && (act.content || "").startsWith("Task completed:"))
+  );
+
+  // 4. Commercial Interest Signal (Weight: 25)
+  const hasCommercialSignal =
+    signals.some((s) => ["pricing", "proposal", "timeline"].includes(s)) ||
+    activities.some((act) => act.type === "MEETING");
+
+  // 5. Budget Discussion (Weight: 10)
+  const hasBudgetDiscussion = (lead.qualBudgetLikelihood || 0) > 0 || signals.includes("budget");
+  let budgetOptionText = "";
+  if (hasBudgetDiscussion) {
+    if (lead.qualBudgetLikelihood === 25 || signals.includes("budget")) {
+      budgetOptionText = "Confirmed";
+    } else if (lead.qualBudgetLikelihood === 15) {
+      budgetOptionText = "Discussed";
+    } else if (lead.qualBudgetLikelihood === 5) {
+      budgetOptionText = "Planned";
+    } else {
+      budgetOptionText = "Discussed";
+    }
+  }
+
+  // 6. Engagement Score (Weight: 10)
+  const hasMinEngagement = engagementScore >= 50;
+
+  // Total Score Sum (max 100)
+  const readinessScore =
+    (hasDecisionMaker ? 20 : 0) +
+    (hasRecentResponse ? 20 : 0) +
+    (hasFollowUp ? 15 : 0) +
+    (hasCommercialSignal ? 25 : 0) +
+    (hasBudgetDiscussion ? 10 : 0) +
+    (hasMinEngagement ? 10 : 0);
+
+  // Promotion Rules
+  const isGatedUnlocked = readinessScore >= 80 && hasDecisionMaker && hasCommercialSignal;
+  const isReviewNeeded = readinessScore >= 60 && readinessScore < 80;
   // Custom scroll parent tracker for accurate scroll progress using Motion Values
   const timelineRef = useRef<HTMLDivElement>(null);
   const scrollProgressMV = useMotionValue(1);
@@ -861,26 +940,236 @@ export function StepNurturingForm({
 
       </form>
 
-      {/* ── 6. Promote to Ready Now ── */}
+      {/* ── 6. Meeting Readiness Gate ── */}
       {onPromoteToReadyNow && (
-        <div className="rounded-xl border border-border/40 bg-card/45 p-4 flex items-center justify-between gap-4">
-          <span className="text-xs font-black uppercase tracking-wider text-foreground/80">
-            Promote to Meeting Readiness
-          </span>
-          <Button
-            type="button"
-            disabled={promoting}
-            onClick={onPromoteToReadyNow}
-            className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white font-bold h-9 text-xs px-4 rounded-xl transition-all shadow-sm"
-          >
-            {promoting ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              "Mark as Ready Now"
-            )}
-          </Button>
+        <div className={cn(
+          "rounded-2xl border p-5 transition-all duration-300 space-y-4",
+          isGatedUnlocked
+            ? "bg-linear-to-br from-emerald-500/10 via-emerald-500/5 to-transparent border-emerald-500/20 shadow-md"
+            : isReviewNeeded
+            ? "bg-linear-to-br from-amber-500/10 via-amber-500/5 to-transparent border-amber-500/20 shadow-sm"
+            : "bg-card/40 border-border/30"
+        )}>
+          {/* Header Row */}
+          <div className="flex items-center justify-between gap-3 border-b border-border/15 pb-3">
+            <div className="space-y-0.5">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-foreground/80 flex items-center gap-1.5">
+                {isGatedUnlocked ? (
+                  <Unlock className="h-4 w-4 text-emerald-500 shrink-0" />
+                ) : (
+                  <Lock className="h-4 w-4 text-muted-foreground/50 shrink-0" />
+                )}
+                Meeting Readiness Gate
+              </h4>
+              <p className="text-[10px] text-muted-foreground">
+                {isGatedUnlocked
+                  ? "Minimum criteria met. Lead is ready to be promoted."
+                  : "Requires score ≥ 80, decision maker identified, and commercial signal."}
+              </p>
+            </div>
+            
+            <div className="flex flex-col items-end shrink-0">
+              <span className={cn(
+                "text-2xl font-black font-mono leading-none",
+                isGatedUnlocked ? "text-emerald-500" : isReviewNeeded ? "text-amber-500" : "text-rose-500"
+              )}>
+                {readinessScore}
+              </span>
+              <span className="text-[8px] font-extrabold text-muted-foreground/40 uppercase tracking-widest mt-0.5">
+                Ready Score
+              </span>
+            </div>
+          </div>
+
+          {/* Grid layout for requirements and button */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+            
+            {/* Checklist */}
+            <div className="space-y-1.5 text-[11px] font-medium">
+              {/* Requirement 1: Decision Maker */}
+              <div className="flex items-center gap-2">
+                <div className={cn(
+                  "h-4 w-4 rounded-full border flex items-center justify-center shrink-0 text-white",
+                  hasDecisionMaker ? "bg-emerald-500 border-emerald-500" : "border-border/60 bg-muted/20 text-muted-foreground"
+                )}>
+                  {hasDecisionMaker ? <Check className="h-2.5 w-2.5" strokeWidth={3} /> : <span className="text-[9px] font-black">!</span>}
+                </div>
+                <span className={hasDecisionMaker ? "text-foreground font-semibold" : "text-muted-foreground/50"}>
+                  {hasDecisionMaker ? "Decision Maker Identified" : "Decision Maker Missing (Required)"}
+                </span>
+              </div>
+
+              {/* Requirement 2: Recent Response */}
+              <div className="flex items-center gap-2">
+                <div className={cn(
+                  "h-4 w-4 rounded-full border flex items-center justify-center shrink-0 text-white",
+                  hasRecentResponse ? "bg-emerald-500 border-emerald-500" : "border-border/60 bg-muted/20 text-muted-foreground"
+                )}>
+                  {hasRecentResponse ? <Check className="h-2.5 w-2.5" strokeWidth={3} /> : <span className="text-[9px] font-black">!</span>}
+                </div>
+                <span className={hasRecentResponse ? "text-foreground font-semibold" : "text-muted-foreground/50"}>
+                  {hasRecentResponse ? "Lead Responded Recently" : "Lead Cold (No response in 30 days)"}
+                </span>
+              </div>
+
+              {/* Requirement 3: Follow-up Completed */}
+              <div className="flex items-center gap-2">
+                <div className={cn(
+                  "h-4 w-4 rounded-full border flex items-center justify-center shrink-0 text-white",
+                  hasFollowUp ? "bg-emerald-500 border-emerald-500" : "border-border/60 bg-muted/20 text-muted-foreground"
+                )}>
+                  {hasFollowUp ? <Check className="h-2.5 w-2.5" strokeWidth={3} /> : <span className="text-[9px] font-black">!</span>}
+                </div>
+                <span className={hasFollowUp ? "text-foreground font-semibold" : "text-muted-foreground/50"}>
+                  {hasFollowUp ? "Nurturing Follow-up Completed" : "Follow-up Not Logged"}
+                </span>
+              </div>
+
+              {/* Requirement 4: Commercial Signal */}
+              <div className="flex items-center gap-2">
+                <div className={cn(
+                  "h-4 w-4 rounded-full border flex items-center justify-center shrink-0 text-white",
+                  hasCommercialSignal ? "bg-emerald-500 border-emerald-500" : "border-border/60 bg-muted/20 text-muted-foreground"
+                )}>
+                  {hasCommercialSignal ? <Check className="h-2.5 w-2.5" strokeWidth={3} /> : <span className="text-[9px] font-black">!</span>}
+                </div>
+                <span className={hasCommercialSignal ? "text-foreground font-semibold" : "text-muted-foreground/50"}>
+                  {hasCommercialSignal ? "Commercial Interest Signal Logged" : "Commercial Interest Missing (Required)"}
+                </span>
+              </div>
+
+              {/* Requirement 5: Budget Discussion */}
+              <div className="flex items-center gap-2">
+                <div className={cn(
+                  "h-4 w-4 rounded-full border flex items-center justify-center shrink-0 text-white",
+                  hasBudgetDiscussion ? "bg-emerald-500 border-emerald-500" : "border-border/60 bg-muted/20 text-muted-foreground"
+                )}>
+                  {hasBudgetDiscussion ? <Check className="h-2.5 w-2.5" strokeWidth={3} /> : <span className="text-[9px] font-black">!</span>}
+                </div>
+                <span className={hasBudgetDiscussion ? "text-foreground font-semibold" : "text-muted-foreground/50"}>
+                  {hasBudgetDiscussion ? `Budget Discussion: ${budgetOptionText}` : "Budget Discussion Missing"}
+                </span>
+              </div>
+
+              {/* Requirement 6: Engagement Score */}
+              <div className="flex items-center gap-2">
+                <div className={cn(
+                  "h-4 w-4 rounded-full border flex items-center justify-center shrink-0 text-white",
+                  hasMinEngagement ? "bg-emerald-500 border-emerald-500" : "border-border/60 bg-muted/20 text-muted-foreground"
+                )}>
+                  {hasMinEngagement ? <Check className="h-2.5 w-2.5" strokeWidth={3} /> : <span className="text-[9px] font-black">!</span>}
+                </div>
+                <span className={hasMinEngagement ? "text-foreground font-semibold" : "text-muted-foreground/50"}>
+                  {hasMinEngagement ? `Engagement Score (>= 50): ${engagementScore}` : `Engagement Score Too Low (< 50): ${engagementScore}`}
+                </span>
+              </div>
+            </div>
+
+            {/* Actions Panel */}
+            <div className="flex flex-col gap-2.5 md:pl-6 md:border-l border-border/15">
+              {isGatedUnlocked ? (
+                <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-semibold text-[10px] uppercase select-none w-fit">
+                  <Unlock className="h-3 w-3" />
+                  Readiness Gate Cleared
+                </div>
+              ) : isReviewNeeded ? (
+                <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 font-semibold text-[10px] uppercase select-none w-fit">
+                  <AlertTriangle className="h-3 w-3 animate-pulse" />
+                  Review Needed (Score: {readinessScore}/100)
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 font-semibold text-[10px] uppercase select-none w-fit">
+                  <Lock className="h-3 w-3" />
+                  Stay in Nurturing
+                </div>
+              )}
+
+              <Button
+                type="button"
+                disabled={promoting || !isGatedUnlocked}
+                onClick={() => onPromoteToReadyNow()}
+                className={cn(
+                  "font-bold h-9 text-xs px-4 rounded-xl transition-all shadow-sm w-full",
+                  isGatedUnlocked
+                    ? "bg-[#8B5CF6] hover:bg-[#7C3AED] text-white hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+                    : "bg-muted text-muted-foreground border border-border/20 cursor-not-allowed"
+                )}
+              >
+                {promoting ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  "Promote to Meeting Readiness"
+                )}
+              </Button>
+
+              {/* Emergency Override for Admins */}
+              {!isGatedUnlocked && isAdmin && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setOverrideDialogOpen(true)}
+                  className="h-8 text-[10px] font-bold border-rose-500/20 hover:border-rose-500/40 text-rose-500 hover:bg-rose-500/5 dark:hover:bg-rose-500/3 rounded-xl transition-all cursor-pointer"
+                >
+                  Force Promote (Admin Bypass)
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
       )}
+
+      {/* Emergency Override Modal */}
+      <Dialog open={overrideDialogOpen} onOpenChange={setOverrideDialogOpen}>
+        <DialogContent className="max-w-sm rounded-2xl p-5 border border-border/40 bg-card">
+          <DialogHeader className="space-y-1">
+            <DialogTitle className="text-sm font-bold flex items-center gap-1.5 text-rose-500">
+              <AlertTriangle className="h-4 w-4" />
+              Emergency Override
+            </DialogTitle>
+            <p className="text-[11px] text-muted-foreground/70 mt-1 leading-normal">
+              Admins can force promote a lead to Meeting Readiness. A justification reason is required for auditing.
+            </p>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2 text-xs">
+            <div className="space-y-1.5">
+              <Label className="font-semibold text-foreground/80">Reason for Override</Label>
+              <Textarea
+                value={overrideReason}
+                onChange={(e) => setOverrideReason(e.target.value)}
+                placeholder="e.g. Strategic opportunity / Director exception requested..."
+                rows={3}
+                className="text-xs bg-background/50 border-border/40 focus-visible:ring-0 resize-none rounded-xl"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setOverrideDialogOpen(false);
+                setOverrideReason("");
+              }}
+              className="text-xs rounded-xl h-8"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleForcePromote}
+              disabled={promoting || !overrideReason.trim()}
+              className="text-xs text-white bg-rose-600 hover:bg-rose-700 rounded-xl h-8 font-semibold transition-colors cursor-pointer"
+            >
+              {promoting ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+              Confirm Force Promote
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

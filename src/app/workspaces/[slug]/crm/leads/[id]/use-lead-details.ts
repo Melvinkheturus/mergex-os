@@ -559,7 +559,7 @@ export function useLeadDetails({ leadId, slug }: UseLeadDetailsProps) {
     }
   };
 
-  const onPromoteNurturingToReady = async () => {
+  const onPromoteNurturingToReady = async (overrideReason?: string) => {
     setIsSaving(true);
     try {
       const meetingStage = stages.find(s => s.name === "MEETING");
@@ -567,9 +567,10 @@ export function useLeadDetails({ leadId, slug }: UseLeadDetailsProps) {
         classification: "HOT",
         temperature: "HOT",
         ...(meetingStage ? { stageId: meetingStage.id } : {}),
+        overrideReason,
       });
       classificationForm.setValue("classification", "HOT");
-      toast.success("Lead moved to Meeting Readiness! 🚀");
+      toast.success(overrideReason ? "Lead force promoted to Meeting Readiness! 🚀" : "Lead moved to Meeting Readiness! 🚀");
       setCurrentStep(5);
     } catch {
       toast.error("Failed to promote lead to Meeting Readiness");

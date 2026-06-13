@@ -154,6 +154,7 @@ export async function PUT(
       nurturingChannel,
       conversationNotes,
       reopenAt,
+      overrideReason,
     } = body;
 
     // Calculate BANT score if any slider changes
@@ -543,12 +544,17 @@ export async function PUT(
 
       // Story event: Lead promoted to Ready Now (HOT) from nurturing
       if (newClass === "HOT" && oldClass === "WARM") {
+        const actorName = `${user.firstName || ""} ${user.lastName || ""}`.trim() || "Admin";
+        const contentStr = overrideReason
+          ? `Lead manually promoted by Admin (${actorName})\nReason: ${overrideReason}`
+          : "Promoted to Ready Now — Meeting Readiness unlocked";
+
         await db.activity.create({
           data: {
             leadId: id,
             userId: user.id,
             type: "PROMOTED_READY",
-            content: "Promoted to Ready Now — Meeting Readiness unlocked",
+            content: contentStr,
           },
         });
       }
