@@ -22,6 +22,9 @@ export function MembersSection({ teammates: initialTeammates, brands, currentUse
   const {
     members,
     dbRoles,
+    allowedDbRoles,
+    lockReasonMessage,
+    canManageTarget,
     statusFilter,
     setStatusFilter,
     suspendTarget,
@@ -53,6 +56,8 @@ export function MembersSection({ teammates: initialTeammates, brands, currentUse
     setOpenBrandAccordions,
     modalBrandDropOpen,
     setModalBrandDropOpen,
+    memberPermissionAccess,
+    setMemberPermissionAccess,
     isSuperAdmin,
     canEditAccess,
     handleRowClick,
@@ -102,14 +107,14 @@ export function MembersSection({ teammates: initialTeammates, brands, currentUse
             <div className="flex items-center gap-1 bg-neutral-100 dark:bg-white/5 rounded-lg p-1">
               {filterTabs.map(({ key, label }) => (
                 <button
-                  key={key}
-                  onClick={() => setStatusFilter(key)}
-                  className={cn(
-                    "px-2.5 py-1 text-[10px] font-bold rounded-md transition-all cursor-pointer",
-                    statusFilter === key
-                      ? "bg-white dark:bg-white/10 text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
+                   key={key}
+                   onClick={() => setStatusFilter(key)}
+                   className={cn(
+                     "px-2.5 py-1 text-[10px] font-bold rounded-md transition-all cursor-pointer",
+                     statusFilter === key
+                       ? "bg-white dark:bg-white/10 text-foreground shadow-sm"
+                       : "text-muted-foreground hover:text-foreground"
+                   )}
                 >
                   {label}
                 </button>
@@ -132,6 +137,7 @@ export function MembersSection({ teammates: initialTeammates, brands, currentUse
                 onSuspend={handleClickSuspend}
                 onRestore={handleRestore}
                 onArchive={handleArchive}
+                canManage={canManageTarget(t)}
               />
             ))}
           </div>
@@ -165,7 +171,8 @@ export function MembersSection({ teammates: initialTeammates, brands, currentUse
             <MemberEditForm
               editTarget={editTarget}
               canEditAccess={canEditAccess}
-              dbRoles={dbRoles}
+              lockReasonMessage={lockReasonMessage}
+              dbRoles={allowedDbRoles}
               brands={brands}
               memberEmployeeId={memberEmployeeId}
               setMemberEmployeeId={setMemberEmployeeId}
@@ -183,6 +190,8 @@ export function MembersSection({ teammates: initialTeammates, brands, currentUse
               setOpenBrandAccordions={setOpenBrandAccordions}
               modalBrandDropOpen={modalBrandDropOpen}
               setModalBrandDropOpen={setModalBrandDropOpen}
+              memberPermissionAccess={memberPermissionAccess}
+              setMemberPermissionAccess={setMemberPermissionAccess}
               saving={saving}
               onCancel={() => setEditTarget(null)}
               onSave={() => handleSaveChanges(brands)}
@@ -202,42 +211,50 @@ export function MembersSection({ teammates: initialTeammates, brands, currentUse
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 gap-2">
-                  {/* Suspend/Restore */}
-                  {editTarget.role.name !== "super_admin" && (
-                    editTarget.status === "ACTIVE" ? (
-                      <button
-                        onClick={() => handleClickSuspend(editTarget)}
-                        className="w-full h-8 px-3 rounded-lg text-left text-xs font-semibold text-amber-600 hover:text-amber-700 bg-amber-500/5 hover:bg-amber-500/10 border border-amber-500/10 hover:border-amber-500/20 transition-all cursor-pointer flex items-center gap-2"
-                      >
-                        Suspend Account
-                      </button>
-                    ) : editTarget.status === "SUSPENDED" ? (
+                {!canManageTarget(editTarget) ? (
+                  <div className="p-3 border border-neutral-200 dark:border-white/5 bg-neutral-50/50 dark:bg-white/0.5 rounded-xl text-center">
+                    <span className="text-[10px] font-bold text-muted-foreground flex items-center justify-center gap-1.5">
+                      🔒 Actions Locked: {lockReasonMessage || "You do not have permission to manage this user."}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-2">
+                    {/* Suspend/Restore */}
+                    {editTarget.role.name !== "super_admin" && (
+                      editTarget.status === "ACTIVE" ? (
+                        <button
+                          onClick={() => handleClickSuspend(editTarget)}
+                          className="w-full h-8 px-3 rounded-lg text-left text-xs font-semibold text-amber-600 hover:text-amber-700 bg-amber-500/5 hover:bg-amber-500/10 border border-amber-500/10 hover:border-amber-500/20 transition-all cursor-pointer flex items-center gap-2"
+                        >
+                          Suspend Account
+                        </button>
+                      ) : editTarget.status === "SUSPENDED" ? (
+                        <button
+                          onClick={() => {
+                            handleRestore(editTarget);
+                            setEditTarget(null);
+                          }}
+                          className="w-full h-8 px-3 rounded-lg text-left text-xs font-semibold text-emerald-600 hover:text-emerald-700 bg-emerald-500/5 hover:bg-emerald-500/10 border border-emerald-500/10 hover:border-emerald-500/20 transition-all cursor-pointer flex items-center gap-2"
+                        >
+                          Restore Account
+                        </button>
+                      ) : null
+                    )}
+
+                    {/* Archive */}
+                    {isSuperAdmin && editTarget.role.name !== "super_admin" && editTarget.status === "SUSPENDED" && (
                       <button
                         onClick={() => {
-                          handleRestore(editTarget);
+                          handleArchive(editTarget);
                           setEditTarget(null);
                         }}
-                        className="w-full h-8 px-3 rounded-lg text-left text-xs font-semibold text-emerald-600 hover:text-emerald-700 bg-emerald-500/5 hover:bg-emerald-500/10 border border-emerald-500/10 hover:border-emerald-500/20 transition-all cursor-pointer flex items-center gap-2"
+                        className="w-full h-8 px-3 rounded-lg text-left text-xs font-semibold text-red-500 hover:text-red-600 bg-red-500/5 hover:bg-red-500/10 border border-red-500/10 hover:border-red-500/20 transition-all cursor-pointer flex items-center gap-2"
                       >
-                        Restore Account
+                        Archive Account
                       </button>
-                    ) : null
-                  )}
-
-                  {/* Archive */}
-                  {isSuperAdmin && editTarget.role.name !== "super_admin" && editTarget.status === "SUSPENDED" && (
-                    <button
-                      onClick={() => {
-                        handleArchive(editTarget);
-                        setEditTarget(null);
-                      }}
-                      className="w-full h-8 px-3 rounded-lg text-left text-xs font-semibold text-red-500 hover:text-red-600 bg-red-500/5 hover:bg-red-500/10 border border-red-500/10 hover:border-red-500/20 transition-all cursor-pointer flex items-center gap-2"
-                    >
-                      Archive Account
-                    </button>
-                  )}
-                </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Access History Audit Logs */}

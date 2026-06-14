@@ -163,3 +163,15 @@ export function can(
 ): boolean {
   return userPermissions.includes(key);
 }
+
+// ── Role Hierarchy Rank Helper ───────────────────────────────
+export function getRoleRank(roleName?: string): number {
+  if (!roleName) return 20;
+  const name = roleName.toLowerCase();
+  if (name === "super_admin") return 100;
+  if (name === "admin") return 80;
+  if (name === "sales_manager" || name === "proposal_manager" || name === "manager") return 60;
+  if (name === "cx_executive" || name === "sales_rep" || name === "executive") return 40;
+  return 20; // default (viewer, analyst, or custom roles)
+}
+

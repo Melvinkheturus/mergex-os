@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { Mail, Settings, ChevronDown, ChevronRight, X, Check, Loader2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Teammate, DbRole, Brand } from "../../types";
+import { PermissionOverridesModal } from "./permission-overrides-modal";
 
 const AVAILABLE_MODULES = [
   { id: "CRM", label: "CRM (Leads, Pipelines)" },
@@ -23,6 +24,7 @@ const AVAILABLE_MODULES = [
 interface MemberEditFormProps {
   editTarget: Teammate;
   canEditAccess: boolean;
+  lockReasonMessage?: string;
   dbRoles: DbRole[];
   brands: Brand[];
   memberEmployeeId: string;
@@ -41,6 +43,8 @@ interface MemberEditFormProps {
   setOpenBrandAccordions: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
   modalBrandDropOpen: boolean;
   setModalBrandDropOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  memberPermissionAccess: string[];
+  setMemberPermissionAccess: React.Dispatch<React.SetStateAction<string[]>>;
   saving: boolean;
   onCancel: () => void;
   onSave: () => void;
@@ -49,6 +53,7 @@ interface MemberEditFormProps {
 export function MemberEditForm({
   editTarget,
   canEditAccess,
+  lockReasonMessage,
   dbRoles,
   brands,
   memberEmployeeId,
@@ -67,11 +72,14 @@ export function MemberEditForm({
   setOpenBrandAccordions,
   modalBrandDropOpen,
   setModalBrandDropOpen,
+  memberPermissionAccess,
+  setMemberPermissionAccess,
   saving,
   onCancel,
   onSave,
 }: MemberEditFormProps) {
   const modalBrandRef = useRef<HTMLDivElement>(null);
+  const [overridesModalOpen, setOverridesModalOpen] = useState(false);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -96,6 +104,13 @@ export function MemberEditForm({
           Configure role, designation, brand access, and active module permissions for {name}.
         </p>
       </div>
+
+      {!canEditAccess && lockReasonMessage && (
+        <div className="p-3 bg-neutral-100/50 dark:bg-white/3 border border-neutral-200 dark:border-white/5 rounded-xl flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+          <span className="text-[#8B5CF6] text-xs">🔒</span>
+          <span>Edit Access Locked: {lockReasonMessage}</span>
+        </div>
+      )}
 
       {/* Email (Read-only) */}
       <div className="space-y-1.5">
@@ -156,6 +171,58 @@ export function MemberEditForm({
             ))}
           </SelectContent>
         </Select>
+      </div>
+
+      {/* Permission Overrides Section */}
+      <div className="space-y-2.5 p-4 border border-dashed border-neutral-200 dark:border-white/8 rounded-xl bg-neutral-50/20 dark:bg-white/0.5">
+        <div className="flex items-center justify-between gap-4">
+          <div className="space-y-0.5">
+            <Label className="text-[10px] font-bold uppercase text-muted-foreground">Permission Overrides</Label>
+            <p className="text-[11px] text-muted-foreground leading-normal">
+              {memberPermissionAccess.length === 0 ? (
+                "No custom permission overrides configured. User inherits default role settings."
+              ) : (
+                `Configured ${memberPermissionAccess.length} override${
+                  memberPermissionAccess.length === 1 ? "" : "s"
+                } (${memberPermissionAccess.filter((o: string) => o.startsWith("+")).length} granted, ${
+                  memberPermissionAccess.filter((o: string) => o.startsWith("-")).length
+                } restricted).`
+              )}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setOverridesModalOpen(true)}
+            className="h-8 px-4 rounded-xl text-xs font-bold border border-neutral-200 dark:border-white/8 text-foreground hover:bg-[#8B5CF6]/5 hover:text-[#8B5CF6] hover:border-[#8B5CF6]/20 transition-all cursor-pointer bg-white dark:bg-black/20 shrink-0"
+          >
+            Configure Overrides
+          </button>
+        </div>
+
+        {/* Display overrides list summary if any */}
+        {memberPermissionAccess.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            {memberPermissionAccess.map((override: string) => {
+              const isGrant = !override.startsWith("-");
+              const cleanKey = override.replace(/^[+-]/, "");
+              return (
+                <Badge
+                  key={override}
+                  variant="secondary"
+                  className={cn(
+                    "text-[9px] font-bold border-none px-2 h-5.5 py-0 rounded-md shrink-0 flex items-center gap-1",
+                    isGrant
+                      ? "bg-green-500/10 text-green-600 dark:text-green-400"
+                      : "bg-red-500/10 text-red-600 dark:text-red-400"
+                  )}
+                >
+                  {isGrant ? "+" : "-"}
+                  {cleanKey}
+                </Badge>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Brand Access Switcher */}
@@ -378,6 +445,14 @@ export function MemberEditForm({
           </button>
         )}
       </div>
+      <PermissionOverridesModal
+        open={overridesModalOpen}
+        onOpenChange={setOverridesModalOpen}
+        selectedRole={dbRoles.find((r) => r.id === memberRoleId)}
+        overrides={memberPermissionAccess}
+        onChange={setMemberPermissionAccess}
+        canEditAccess={canEditAccess}
+      />
     </div>
   );
 }

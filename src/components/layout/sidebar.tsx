@@ -114,7 +114,7 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
         )}
       >
         {/* ── Logo ── */}
-        <div className="flex items-center px-3.5 border-b border-neutral-200/60 dark:border-white/5 pt-[16px] h-[64px]">
+        <div className="flex items-center px-3.5 border-b border-neutral-200/60 dark:border-white/5 pt-[16px] h-[64px]" data-tour="logo">
           {collapsed ? (
             /* Collapsed: logo visible by default; hover reveals expand icon */
             <Tooltip>
@@ -168,7 +168,7 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
         </div>
 
         {/* ── Primary Navigation ── */}
-        <nav className="flex-1 overflow-y-auto pt-6 pb-3 px-3 space-y-1.5">
+        <nav className="flex-1 overflow-y-auto pt-6 pb-3 px-3 space-y-1.5" data-tour="sidebar-nav">
           {navGroups.flatMap((group) => {
             const filteredItems = group.items.filter((item) => {
               if (item.title === "Dashboard") return true;

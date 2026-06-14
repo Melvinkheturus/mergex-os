@@ -55,7 +55,7 @@ export function PipelineHealth({ leads }: { leads: Lead[] }) {
           <RadialBarChart
             cx="50%"
             cy="50%"
-            innerRadius="30%"
+            innerRadius="42%"
             outerRadius="90%"
             barSize={8}
             data={chartData}

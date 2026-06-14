@@ -14,6 +14,7 @@ import {
   PanelLeftOpen,
   LogOut,
   Settings2,
+  HelpCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -34,7 +35,8 @@ type SettingsTab =
   | "workspace-preferences"
   | "members"
   | "releases"
-  | "audit-logs";
+  | "audit-logs"
+  | "help-onboarding";
 
 interface NavItem {
   id: SettingsTab;
@@ -56,6 +58,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { id: "my-profile",    label: "My Profile",    href: "/dashboard/settings?tab=my-profile",    icon: User },
       { id: "notifications", label: "Notifications", href: "/dashboard/settings?tab=notifications",  icon: Bell },
+      { id: "help-onboarding", label: "Help & Onboarding", href: "/dashboard/settings?tab=help-onboarding", icon: HelpCircle },
     ],
   },
   {
@@ -168,7 +171,7 @@ export function SettingsSidebar({ roleName, collapsed = false, onCollapse }: Set
         </div>
 
         {/* Navigation groups */}
-        <nav className={cn("flex-1 overflow-y-auto py-3 space-y-4", collapsed ? "px-2" : "px-2.5")}>
+        <nav className={cn("flex-1 overflow-y-auto py-3 space-y-4", collapsed ? "px-2" : "px-2.5")} data-tour="settings-nav">
           {filteredGroups.map((group) => (
             <div key={group.label}>
               {/* Group label */}

@@ -7,6 +7,7 @@ import {
   Loader2,
   ChevronDown,
   Check,
+  X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -192,11 +193,6 @@ export function InvitationsSection({ brands }: { brands: Brand[] }) {
     }
   };
 
-  const selectedBrandNames = brands
-    .filter((b) => selectedBrands.includes(b.id))
-    .map((b) => b.name)
-    .join(", ");
-
   return (
     <div className="space-y-5">
       {/* Send Invite Form */}
@@ -265,16 +261,46 @@ export function InvitationsSection({ brands }: { brands: Brand[] }) {
             {/* Brand Access */}
             <div ref={brandRef} className="space-y-1.5 relative">
               <Label className="text-[10px] font-bold uppercase text-muted-foreground">Brand Access</Label>
-              <button
-                type="button"
+              <div
                 onClick={() => setBrandDropOpen((o) => !o)}
-                className="w-full h-9 px-3 rounded-lg bg-white dark:bg-[#0A0A0E] border border-neutral-200 dark:border-white/6 text-xs text-foreground flex items-center justify-between gap-2 hover:border-neutral-300 dark:hover:border-white/12 transition-all cursor-pointer text-left"
+                className="w-full min-h-9 px-3 py-1.5 rounded-lg bg-white dark:bg-[#0A0A0E] border border-neutral-200 dark:border-white/6 text-xs text-foreground flex items-center justify-between gap-2 hover:border-neutral-300 dark:hover:border-white/12 transition-all cursor-pointer text-left focus-within:ring-1 focus-within:ring-[#8B5CF6]/50 focus-within:border-[#8B5CF6]/50"
               >
-                <span className={cn("truncate", !selectedBrandNames && "text-muted-foreground")}>
-                  {selectedBrandNames || "Select brands…"}
-                </span>
+                <div className="flex flex-wrap gap-1.5 items-center">
+                  {selectedBrands.length > 0 ? (
+                    brands
+                      .filter((b) => selectedBrands.includes(b.id))
+                      .map((b) => (
+                        <Badge
+                          key={b.id}
+                          variant="secondary"
+                          className="flex items-center gap-1 text-[10px] font-bold bg-[#8B5CF6]/10 hover:bg-[#8B5CF6]/20 text-[#8B5CF6] border-none px-2 h-5.5 py-0 rounded-md shrink-0 transition-colors"
+                        >
+                          {b.name}
+                          <span
+                            role="button"
+                            tabIndex={0}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedBrands((prev) => prev.filter((id) => id !== b.id));
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.stopPropagation();
+                                setSelectedBrands((prev) => prev.filter((id) => id !== b.id));
+                              }
+                            }}
+                            className="hover:bg-[#8B5CF6]/30 rounded-full p-0.5 transition-colors cursor-pointer inline-flex items-center justify-center"
+                          >
+                            <X className="w-2.5 h-2.5 stroke-[2.5px]" />
+                          </span>
+                        </Badge>
+                      ))
+                  ) : (
+                    <span className="text-muted-foreground text-xs font-medium">Select brands…</span>
+                  )}
+                </div>
                 <ChevronDown className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
-              </button>
+              </div>
               {brandDropOpen && (
                 <div className="absolute z-30 top-full mt-1 left-0 right-0 bg-white dark:bg-[#0A0A0E] border border-neutral-200 dark:border-white/8 rounded-xl shadow-xl overflow-hidden animate-fade-in">
                   <div className="max-h-48 overflow-y-auto">
@@ -285,9 +311,12 @@ export function InvitationsSection({ brands }: { brands: Brand[] }) {
                           key={b.id}
                           type="button"
                           onClick={() => toggleBrand(b.id)}
-                          className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-foreground hover:bg-neutral-50 dark:hover:bg-white/5 transition-colors cursor-pointer text-left"
+                          className={cn(
+                            "w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-foreground hover:bg-neutral-50 dark:hover:bg-white/5 transition-colors cursor-pointer text-left",
+                            selected && "bg-[#8B5CF6]/5 dark:bg-[#8B5CF6]/8"
+                          )}
                         >
-                          <span>{b.name}</span>
+                          <span className={cn(selected && "text-[#8B5CF6]")}>{b.name}</span>
                           {selected && <Check className="w-3.5 h-3.5 text-[#8B5CF6]" />}
                         </button>
                       );

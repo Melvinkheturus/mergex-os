@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Teammate, DbRole, UserStatus } from "../../types";
+import { Teammate, DbRole, UserStatus, Brand } from "../../types";
+import { getRoleRank } from "@/lib/auth/permissions";
 
-export function useMemberActions(initialTeammates: Teammate[], currentUserRole?: string) {
+export function useMemberActions(initialTeammates: Teammate[], currentUserRole?: string, brands: Brand[] = []) {
   const [members, setMembers] = useState<Teammate[]>(initialTeammates);
   const [dbRoles, setDbRoles] = useState<DbRole[]>([]);
   const [currentUserRoleState, setCurrentUserRoleState] = useState<string | null>(currentUserRole ?? null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | UserStatus>("ACTIVE");
   
   // Suspend states
@@ -31,11 +33,43 @@ export function useMemberActions(initialTeammates: Teammate[], currentUserRole?:
   const [memberBrandIds, setMemberBrandIds] = useState<string[]>([]);
   const [memberModuleAccess, setMemberModuleAccess] = useState<string[]>([]);
   const [memberBrandModuleAccess, setMemberBrandModuleAccess] = useState<Record<string, string[]>>({});
+  const [memberPermissionAccess, setMemberPermissionAccess] = useState<string[]>([]);
   const [openBrandAccordions, setOpenBrandAccordions] = useState<Record<string, boolean>>({});
   const [modalBrandDropOpen, setModalBrandDropOpen] = useState(false);
 
+  const currentUserRank = getRoleRank(currentUserRoleState ?? "");
   const isSuperAdmin = currentUserRoleState === "super_admin";
-  const canEditAccess = isSuperAdmin || currentUserRoleState === "admin";
+
+  const isSelf = editTarget ? editTarget.id === currentUserId : false;
+  const targetRank = editTarget ? getRoleRank(editTarget.role.name) : 0;
+
+  const canManageTarget = (target: Teammate) => {
+    if (target.id === currentUserId) return false;
+    const tRank = getRoleRank(target.role.name);
+    return currentUserRank > tRank && (isSuperAdmin || currentUserRoleState === "admin");
+  };
+
+  const canEditAccess = editTarget
+    ? (!isSelf && currentUserRank > targetRank && (isSuperAdmin || currentUserRoleState === "admin"))
+    : (isSuperAdmin || currentUserRoleState === "admin");
+
+  const allowedDbRoles = dbRoles.filter((r) => {
+    const rRank = getRoleRank(r.name);
+    return isSuperAdmin || rRank < currentUserRank;
+  });
+
+  let lockReasonMessage = "";
+  if (editTarget) {
+    if (isSelf) {
+      lockReasonMessage = "You cannot modify your own access controls. Contact another administrator.";
+    } else if (currentUserRank === targetRank) {
+      lockReasonMessage = "Cannot modify users with equal access level.";
+    } else if (currentUserRank < targetRank) {
+      lockReasonMessage = "Cannot modify users with higher access level.";
+    } else if (!(isSuperAdmin || currentUserRoleState === "admin")) {
+      lockReasonMessage = "Insufficient permissions to modify access controls.";
+    }
+  }
 
   // Load members, roles, and profile
   useEffect(() => {
@@ -47,8 +81,13 @@ export function useMemberActions(initialTeammates: Teammate[], currentUserRole?:
       .then(([membersData, rolesData, profileData]) => {
         if (Array.isArray(membersData)) setMembers(membersData);
         if (Array.isArray(rolesData)) setDbRoles(rolesData);
-        if (profileData?.ok && profileData?.user?.Role?.name) {
-          setCurrentUserRoleState(profileData.user.Role.name);
+        if (profileData?.ok) {
+          if (profileData.user?.Role?.name) {
+            setCurrentUserRoleState(profileData.user.Role.name);
+          }
+          if (profileData.user?.id) {
+            setCurrentUserId(profileData.user.id);
+          }
         }
       })
       .catch(() => {});
@@ -74,16 +113,36 @@ export function useMemberActions(initialTeammates: Teammate[], currentUserRole?:
     setEditTarget(t);
     setMemberEmployeeId(t.employeeId ?? "");
     setMemberDesignation(t.designation ?? "");
-    setMemberRoleId(t.role.id ?? "");
-    setMemberBrandIds(t.brandAccess?.map((b: any) => b.id) ?? []);
-    setMemberModuleAccess(t.moduleAccess ?? []);
+    
+    // Auto-resolve role ID if missing
+    let rId = t.role.id ?? "";
+    if (!rId && dbRoles.length > 0) {
+      const match = dbRoles.find(r => r.name === t.role.name);
+      if (match) rId = match.id;
+    }
+    setMemberRoleId(rId);
+
+    // If Super Admin or Admin, they have implicit access to all brands
+    const hasImplicitAccess = t.role.name === "super_admin" || t.role.name === "admin";
+    if (hasImplicitAccess) {
+      setMemberBrandIds(brands.map((b) => b.id));
+    } else {
+      setMemberBrandIds(t.brandAccess?.map((b: any) => b.id) ?? []);
+    }
 
     const bma: Record<string, string[]> = {};
-    t.brandAccess?.forEach((b: any) => {
-      bma[b.id] = b.moduleAccess ?? [];
-    });
+    if (hasImplicitAccess) {
+      brands.forEach((b) => {
+        bma[b.id] = ["CRM", "Clients", "Documents", "Knowledge"];
+      });
+    } else {
+      t.brandAccess?.forEach((b: any) => {
+        bma[b.id] = b.moduleAccess ?? [];
+      });
+    }
     setMemberBrandModuleAccess(bma);
     setOpenBrandAccordions({});
+    setMemberPermissionAccess(t.permissionAccess ?? []);
   };
 
   const handleSaveChanges = async (brandsList: any[]) => {
@@ -100,6 +159,7 @@ export function useMemberActions(initialTeammates: Teammate[], currentUserRole?:
           brandIds: memberBrandIds,
           moduleAccess: memberModuleAccess,
           brandModuleAccess: memberBrandModuleAccess,
+          permissionAccess: memberPermissionAccess,
         }),
       });
 
@@ -129,6 +189,7 @@ export function useMemberActions(initialTeammates: Teammate[], currentUserRole?:
                   moduleAccess: memberBrandModuleAccess[b.id] ?? [],
                 })),
                 moduleAccess: memberModuleAccess,
+                permissionAccess: memberPermissionAccess,
               }
             : m
         )
@@ -260,10 +321,26 @@ export function useMemberActions(initialTeammates: Teammate[], currentUserRole?:
   const filteredMembers =
     statusFilter === "all" ? members : members.filter((m) => m.status === statusFilter);
 
+  const hasTargetRole = editTarget?.role.id ? allowedDbRoles.some(r => r.id === editTarget.role.id) : true;
+  const finalDbRoles = (editTarget && editTarget.role.id && !hasTargetRole)
+    ? [...allowedDbRoles, {
+        id: editTarget.role.id,
+        name: editTarget.role.name,
+        label: editTarget.role.label,
+        description: "",
+        isSystem: true,
+        RolePermission: []
+      } as DbRole]
+    : allowedDbRoles;
+
   return {
     members,
     dbRoles,
+    allowedDbRoles: finalDbRoles,
     currentUserRoleState,
+    currentUserId,
+    lockReasonMessage,
+    canManageTarget,
     statusFilter,
     setStatusFilter,
     suspendTarget,
@@ -295,6 +372,8 @@ export function useMemberActions(initialTeammates: Teammate[], currentUserRole?:
     setOpenBrandAccordions,
     modalBrandDropOpen,
     setModalBrandDropOpen,
+    memberPermissionAccess,
+    setMemberPermissionAccess,
     isSuperAdmin,
     canEditAccess,
     handleRowClick,

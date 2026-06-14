@@ -3,6 +3,7 @@ import { Inter, Cormorant_Garamond } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { AppProvider } from "@/providers/AppProvider";
 import { ThemeProvider } from "@/providers/ThemeProvider";
+import { OnboardingProvider } from "@/providers/OnboardingProvider";
 import "./globals.css";
 
 // ── Font Loading (rule: server-side, swap avoids FOIT) ────────────────────
@@ -162,7 +163,9 @@ export default function RootLayout({
         <ClerkProvider>
           <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
             <AppProvider>
-              {children}
+              <OnboardingProvider>
+                {children}
+              </OnboardingProvider>
             </AppProvider>
           </ThemeProvider>
         </ClerkProvider>

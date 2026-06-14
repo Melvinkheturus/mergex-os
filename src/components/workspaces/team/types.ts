@@ -19,6 +19,7 @@ export interface Teammate {
   brandAccess?: { id: string; name: string; slug: string }[];
   employeeId?: string | null;
   moduleAccess?: string[];
+  permissionAccess?: string[];
 }
 
 export interface Brand {

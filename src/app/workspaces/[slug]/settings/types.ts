@@ -43,4 +43,5 @@ export type SettingsTab =
   | "crm-settings"
   | "members"
   | "releases"
-  | "audit-logs";
+  | "audit-logs"
+  | "help-onboarding";

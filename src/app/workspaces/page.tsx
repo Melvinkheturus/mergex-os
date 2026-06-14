@@ -26,15 +26,11 @@ export default async function WorkspacesPage({
 
   const teammates = await db.user.findMany({
     where: { status: "ACTIVE" },
-    select: {
-      id: true,
-      email: true,
-      firstName: true,
-      lastName: true,
-      avatarUrl: true,
-      designation: true,
-      status: true,
-      Role: { select: { name: true, label: true } },
+    include: {
+      Role: { select: { id: true, name: true, label: true } },
+      UserBrandAccess: {
+        include: { Brand: { select: { id: true, name: true, slug: true } } },
+      },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -67,11 +63,20 @@ export default async function WorkspacesPage({
         lastName: t.lastName,
         avatarUrl: t.avatarUrl,
         designation: t.designation,
+        employeeId: t.employeeId,
+        moduleAccess: t.moduleAccess,
         status: t.status,
         role: {
+          id: t.Role.id,
           name: t.Role.name,
           label: t.Role.label,
         },
+        brandAccess: t.UserBrandAccess.map((uba) => ({
+          id: uba.Brand.id,
+          name: uba.Brand.name,
+          slug: uba.Brand.slug,
+          moduleAccess: uba.moduleAccess,
+        })),
       }))}
     />
   );

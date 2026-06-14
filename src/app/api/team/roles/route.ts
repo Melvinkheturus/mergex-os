@@ -229,6 +229,29 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: "Cannot delete system roles" }, { status: 400 });
   }
 
+  // Check if any active user is assigned to this role
+  const userCount = await db.user.count({ where: { roleId: id } });
+  if (userCount > 0) {
+    return NextResponse.json(
+      { error: `Cannot delete role because it is currently assigned to ${userCount} team member${userCount === 1 ? "" : "s"}.` },
+      { status: 400 }
+    );
+  }
+
+  // Check if any pending invite is assigned to this role
+  const inviteCount = await db.userInvite.count({
+    where: {
+      roleId: id,
+      status: "PENDING",
+    },
+  });
+  if (inviteCount > 0) {
+    return NextResponse.json(
+      { error: `Cannot delete role because it is currently assigned to ${inviteCount} pending invite${inviteCount === 1 ? "" : "s"}.` },
+      { status: 400 }
+    );
+  }
+
   await db.role.delete({ where: { id } });
 
   return NextResponse.json({ ok: true });

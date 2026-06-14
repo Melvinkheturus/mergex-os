@@ -11,14 +11,14 @@ export default function ClientsPage() {
           Client Workspaces
         </div>
         
-        <div className="space-y-2">
+        <div className="space-y-2" data-tour="clients-header">
           <h1 className="text-3xl font-bold tracking-tight text-foreground">Clients Hub</h1>
           <p className="text-sm text-muted-foreground">
             Manage active projects, deliverables, milestones, and client financials.
           </p>
         </div>
 
-        <div className="border border-border/40 bg-card/40 rounded-2xl p-8 space-y-6 shadow-xs">
+        <div className="border border-border/40 bg-card/40 rounded-2xl p-8 space-y-6 shadow-xs" data-tour="clients-list">
           <div className="flex items-center gap-4">
             <div className="h-12 w-12 rounded-2xl bg-[#8B5CF6]/5 flex items-center justify-center border border-[#8B5CF6]/15">
               <Users className="h-6 w-6 text-[#8B5CF6]" />

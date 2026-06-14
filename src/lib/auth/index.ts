@@ -104,17 +104,38 @@ type UserWithRole = {
 
 function buildAuthUser(user: UserWithRole, overrideRole?: UserWithRole["Role"]): AuthUser {
   const activeRole = overrideRole ?? user.Role;
-  const permissions = user.permissionAccess && user.permissionAccess.length > 0
-    ? (user.permissionAccess as PermissionString[])
-    : activeRole.RolePermission.map(
-        (rp) => `${rp.Permission.module}.${rp.Permission.action}` as PermissionString
-      );
+  
+  // Base role permissions
+  const rolePermissions = activeRole.RolePermission.map(
+    (rp) => `${rp.Permission.module}.${rp.Permission.action}` as PermissionString
+  );
 
-  // Derive modules from role permissions
+  let permissions = [...rolePermissions];
+  if (user.permissionAccess && user.permissionAccess.length > 0) {
+    user.permissionAccess.forEach((override) => {
+      if (override.startsWith("+")) {
+        const perm = override.slice(1) as PermissionString;
+        if (!permissions.includes(perm)) {
+          permissions.push(perm);
+        }
+      } else if (override.startsWith("-")) {
+        const perm = override.slice(1) as PermissionString;
+        permissions = permissions.filter((p) => p !== perm);
+      } else {
+        // Fallback: if no prefix, treat as positive override
+        const perm = override as PermissionString;
+        if (!permissions.includes(perm)) {
+          permissions.push(perm);
+        }
+      }
+    });
+  }
+
+  // Derive modules from effective permissions
   const roleModules = Array.from(
     new Set(
-      activeRole.RolePermission.map((rp) => {
-        const mod = rp.Permission.module.split(".")[0];
+      permissions.map((p) => {
+        const mod = p.split(".")[0];
         if (mod === "crm") return "CRM";
         return mod.charAt(0).toUpperCase() + mod.slice(1);
       })

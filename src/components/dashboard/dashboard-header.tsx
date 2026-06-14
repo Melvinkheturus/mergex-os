@@ -33,7 +33,7 @@ export function DashboardHeader({ user, brandName, slug }: DashboardHeaderProps)
   }, []);
 
   return (
-    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-2">
+    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-2" data-tour="dashboard-header">
       <div className="text-left space-y-1">
         <h2 className="text-2xl font-semibold tracking-tight text-foreground">
           {greeting}, <span className="font-normal">{user?.firstName ?? "Teammate"}</span>

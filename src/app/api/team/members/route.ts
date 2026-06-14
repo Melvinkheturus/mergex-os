@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { getRoleRank } from "@/lib/auth/permissions";
 import crypto from "crypto";
 
 /**
@@ -61,6 +62,7 @@ export async function GET(request: NextRequest) {
         slug: uba.Brand.slug,
         moduleAccess: uba.moduleAccess,
       })),
+      permissionAccess: m.permissionAccess,
     }))
   );
 }
@@ -115,6 +117,13 @@ export async function DELETE(request: NextRequest) {
   const targetRole = await db.role.findUnique({ where: { id: target.roleId } });
   if (targetRole?.name === "super_admin") {
     return NextResponse.json({ error: "Super Admin accounts cannot be suspended" }, { status: 403 });
+  }
+
+  // Enforce privilege hierarchy rank check
+  const callerRank = getRoleRank(caller.role.name);
+  const targetRank = getRoleRank(targetRole?.name);
+  if (callerRank <= targetRank) {
+    return NextResponse.json({ error: "You cannot suspend a user with equal or higher access level" }, { status: 403 });
   }
 
   // Prevent suspending already-suspended or archived users
@@ -228,8 +237,9 @@ export async function PATCH(request: NextRequest) {
     brandIds?: string[];
     moduleAccess?: string[];
     brandModuleAccess?: Record<string, string[]>;
+    permissionAccess?: string[];
   };
-  const { employeeId, designation, roleId, brandIds, moduleAccess, brandModuleAccess } = body;
+  const { employeeId, designation, roleId, brandIds, moduleAccess, brandModuleAccess, permissionAccess } = body;
 
   const target = await db.user.findUnique({
     where: { id: targetId },
@@ -245,9 +255,36 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  // Self-role protection
-  if (target.id === caller.id && roleId && roleId !== target.roleId) {
-    return NextResponse.json({ error: "You cannot change your own role" }, { status: 400 });
+  // Self-Permission Escalation Prevention
+  if (target.id === caller.id) {
+    if (
+      (roleId !== undefined && roleId !== target.roleId) ||
+      (brandIds !== undefined) ||
+      (moduleAccess !== undefined) ||
+      (brandModuleAccess !== undefined) ||
+      (permissionAccess !== undefined)
+    ) {
+      return NextResponse.json({ error: "You cannot modify your own access controls" }, { status: 400 });
+    }
+  }
+
+  // Enforce privilege hierarchy rank check
+  const callerRank = getRoleRank(caller.role.name);
+  const targetRank = getRoleRank(target.Role.name);
+  if (target.id !== caller.id && callerRank <= targetRank) {
+    return NextResponse.json({ error: "Cannot modify users with equal or higher access level" }, { status: 403 });
+  }
+
+  // Prevent role change promotion to equal/higher rank
+  if (roleId !== undefined && roleId !== target.roleId) {
+    const newRole = await db.role.findUnique({ where: { id: roleId } });
+    if (!newRole) {
+      return NextResponse.json({ error: "New role not found" }, { status: 404 });
+    }
+    const newRoleRank = getRoleRank(newRole.name);
+    if (newRoleRank >= callerRank) {
+      return NextResponse.json({ error: "You cannot assign a role equal to or higher than your own" }, { status: 403 });
+    }
   }
 
   const updates: Record<string, any> = {};
@@ -286,6 +323,10 @@ export async function PATCH(request: NextRequest) {
 
   if (moduleAccess !== undefined) {
     updates.moduleAccess = moduleAccess;
+  }
+
+  if (permissionAccess !== undefined) {
+    updates.permissionAccess = permissionAccess;
   }
 
   // Save core user changes
@@ -336,7 +377,7 @@ export async function PATCH(request: NextRequest) {
     }
   }
 
-  if (brandAccessChanged || moduleAccess !== undefined || employeeId !== undefined || designation !== undefined) {
+  if (brandAccessChanged || moduleAccess !== undefined || permissionAccess !== undefined || employeeId !== undefined || designation !== undefined) {
     try {
       const newBrands = brandIds
         ? await db.brand.findMany({
@@ -344,7 +385,7 @@ export async function PATCH(request: NextRequest) {
             select: { name: true },
           }).then((res) => res.map((b) => b.name))
         : [];
-
+ 
       await db.loginAudit.create({
         data: {
           id: crypto.randomUUID(),
@@ -355,6 +396,7 @@ export async function PATCH(request: NextRequest) {
             changedBy: caller.id,
             ...(brandAccessChanged && { oldBrands: oldBrandNames, newBrands }),
             ...(moduleAccess !== undefined && { oldModules: target.moduleAccess, newModules: moduleAccess }),
+            ...(permissionAccess !== undefined && { oldPermissions: target.permissionAccess, newPermissions: permissionAccess }),
             ...(employeeId !== undefined && { oldEmployeeId: target.employeeId, newEmployeeId: employeeId }),
             ...(designation !== undefined && { oldDesignation: target.designation, newDesignation: designation }),
           },

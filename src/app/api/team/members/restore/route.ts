@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { clerkClient } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { getRoleRank } from "@/lib/auth/permissions";
 
 /**
  * POST /api/team/members/restore
@@ -28,9 +29,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "userId is required" }, { status: 400 });
   }
 
-  const target = await db.user.findUnique({ where: { id: targetId } });
+  const target = await db.user.findUnique({
+    where: { id: targetId },
+    include: { Role: true },
+  });
   if (!target) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
+
+  // Enforce privilege hierarchy rank check
+  const callerRank = getRoleRank(caller.role.name);
+  const targetRank = getRoleRank(target.Role?.name);
+  if (callerRank <= targetRank) {
+    return NextResponse.json({ error: "You cannot restore a user with equal or higher access level" }, { status: 403 });
   }
 
   if (target.status === "ACTIVE") {

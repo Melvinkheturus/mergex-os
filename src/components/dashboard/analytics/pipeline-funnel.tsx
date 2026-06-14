@@ -113,10 +113,23 @@ export function PipelineFunnel({ leads }: { leads: Lead[] }) {
               isAnimationActive={true}
             >
               <LabelList 
-                position="right" 
-                fill="currentColor" 
-                className="text-[9px] font-bold fill-foreground dark:fill-foreground" 
                 dataKey="name" 
+                content={(props: any) => {
+                  const { x, y, width, height, value, viewBox } = props;
+                  const chartRight = viewBox ? (viewBox.x + viewBox.width) : (x + width);
+                  return (
+                    <text
+                      x={chartRight + 8}
+                      y={y + height / 2}
+                      fill="currentColor"
+                      textAnchor="start"
+                      dominantBaseline="middle"
+                      className="text-[9px] font-bold fill-foreground"
+                    >
+                      {value}
+                    </text>
+                  );
+                }}
               />
               {chartData.map((entry, index) => (
                 <Cell 

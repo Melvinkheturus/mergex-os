@@ -1,5 +1,5 @@
 import React from "react";
-import { Info, X, Loader2, Save } from "lucide-react";
+import { Info, X, Loader2, Save, Trash2, Lock } from "lucide-react";
 import { DbRole } from "../../types";
 
 interface RoleDetailsCardProps {
@@ -85,7 +85,30 @@ export function RoleDetailsCard({
       </div>
 
       {/* Action Card (Danger Zone / Delete) */}
-      {!editTarget.isSystem && (
+      {editTarget.isSystem ? (
+        <div className="glass-frost-card rounded-[20px] shadow-sm border border-neutral-200 dark:border-white/5 p-5.5 bg-neutral-50/20 dark:bg-white/1 space-y-4 opacity-70">
+          <div>
+            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+              <Lock className="w-4.5 h-4.5 text-neutral-400" />
+              Access Control
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              System baseline templates are protected.
+            </p>
+          </div>
+
+          <div>
+            <button
+              type="button"
+              disabled
+              className="w-full h-8 px-3 rounded-lg text-left text-xs font-semibold text-neutral-400 dark:text-neutral-500 bg-neutral-100 dark:bg-white/5 border border-neutral-200 dark:border-white/5 cursor-not-allowed flex items-center gap-2"
+            >
+              <Lock className="w-3.5 h-3.5" />
+              Delete Option Locked (System Role)
+            </button>
+          </div>
+        </div>
+      ) : (
         <div className="glass-frost-card rounded-[20px] shadow-sm border border-neutral-200 dark:border-white/5 p-5.5 bg-neutral-50/20 dark:bg-white/1 space-y-4">
           <div>
             <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
@@ -103,7 +126,7 @@ export function RoleDetailsCard({
               onClick={() => onDelete(editTarget)}
               className="w-full h-8 px-3 rounded-lg text-left text-xs font-semibold text-red-500 hover:text-red-600 bg-red-500/5 hover:bg-red-500/10 border border-red-500/10 hover:border-red-500/20 transition-all cursor-pointer flex items-center gap-2"
             >
-              <X className="w-3.5 h-3.5" />
+              <Trash2 className="w-3.5 h-3.5" />
               Delete Custom Role
             </button>
           </div>

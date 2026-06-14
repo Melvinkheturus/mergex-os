@@ -141,7 +141,7 @@ export function LeadsPage() {
     <div className="space-y-5">
       {/* Header Bar */}
       <div className="flex items-start justify-between gap-4">
-        <div>
+        <div data-tour="crm-header">
           <div
             onClick={() => setShowStats((prev) => !prev)}
             className="flex items-center gap-2 cursor-pointer group select-none"
@@ -164,7 +164,7 @@ export function LeadsPage() {
 
         <div className="flex items-center gap-2 shrink-0">
           {/* Sub-tab: Pipeline vs Nurturing Toggle */}
-          <div className="flex items-center gap-1 border border-border/40 rounded-lg p-1 bg-muted/20">
+          <div className="flex items-center gap-1 border border-border/40 rounded-lg p-1 bg-muted/20" data-tour="crm-pipeline-toggle">
             <button
               onClick={() => setSubTab("pipeline")}
               className={`flex items-center px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
@@ -191,6 +191,7 @@ export function LeadsPage() {
             size="sm"
             onClick={() => router.push(`/workspaces/${slug}/crm/leads/new`)}
             className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white shrink-0 font-semibold"
+            data-tour="crm-add-lead"
           >
             <Plus className="h-4 w-4 mr-1.5" />
             Add Lead
@@ -204,24 +205,30 @@ export function LeadsPage() {
       ) : (
         <>
           {/* Stats Summary Strip */}
-          {showStats && <LeadsStats leads={leads} />}
+          {showStats && (
+            <div data-tour="crm-stats">
+              <LeadsStats leads={leads} />
+            </div>
+          )}
 
           {/* Filter strip */}
-          <LeadFilters
-            search={search}
-            setSearch={setSearch}
-            stageFilter={stageFilter}
-            setStageFilter={setStageFilter}
-            ownerFilter={ownerFilter}
-            setOwnerFilter={setOwnerFilter}
-            sourceFilter={sourceFilter}
-            setSourceFilter={setSourceFilter}
-            stages={stages}
-            owners={owners}
-            sources={sources}
-            viewMode={viewMode}
-            setViewMode={setViewMode}
-          />
+          <div data-tour="crm-filters">
+            <LeadFilters
+              search={search}
+              setSearch={setSearch}
+              stageFilter={stageFilter}
+              setStageFilter={setStageFilter}
+              ownerFilter={ownerFilter}
+              setOwnerFilter={setOwnerFilter}
+              sourceFilter={sourceFilter}
+              setSourceFilter={setSourceFilter}
+              stages={stages}
+              owners={owners}
+              sources={sources}
+              viewMode={viewMode}
+              setViewMode={setViewMode}
+            />
+          </div>
 
           {/* Main Content */}
           {viewMode === "list" ? (

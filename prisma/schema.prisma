@@ -425,6 +425,8 @@ model User {
   theme                  String?                 @default("system")
   moduleAccess           String[]                @default([])
   permissionAccess       String[]                @default([])
+  firstLogin             Boolean                 @default(true)
+  tourStates             UserTourState[]
   Activity               Activity[]
   AuditLog               AuditLog[]
   Client                 Client[]
@@ -442,6 +444,20 @@ model User {
   @@index([clerkId])
   @@index([roleId])
   @@index([status])
+}
+
+model UserTourState {
+  id          String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  userId      String
+  tourId      String    // e.g. "first-login", "crm", "dashboard", etc.
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+  User        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tourId])
+  @@index([userId])
 }
 
 model UserBrandAccess {

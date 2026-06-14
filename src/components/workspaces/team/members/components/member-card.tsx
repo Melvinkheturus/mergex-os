@@ -14,6 +14,7 @@ interface MemberCardProps {
   onSuspend: (t: Teammate) => void;
   onRestore: (t: Teammate) => void;
   onArchive: (t: Teammate) => void;
+  canManage?: boolean;
 }
 
 function getInitials(t: { firstName: string | null; lastName: string | null; email: string }) {
@@ -29,6 +30,7 @@ export function MemberCard({
   onSuspend,
   onRestore,
   onArchive,
+  canManage = false,
 }: MemberCardProps) {
   const name = teammate.firstName ? `${teammate.firstName} ${teammate.lastName ?? ""}`.trim() : teammate.email;
   const isSuspended = teammate.status === "SUSPENDED";
@@ -97,7 +99,7 @@ export function MemberCard({
           {teammate.role.label}
         </Badge>
 
-        {teammate.status === "ACTIVE" && teammate.role.name !== "super_admin" && (
+        {teammate.status === "ACTIVE" && teammate.role.name !== "super_admin" && canManage && (
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -109,7 +111,7 @@ export function MemberCard({
           </button>
         )}
 
-        {teammate.status === "SUSPENDED" && (
+        {teammate.status === "SUSPENDED" && canManage && (
           <>
             <button
               onClick={(e) => {

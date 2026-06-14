@@ -1,8 +1,20 @@
 "use client";
 
-import { ChevronLeft } from "lucide-react";
+import { useState } from "react";
+import { ChevronLeft, AlertTriangle, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/r-alert-dialog";
+import { DbRole } from "./types";
 
 // Hooks & Components
 import { useRoleActions } from "./roles/hooks/use-role-actions";
@@ -43,6 +55,9 @@ export function RolesSection() {
     getModuleState,
   } = useRoleActions();
 
+  const [deleteConfirmTarget, setDeleteConfirmTarget] = useState<DbRole | null>(null);
+  const [deletingRole, setDeletingRole] = useState(false);
+
   if (!mounted) return null;
 
   return (
@@ -67,7 +82,7 @@ export function RolesSection() {
               setEditTarget(r);
               setSelectedRoleId(r.id);
             }}
-            onDelete={handleDeleteRole}
+            onDelete={(r) => setDeleteConfirmTarget(r)}
           />
         </>
       ) : (
@@ -101,7 +116,7 @@ export function RolesSection() {
               hasUnsavedChanges={hasUnsavedChanges()}
               onReset={handleResetChanges}
               onSave={handleSaveChanges}
-              onDelete={handleDeleteRole}
+              onDelete={(r) => setDeleteConfirmTarget(r)}
             />
 
             {/* Right Column: Step-by-step Permissions Form */}
@@ -123,6 +138,71 @@ export function RolesSection() {
           </div>
         </div>
       )}
+
+      <AlertDialog
+        open={!!deleteConfirmTarget}
+        onOpenChange={(open) => {
+          if (!open) setDeleteConfirmTarget(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <div className="flex items-start gap-3">
+              <div className="h-9 w-9 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-4.5 h-4.5 text-red-500" />
+              </div>
+              <div className="space-y-1">
+                <AlertDialogTitle className="text-sm font-bold text-foreground">
+                  Delete Custom Role
+                </AlertDialogTitle>
+                <AlertDialogDescription className="text-xs text-muted-foreground leading-normal">
+                  Are you sure you want to delete the custom role <span className="font-bold text-foreground">&ldquo;{deleteConfirmTarget?.label}&rdquo;</span>?
+                  This action is permanent and cannot be undone.
+                </AlertDialogDescription>
+              </div>
+            </div>
+          </AlertDialogHeader>
+
+          <div className="py-2">
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Any permissions assigned to this custom template will be deleted. Ensure no active team members or pending invites are assigned to this role before proceeding.
+            </p>
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => setDeleteConfirmTarget(null)}
+              disabled={deletingRole}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async (e) => {
+                e.preventDefault();
+                if (!deleteConfirmTarget) return;
+                setDeletingRole(true);
+                try {
+                  await handleDeleteRole(deleteConfirmTarget);
+                } finally {
+                  setDeletingRole(false);
+                  setDeleteConfirmTarget(null);
+                }
+              }}
+              disabled={deletingRole}
+              className="bg-red-600 hover:bg-red-700 text-white cursor-pointer font-bold"
+            >
+              {deletingRole ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                  Deleting…
+                </>
+              ) : (
+                "Delete Role"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

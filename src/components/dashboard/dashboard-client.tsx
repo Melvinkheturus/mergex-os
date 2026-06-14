@@ -506,12 +506,14 @@ export function DashboardClient({
       />
 
       {/* ── 2. KPI Strip ── */}
-      <KpiGrid
-        kpis={kpis}
-        dynamicKpiPool={dynamicKpiPool}
-        getKpiSparklineData={getKpiSparklineData}
-        onSelectKpi={handleSelectKpi}
-      />
+      <div data-tour="dashboard-metrics">
+        <KpiGrid
+          kpis={kpis}
+          dynamicKpiPool={dynamicKpiPool}
+          getKpiSparklineData={getKpiSparklineData}
+          onSelectKpi={handleSelectKpi}
+        />
+      </div>
 
       {/* ── 3. Analytics Grid ── */}
       <AnalyticsGrid
@@ -531,10 +533,12 @@ export function DashboardClient({
         <ActivityFeed activities={activities} />
 
         {/* Right: Upcoming Action Center (1/3 width) */}
-        <ActionCenter 
-          actions={actions} 
-          onActionClick={handleActionClick} 
-        />
+        <div data-tour="dashboard-tasks">
+          <ActionCenter 
+            actions={actions} 
+            onActionClick={handleActionClick} 
+          />
+        </div>
       </div>
     </div>
   );

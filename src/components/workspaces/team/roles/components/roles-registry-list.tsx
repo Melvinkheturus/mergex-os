@@ -1,7 +1,13 @@
 import React from "react";
-import { ShieldCheck, X } from "lucide-react";
+import { ShieldCheck, Trash2, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { DbRole } from "../../types";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface RolesRegistryListProps {
   loading: boolean;
@@ -95,13 +101,26 @@ export function RolesRegistryList({
                   Select Permissions
                 </button>
 
-                {!r.isSystem && (
+                {r.isSystem ? (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="inline-flex items-center justify-center h-8 w-8 text-neutral-400 dark:text-neutral-500 rounded-lg cursor-not-allowed">
+                          <Lock className="w-3.5 h-3.5" />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        <span className="text-[10px] font-bold">System baseline roles cannot be deleted</span>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ) : (
                   <button
                     type="button"
                     onClick={() => onDelete(r)}
                     className="inline-flex items-center justify-center h-8 w-8 text-neutral-400 hover:text-red-500 hover:bg-red-500/5 transition-all rounded-lg cursor-pointer border border-transparent hover:border-red-500/10"
                   >
-                    <X className="w-4 h-4" />
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 )}
               </div>

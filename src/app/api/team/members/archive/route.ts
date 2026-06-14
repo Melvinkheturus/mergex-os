@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { clerkClient } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { getRoleRank } from "@/lib/auth/permissions";
 
 /**
  * POST /api/team/members/archive
@@ -44,6 +45,13 @@ export async function POST(request: NextRequest) {
   const targetRole = await db.role.findUnique({ where: { id: target.roleId } });
   if (targetRole?.name === "super_admin") {
     return NextResponse.json({ error: "Super Admin accounts cannot be archived" }, { status: 403 });
+  }
+
+  // Enforce privilege hierarchy rank check
+  const callerRank = getRoleRank(caller.role.name);
+  const targetRank = getRoleRank(targetRole?.name);
+  if (callerRank <= targetRank) {
+    return NextResponse.json({ error: "You cannot archive a user with equal or higher access level" }, { status: 403 });
   }
 
   if (target.status === "ARCHIVED") {

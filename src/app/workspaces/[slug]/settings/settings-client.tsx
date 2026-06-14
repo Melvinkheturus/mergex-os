@@ -9,6 +9,7 @@ import { CrmSettingsSection } from "./components/crm-settings-section/crm-settin
 import { MembersSection } from "./components/members-section";
 import { AuditLogsSection } from "./components/audit-logs-section";
 import { ReleasesSection } from "./components/releases-section";
+import { HelpOnboardingSection } from "./components/help-onboarding-section";
 
 export function SettingsPage({ user, brands, teammates }: SettingsPageProps) {
   const searchParams = useSearchParams();
@@ -17,7 +18,7 @@ export function SettingsPage({ user, brands, teammates }: SettingsPageProps) {
   const canAdmin = user?.role.name === "super_admin" || user?.role.name === "admin";
 
   const isAllowed = (t: string) => {
-    if (t === "my-profile" || t === "notifications") return true;
+    if (t === "my-profile" || t === "notifications" || t === "help-onboarding") return true;
     return canAdmin;
   };
 
@@ -27,6 +28,7 @@ export function SettingsPage({ user, brands, teammates }: SettingsPageProps) {
     switch (tab) {
       case "my-profile":             return <ProfileSection user={user} brands={brands} />;
       case "notifications":          return <NotificationsSection />;
+      case "help-onboarding":        return <HelpOnboardingSection />;
       case "brand-settings":         return <BrandSettingsSection brands={brands} />;
       case "crm-settings":           return <CrmSettingsSection user={user} />;
       case "members":                return <MembersSection teammates={teammates} />;

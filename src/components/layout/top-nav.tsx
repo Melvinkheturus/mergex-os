@@ -4,9 +4,10 @@ import { useState, useEffect, useRef } from "react";
 import { usePathname, useParams } from "next/navigation";
 import { useUser, useClerk } from "@clerk/nextjs";
 import Link from "next/link";
-import { Search, Menu, Sparkles, Megaphone } from "lucide-react";
+import { Search, Menu, Sparkles, Megaphone, HelpCircle } from "lucide-react";
 import { ReleaseAnnouncementModal } from "@/components/layout/release-announcement-modal";
 import { Button } from "@/components/ui/button";
+import { useTour } from "@/providers/OnboardingProvider";
 import {
   Sheet,
   SheetContent,
@@ -41,6 +42,7 @@ function formatBreadcrumb(pathname: string): string {
 }
 
 export function TopNav() {
+  const { runCurrentPageTour } = useTour();
   const pathname = usePathname();
   const params = useParams();
   const slug = params?.slug as string;
@@ -173,6 +175,7 @@ export function TopNav() {
             "w-[200px]"
           )}
           aria-label="Open Command Center"
+          data-tour="top-nav-search"
         >
           <Search className="h-3 w-3 text-[#8B5CF6]/75 group-hover:text-[#8B5CF6] transition-colors shrink-0" />
           <span className="flex-1 text-left text-[11px]">Search…</span>
@@ -180,6 +183,18 @@ export function TopNav() {
             {isMac ? "⌘" : "Ctrl"}K
           </kbd>
         </button>
+
+        {/* Guided Walkthrough Toggle */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={runCurrentPageTour}
+          className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted/50 cursor-pointer"
+          aria-label="Start Guided Walkthrough"
+          data-tour="top-nav-help"
+        >
+          <HelpCircle className="h-4 w-4" />
+        </Button>
 
         {/* What's New Button */}
         {hasUnseenUpdate && (
@@ -313,7 +328,7 @@ function ProfileMenu() {
   const avatarSrc = isClerkAvatar ? (user.imageUrl || dbProfile?.avatarUrl) : dbProfile.avatarUrl;
 
   return (
-    <div ref={dropdownRef} className="relative">
+    <div ref={dropdownRef} className="relative" data-tour="top-nav-profile">
       <button
         onClick={() => setOpen((v) => !v)}
         className="h-7 w-7 rounded-full overflow-hidden border border-border/20 hover:border-border/60 transition-all flex items-center justify-center cursor-pointer focus:outline-none"
