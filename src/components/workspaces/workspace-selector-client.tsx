@@ -19,6 +19,7 @@ import { useClerk, useUser } from "@clerk/nextjs";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
+import { ProfileMenu } from "@/components/layout/top-nav";
 
 // ── Modular tab components ────────────────────────────────────────────────
 import { WorkspacesTab } from "./workspaces-tab";
@@ -301,20 +302,7 @@ export function WorkspaceSelectorClient({ brands, user, userRole, teammates, def
           {/* Right actions */}
           <div className="flex items-center gap-3">
             <AnimatedThemeToggler />
-            {currentAvatarUrl ? (
-              <img
-                src={currentAvatarUrl}
-                alt={displayName}
-                className="w-8 h-8 rounded-full object-cover border border-neutral-200 dark:border-white/6 shrink-0"
-              />
-            ) : (
-              <div 
-                className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black text-white uppercase border border-white/10 shrink-0 select-none tracking-tight"
-                style={{ background: "radial-gradient(circle at 30% 107%, #7819f6 0%, #000000 90%)" }}
-              >
-                {userInitials}
-              </div>
-            )}
+            <ProfileMenu />
           </div>
         </div>
       </header>

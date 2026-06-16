@@ -249,7 +249,7 @@ interface DbProfile {
   } | null;
 }
 
-function ProfileMenu() {
+export function ProfileMenu() {
   const { user } = useUser();
   const { signOut } = useClerk();
   const [open, setOpen] = useState(false);
@@ -362,10 +362,10 @@ function ProfileMenu() {
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-bold text-foreground truncate leading-none">
+              <p className="text-sm font-bold text-foreground truncate leading-none">
                 {user.firstName ? `${user.firstName} ${user.lastName ?? ""}` : "Teammate"}
               </p>
-              <p className="text-[10px] text-muted-foreground truncate mt-1 leading-none">
+              <p className="text-xs text-muted-foreground truncate mt-1 leading-none">
                 {userRoleOrDesignation}
               </p>
             </div>
@@ -382,7 +382,7 @@ function ProfileMenu() {
             </Link>
             
             <Link
-              href={`/workspaces/${slug}/settings`}
+              href={slug ? `/workspaces/${slug}/settings` : "/workspaces"}
               className="w-full flex items-center px-3.5 py-2 text-xs font-semibold text-foreground hover:bg-muted/50 transition-colors"
               onClick={() => setOpen(false)}
             >
@@ -390,7 +390,7 @@ function ProfileMenu() {
             </Link>
 
             <Link
-              href={`/workspaces/${slug}/settings`}
+              href={slug ? `/workspaces/${slug}/settings` : "/workspaces"}
               className="w-full flex items-center px-3.5 py-2 text-xs font-semibold text-foreground hover:bg-muted/50 transition-colors"
               onClick={() => setOpen(false)}
             >
