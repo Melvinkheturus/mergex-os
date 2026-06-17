@@ -58,17 +58,45 @@ export function InvitationsSection({ brands }: { brands: Brand[] }) {
 
   // Load roles + pending invites
   useEffect(() => {
-    Promise.all([
-      fetch("/api/team/roles").then((r) => r.json()),
-      fetch("/api/team/invite").then((r) => r.json()),
-    ])
-      .then(([roles, invites]) => {
-        setDbRoles(Array.isArray(roles) ? roles : []);
-        setPending(Array.isArray(invites) ? invites : []);
-        if (roles.length > 0) setRoleId(roles[0].id);
-      })
-      .catch(() => toast.error("Failed to load roles / invitations."))
-      .finally(() => setLoading(false));
+    let mounted = true;
+
+    const fetchData = () => {
+      Promise.all([
+        fetch("/api/team/roles").then((r) => r.json()),
+        fetch("/api/team/invite").then((r) => r.json()),
+      ])
+        .then(([roles, invites]) => {
+          if (!mounted) return;
+          setDbRoles(Array.isArray(roles) ? roles : []);
+          setPending(Array.isArray(invites) ? invites : []);
+          
+          setRoleId((prev) => {
+            if (!prev && Array.isArray(roles) && roles.length > 0) {
+              return roles[0].id;
+            }
+            return prev;
+          });
+        })
+        .catch((err) => {
+          console.error("Error in fetch chain:", err);
+          toast.error("Failed to load roles / invitations.");
+        })
+        .finally(() => {
+          if (mounted) setLoading(false);
+        });
+    };
+
+    fetchData();
+
+    // Revalidate every 3 minutes
+    const intervalId = setInterval(() => {
+      fetchData();
+    }, 3 * 60 * 1000);
+
+    return () => {
+      mounted = false;
+      clearInterval(intervalId);
+    };
   }, []);
 
   // Auto-fill brands by default on role selection
@@ -207,17 +235,7 @@ export function InvitationsSection({ brands }: { brands: Brand[] }) {
           </p>
         </div>
 
-        {loading ? (
-          <div className="grid sm:grid-cols-2 gap-4 pt-1 animate-pulse">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="space-y-1.5">
-                <Skeleton className="h-3 w-20 rounded" />
-                <Skeleton className="h-9 w-full rounded-lg" />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="grid sm:grid-cols-2 gap-4 pt-1">
+        <div className="grid sm:grid-cols-2 gap-4 pt-1">
             {/* Email */}
             <div className="space-y-1.5">
               <Label className="text-[10px] font-bold uppercase text-muted-foreground">Email Address</Label>
@@ -244,9 +262,9 @@ export function InvitationsSection({ brands }: { brands: Brand[] }) {
             {/* Role */}
             <div className="space-y-1.5">
               <Label className="text-[10px] font-bold uppercase text-muted-foreground">Role</Label>
-              <Select value={roleId} onValueChange={setRoleId}>
-                <SelectTrigger className="w-full h-9 px-3 rounded-lg bg-white dark:bg-[#0A0A0E] border border-neutral-200 dark:border-white/6 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[#8B5CF6]/30 focus:border-[#8B5CF6]/40 transition-all cursor-pointer shadow-none">
-                  <SelectValue placeholder="Select a role" />
+              <Select value={roleId} onValueChange={setRoleId} disabled={loading || dbRoles.length === 0}>
+                <SelectTrigger className="w-full h-9 px-3 rounded-lg bg-white dark:bg-[#0A0A0E] border border-neutral-200 dark:border-white/6 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[#8B5CF6]/30 focus:border-[#8B5CF6]/40 transition-all cursor-pointer shadow-none disabled:opacity-50">
+                  <SelectValue placeholder={loading ? "Loading roles..." : "Select a role"} />
                 </SelectTrigger>
                 <SelectContent>
                   {dbRoles.map((r) => (
@@ -326,7 +344,6 @@ export function InvitationsSection({ brands }: { brands: Brand[] }) {
               )}
             </div>
           </div>
-        )}
 
         <div className="flex justify-end pt-1">
           <Button

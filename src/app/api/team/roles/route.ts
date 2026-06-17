@@ -39,13 +39,13 @@ async function seedDefaultRolesIfNeeded() {
       const label = roleName === "cx_executive"
         ? "CX Executive"
         : roleName === "sales_manager"
-        ? "Sales Manager"
-        : roleName === "proposal_manager"
-        ? "Proposal Manager"
-        : roleName
-            .split("_")
-            .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-            .join(" ");
+          ? "Sales Manager"
+          : roleName === "proposal_manager"
+            ? "Proposal Manager"
+            : roleName
+              .split("_")
+              .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+              .join(" ");
 
       await db.role.upsert({
         where: { name: roleName },
@@ -98,7 +98,11 @@ export async function GET() {
     },
   });
 
-  return NextResponse.json(roles);
+  return NextResponse.json(roles, {
+    headers: {
+      "Cache-Control": "private, max-age=30, stale-while-revalidate=30",
+    },
+  });
 }
 
 export async function POST(request: NextRequest) {
