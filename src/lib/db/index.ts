@@ -1,13 +1,12 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaNeon } from "@prisma/adapter-neon";
-import { Pool, neonConfig } from "@neondatabase/serverless";
+import { neonConfig } from "@neondatabase/serverless";
+import ws from "ws";
 
 // Neon requires a WebSocket constructor for Node.js environments.
-// Dynamic import avoids the CommonJS `require()` lint error.
+// Must be set synchronously before any database connections are created.
 if (typeof WebSocket === "undefined") {
-  import("ws").then((ws) => {
-    neonConfig.webSocketConstructor = ws.default;
-  });
+  neonConfig.webSocketConstructor = ws;
 }
 
 function createPrismaClient() {
