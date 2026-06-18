@@ -9,6 +9,8 @@ interface PasswordInputProps {
   onChange: (v: string) => void;
   placeholder?: string;
   disabled?: boolean;
+  showPassword?: boolean;
+  onTogglePassword?: () => void;
 }
 
 export function PasswordInput({
@@ -17,8 +19,20 @@ export function PasswordInput({
   onChange,
   placeholder,
   disabled,
+  showPassword,
+  onTogglePassword,
 }: PasswordInputProps) {
-  const [show, setShow] = useState(false);
+  const [internalShow, setInternalShow] = useState(false);
+  const show = showPassword !== undefined ? showPassword : internalShow;
+
+  const handleToggle = () => {
+    if (onTogglePassword) {
+      onTogglePassword();
+    } else {
+      setInternalShow(!internalShow);
+    }
+  };
+
   return (
     <div className="space-y-1">
       <label className="block text-[10px] font-bold text-zinc-400 tracking-wider uppercase">
@@ -36,7 +50,7 @@ export function PasswordInput({
         />
         <button
           type="button"
-          onClick={() => setShow(!show)}
+          onClick={handleToggle}
           className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
         >
           {show ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}

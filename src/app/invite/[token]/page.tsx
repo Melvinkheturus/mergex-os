@@ -38,9 +38,11 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
   const [lastName, setLastName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   const lookupInvite = useCallback(async () => {
     try {
@@ -69,6 +71,16 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
     }
   }, [isLoaded, signUp, setActive, router]);
 
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (resendCooldown > 0) {
+      interval = setInterval(() => {
+        setResendCooldown((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [resendCooldown]);
+
   const handleActivate = async () => {
     if (!signUp || !invite) return;
     if (password.length < 8) {
@@ -93,6 +105,7 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
       });
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
       setStep("verify");
+      setResendCooldown(60);
     } catch (err: unknown) {
       const clerkErr = err as { errors?: { message: string }[] };
       setError(clerkErr?.errors?.[0]?.message ?? "Activation failed. Please try again.");
@@ -179,6 +192,23 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
     }
   };
 
+  const handleResend = async () => {
+    if (!signUp || resendCooldown > 0) return;
+    
+    setLoading(true);
+    setError("");
+    try {
+      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+      setResendCooldown(60);
+      setOtp("");
+    } catch (err: unknown) {
+      const clerkErr = err as { errors?: { message: string }[] };
+      setError(clerkErr?.errors?.[0]?.message ?? "Failed to resend code. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       if (step === "form" && password && confirmPassword) handleActivate();
@@ -195,7 +225,7 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
         <InviteBanner />
 
         <div className="w-full md:flex-1 flex flex-col items-center py-4 px-4 relative z-10 overflow-y-auto h-full max-h-full">
-          <div className="w-full max-w-[420px] space-y-6 my-auto py-6">
+          <div className="w-full max-w-[480px] space-y-6 my-auto py-6">
             <div className="space-y-2">
               <Skeleton className="w-48 h-6 bg-white/5 rounded" />
               <Skeleton className="w-32 h-3.5 bg-white/5 rounded" />
@@ -237,7 +267,7 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
         <InviteBanner />
 
         <div className="w-full md:flex-1 flex flex-col items-center py-4 px-4 relative z-10 overflow-y-auto h-full max-h-full">
-          <div className="w-full max-w-[420px] space-y-5 my-auto py-6 text-center">
+          <div className="w-full max-w-[480px] space-y-5 my-auto py-6 text-center">
             <div className="w-12 h-12 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-rose-500/20">
               <ShieldCheck className="w-6 h-6 text-rose-400" />
             </div>
@@ -269,7 +299,7 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
       <InviteBanner />
 
       <div className="w-full md:flex-1 flex flex-col items-center py-4 px-4 relative z-10 overflow-y-auto h-full max-h-full">
-        <div className="w-full max-w-[420px] space-y-5 my-auto py-6" onKeyDown={handleKeyDown}>
+        <div className="w-full max-w-[480px] space-y-5 my-auto py-6" onKeyDown={handleKeyDown}>
           {step === "success" && (
             <div className="text-center py-6 space-y-4">
               <div className={styles.animationCtn}>
@@ -362,8 +392,8 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
                   </div>
                 </div>
 
-                <PasswordInput label="Create Password" value={password} onChange={setPassword} placeholder="Min. 8 characters" disabled={loading} />
-                <PasswordInput label="Confirm Password" value={confirmPassword} onChange={setConfirmPassword} placeholder="Repeat password" disabled={loading} />
+                <PasswordInput label="Create Password" value={password} onChange={setPassword} placeholder="Min. 8 characters" disabled={loading} showPassword={showPassword} onTogglePassword={() => setShowPassword(!showPassword)} />
+                <PasswordInput label="Confirm Password" value={confirmPassword} onChange={setConfirmPassword} placeholder="Repeat password" disabled={loading} showPassword={showPassword} onTogglePassword={() => setShowPassword(!showPassword)} />
 
                 {error && <ErrorMsg message={error} />}
 
@@ -407,7 +437,17 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
                   <LiquidMetalButton label={loading ? "Verifying..." : "Verify"} width={140} height={42} onClick={handleVerify} />
                 </div>
 
-                <p className="text-center text-[10px] text-zinc-600">Didn&apos;t receive the code? Check your spam folder or wait a moment.</p>
+                <div className="flex flex-col items-center justify-center gap-2 pt-2">
+                  <p className="text-[10px] text-zinc-500">Didn&apos;t receive the code?</p>
+                  <button
+                    type="button"
+                    onClick={handleResend}
+                    disabled={resendCooldown > 0 || loading}
+                    className="text-xs font-semibold text-purple-400 hover:text-purple-300 disabled:text-zinc-600 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {resendCooldown > 0 ? `Resend available in ${resendCooldown}s` : "Resend Code"}
+                  </button>
+                </div>
               </div>
             </div>
           )}

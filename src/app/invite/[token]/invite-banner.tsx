@@ -47,12 +47,12 @@ export function InviteBanner() {
         <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight leading-[1.15]">
           Welcome to MergeX
         </h1>
-        <p className="text-xs text-white/60 mt-2 max-w-[260px] leading-relaxed">
+        <p className="text-sm text-white/60 mt-2 max-w-[280px] leading-relaxed">
           Set up your credentials to join your workspace platform.
         </p>
 
         {/* Stepper / Features Indicators */}
-        <div className="mt-6 space-y-3.5 max-w-[260px]">
+        <div className="mt-8 space-y-5 max-w-[280px]">
           {[
             {
               icon: ShieldCheck,
@@ -70,13 +70,13 @@ export function InviteBanner() {
               desc: "End-to-end zero-trust architecture",
             },
           ].map(({ icon: Icon, label, desc }) => (
-            <div key={label} className="flex items-center gap-3">
-              <div className="h-7 w-7 rounded-full flex items-center justify-center bg-white/5 border border-white/10 text-white shrink-0">
-                <Icon className="h-3.5 w-3.5 text-purple-400" />
+            <div key={label} className="flex items-center gap-4">
+              <div className="h-9 w-9 rounded-full flex items-center justify-center bg-white/5 border border-white/10 text-white shrink-0">
+                <Icon className="h-4 w-4 text-purple-400" />
               </div>
               <div>
-                <p className="text-xs font-bold text-white">{label}</p>
-                <p className="text-[9px] text-white/30">{desc}</p>
+                <p className="text-sm font-bold text-white">{label}</p>
+                <p className="text-xs text-white/40">{desc}</p>
               </div>
             </div>
           ))}
@@ -84,7 +84,7 @@ export function InviteBanner() {
       </div>
 
       {/* Footer note */}
-      <div className="relative z-10 text-center text-[10px] text-white/30 select-none">
+      <div className="relative z-10 text-center text-xs text-white/60 select-none">
         Access is invite-only. Contact your admin to request access.
       </div>
     </div>
