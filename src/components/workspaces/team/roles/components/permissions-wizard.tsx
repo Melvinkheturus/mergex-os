@@ -341,7 +341,7 @@ export function PermissionsWizard({
                           className={cn(
                             "flex items-start gap-2.5 p-3.5 border rounded-xl transition-all cursor-pointer text-left h-full shadow-xs hover:-translate-y-px",
                             checked
-                              ? "bg-white dark:bg-[#0A0A0E] border-[#8B5CF6]/35 bg-linear-to-t from-[#8B5CF6]/5 via-white/5 to-white"
+                              ? "bg-white dark:bg-[#0A0A0E] border-[#8B5CF6]/35 bg-linear-to-t from-[#8B5CF6]/5 via-white/5 to-white dark:via-transparent dark:to-transparent"
                               : "bg-transparent border-neutral-200/50 dark:border-white/3 hover:border-neutral-300 dark:hover:border-white/8"
                           )}
                         >
@@ -398,7 +398,7 @@ export function PermissionsWizard({
                                 className={cn(
                                   "flex items-start gap-2.5 p-3.5 border rounded-xl transition-all cursor-pointer text-left h-full shadow-xs hover:-translate-y-px",
                                   checked
-                                    ? "bg-white dark:bg-[#0A0A0E] border-[#8B5CF6]/35 bg-linear-to-t from-[#8B5CF6]/5 via-white/5 to-white"
+                                    ? "bg-white dark:bg-[#0A0A0E] border-[#8B5CF6]/35 bg-linear-to-t from-[#8B5CF6]/5 via-white/5 to-white dark:via-transparent dark:to-transparent"
                                     : "bg-transparent border-neutral-200/50 dark:border-white/3 hover:border-neutral-300 dark:hover:border-white/8"
                                 )}
                               >
@@ -458,7 +458,7 @@ export function PermissionsWizard({
                             className={cn(
                               "flex flex-col p-4 border rounded-xl transition-all h-full shadow-xs",
                               isEnabled
-                                ? "bg-white dark:bg-[#0A0A0E] border-[#8B5CF6]/35 bg-linear-to-t from-[#8B5CF6]/5 via-white/5 to-white"
+                                ? "bg-white dark:bg-[#0A0A0E] border-[#8B5CF6]/35 bg-linear-to-t from-[#8B5CF6]/5 via-white/5 to-white dark:via-transparent dark:to-transparent"
                                 : "bg-transparent border-neutral-200/50 dark:border-white/3 opacity-80"
                             )}
                           >
@@ -543,7 +543,7 @@ export function PermissionsWizard({
                           className={cn(
                             "flex items-start gap-3 p-4 border rounded-xl transition-all cursor-pointer text-left h-full shadow-xs hover:-translate-y-px",
                             isEnabled
-                              ? "bg-white dark:bg-[#0A0A0E] border-[#8B5CF6]/35 bg-linear-to-t from-[#8B5CF6]/5 via-white/5 to-white"
+                              ? "bg-white dark:bg-[#0A0A0E] border-[#8B5CF6]/35 bg-linear-to-t from-[#8B5CF6]/5 via-white/5 to-white dark:via-transparent dark:to-transparent"
                               : "bg-transparent border-neutral-200/50 dark:border-white/3 hover:border-neutral-300 dark:hover:border-white/8 opacity-80"
                           )}
                         >
