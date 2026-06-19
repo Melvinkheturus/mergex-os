@@ -46,10 +46,10 @@ export function useRoleActions() {
   const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({});
 
   // Declare loadRoles before the effect that calls it
-  const loadRoles = useCallback(async (selectId?: string) => {
+  const loadRoles = useCallback(async (selectId?: string, forceReload: boolean = false) => {
     setLoading(true);
     try {
-      const data = await fetchWithCache("/api/team/roles");
+      const data = await fetchWithCache("/api/team/roles", 30000, forceReload);
       if (Array.isArray(data)) {
         setRoles(data);
         if (data.length > 0) {
@@ -79,6 +79,11 @@ export function useRoleActions() {
     setMounted(true);
     loadRoles();
   }, [loadRoles]);
+
+  const handleReload = useCallback(() => {
+    loadRoles(selectedRoleId ?? undefined, true);
+    toast.success("Data refreshed", { description: "Latest roles loaded from the server." });
+  }, [loadRoles, selectedRoleId]);
 
   const activeRole = roles.find((r) => r.id === selectedRoleId);
 
@@ -321,5 +326,6 @@ export function useRoleActions() {
     handleResetChanges,
     hasUnsavedChanges,
     getModuleState,
+    handleReload,
   };
 }

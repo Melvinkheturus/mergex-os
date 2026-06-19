@@ -1,6 +1,7 @@
 import React from "react";
 import { ShieldCheck, Trash2, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { ReloadButton } from "@/components/ui/reload-button";
 import { DbRole } from "../../types";
 import {
   Tooltip,
@@ -14,6 +15,7 @@ interface RolesRegistryListProps {
   roles: DbRole[];
   onSelect: (role: DbRole) => void;
   onDelete: (role: DbRole) => void;
+  onReload: () => void;
 }
 
 export function RolesRegistryList({
@@ -21,17 +23,21 @@ export function RolesRegistryList({
   roles,
   onSelect,
   onDelete,
+  onReload,
 }: RolesRegistryListProps) {
   return (
     <div className="glass-frost-card rounded-[20px] shadow-sm border border-neutral-200 dark:border-white/5 p-5.5 bg-neutral-50/20 dark:bg-white/1 space-y-4">
-      <div>
-        <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-          <ShieldCheck className="w-4.5 h-4.5 text-[#8B5CF6]" />
-          Roles Registry
-        </h3>
-        <p className="text-xs text-muted-foreground mt-1">
-          Browse and configure organizational access clearances.
-        </p>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+            <ShieldCheck className="w-4.5 h-4.5 text-[#8B5CF6]" />
+            Roles Registry
+          </h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            Browse and configure organizational access clearances.
+          </p>
+        </div>
+        <ReloadButton onClick={onReload} />
       </div>
 
       {loading && roles.length === 0 ? (

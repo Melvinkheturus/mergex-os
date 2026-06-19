@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { ImageCropperModal } from "@/components/ui/image-cropper";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { ReloadButton } from "@/components/ui/reload-button";
 
 interface Brand {
   id: string;
@@ -61,18 +63,27 @@ export function SettingsTabComponent({
   setDefaultCurrency,
   onNewBrand,
 }: SettingsTabProps) {
+  const router = useRouter();
   const [confirmArchiveId, setConfirmArchiveId] = useState<string | null>(null);
   const [editingBrand, setEditingBrand] = useState<Brand | null>(null);
 
+  const handleReload = () => {
+    router.refresh();
+    toast.success("Data refreshed", { description: "Latest settings loaded from the server." });
+  };
+
   return (
     <div className="space-y-6 animate-fade-in text-left">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground font-sans">
-          Platform Settings
-        </h1>
-        <p className="text-xs text-muted-foreground mt-1">
-          Control platform-wide configuration: brand divisions, regional defaults, security and integrations.
-        </p>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground font-sans">
+            Platform Settings
+          </h1>
+          <p className="text-xs text-muted-foreground mt-1">
+            Control platform-wide configuration: brand divisions, regional defaults, security and integrations.
+          </p>
+        </div>
+        <ReloadButton onClick={handleReload} />
       </div>
 
       {/* 3.1 Brand Management Card */}

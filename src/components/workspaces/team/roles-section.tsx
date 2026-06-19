@@ -55,6 +55,7 @@ export function RolesSection() {
     handleResetChanges,
     hasUnsavedChanges,
     getModuleState,
+    handleReload,
   } = useRoleActions();
 
   const [deleteConfirmTarget, setDeleteConfirmTarget] = useState<DbRole | null>(null);
@@ -85,6 +86,7 @@ export function RolesSection() {
               setSelectedRoleId(r.id);
             }}
             onDelete={(r) => setDeleteConfirmTarget(r)}
+            onReload={handleReload}
           />
         </>
       ) : (

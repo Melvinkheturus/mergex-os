@@ -2,8 +2,11 @@
 
 import { Search, FolderKanban, Plus, Pencil } from "lucide-react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { LiquidMetalButton } from "@/components/ui/liquid-metal-button";
+import { ReloadButton } from "@/components/ui/reload-button";
 
 
 
@@ -53,6 +56,13 @@ export function WorkspacesTab({
   onNewBrand,
   onGoToSettings,
 }: WorkspacesTabProps) {
+  const router = useRouter();
+
+  const handleReload = () => {
+    router.refresh();
+    toast.success("Data refreshed", { description: "Workspaces reloaded from the server." });
+  };
+
   return (
     <div className="space-y-6 animate-fade-in text-left">
       <div>
@@ -66,15 +76,18 @@ export function WorkspacesTab({
 
       {/* Search Bar & New Brand Actions Row */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="relative max-w-sm w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
-          <input
-            type="text"
-            placeholder="Search workspaces..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-9 pl-9 pr-4 rounded-lg bg-neutral-50 dark:bg-[#0E0E12]/80 border border-neutral-200 dark:border-white/6 text-xs text-foreground dark:text-white placeholder-neutral-500 focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 transition-all font-sans"
-          />
+        <div className="flex items-center gap-3 w-full sm:max-w-sm">
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
+            <input
+              type="text"
+              placeholder="Search workspaces..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full h-9 pl-9 pr-4 rounded-lg bg-neutral-50 dark:bg-[#0E0E12]/80 border border-neutral-200 dark:border-white/6 text-xs text-foreground dark:text-white placeholder-neutral-500 focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 transition-all font-sans"
+            />
+          </div>
+          <ReloadButton onClick={handleReload} />
         </div>
         {canCreateBrand && (
           <LiquidMetalButton

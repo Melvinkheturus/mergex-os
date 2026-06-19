@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   UserPlus,
   Mail,
@@ -23,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ReloadButton } from "@/components/ui/reload-button";
 import { Brand, DbRole, PendingInvite } from "./types";
 import { fetchWithCache, clearApiCache } from "@/lib/api-cache";
 
@@ -36,6 +37,7 @@ export function InvitationsSection({ brands }: { brands: Brand[] }) {
   const [loading, setLoading]       = useState(true);
   const [sending, setSending]       = useState(false);
   const [resendingId, setResendingId] = useState<string | null>(null);
+  const [canSubmit, setCanSubmit]   = useState(false);
 
   // Form fields
   const [email, setEmail]           = useState("");
@@ -58,47 +60,61 @@ export function InvitationsSection({ brands }: { brands: Brand[] }) {
   }, []);
 
   // Load roles + pending invites
+  const fetchData = useCallback((forceReload: boolean = false) => {
+    Promise.all([
+      fetchWithCache("/api/team/roles", 30000, forceReload),
+      fetchWithCache("/api/team/invite", 30000, forceReload),
+    ])
+      .then(([roles, invites]) => {
+        setDbRoles(Array.isArray(roles) ? roles : []);
+        setPending(Array.isArray(invites) ? invites : []);
+
+        setRoleId((prev) => {
+          if (!prev && Array.isArray(roles) && roles.length > 0) {
+            return roles[0].id;
+          }
+          return prev;
+        });
+      })
+      .catch((err) => {
+        console.error("Error in fetch chain:", err);
+        toast.error("Failed to load roles / invitations.");
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
+
   useEffect(() => {
     let mounted = true;
-
-    const fetchData = () => {
-      Promise.all([
-        fetchWithCache("/api/team/roles"),
-        fetchWithCache("/api/team/invite"),
-      ])
-        .then(([roles, invites]) => {
-          if (!mounted) return;
-          setDbRoles(Array.isArray(roles) ? roles : []);
-          setPending(Array.isArray(invites) ? invites : []);
-          
-          setRoleId((prev) => {
-            if (!prev && Array.isArray(roles) && roles.length > 0) {
-              return roles[0].id;
-            }
-            return prev;
-          });
-        })
-        .catch((err) => {
-          console.error("Error in fetch chain:", err);
-          toast.error("Failed to load roles / invitations.");
-        })
-        .finally(() => {
-          if (mounted) setLoading(false);
-        });
-    };
-
     fetchData();
 
     // Revalidate every 3 minutes
     const intervalId = setInterval(() => {
-      fetchData();
+      if (mounted) fetchData();
     }, 3 * 60 * 1000);
 
     return () => {
       mounted = false;
       clearInterval(intervalId);
     };
-  }, []);
+  }, [fetchData]);
+
+  useEffect(() => {
+    if (!loading) {
+      const timer = setTimeout(() => {
+        setCanSubmit(true);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else {
+      setCanSubmit(false);
+    }
+  }, [loading]);
+
+  const handleReload = () => {
+    fetchData(true);
+    toast.success("Data refreshed", { description: "Latest invitations loaded from the server." });
+  };
 
   // Auto-fill brands by default on role selection
   useEffect(() => {
@@ -229,14 +245,17 @@ export function InvitationsSection({ brands }: { brands: Brand[] }) {
     <div className="space-y-5">
       {/* Send Invite Form */}
       <div className="glass-frost-card rounded-[20px] shadow-sm border border-neutral-200 dark:border-white/5 p-5.5 bg-neutral-50/20 dark:bg-white/1 space-y-4">
-        <div>
-          <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-            <UserPlus className="w-4.5 h-4.5 text-[#8B5CF6]" />
-            Send Invitation
-          </h3>
-          <p className="text-xs text-muted-foreground mt-1">
-            Invite a new teammate. They&apos;ll receive an email with an activation link via Resend.
-          </p>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+              <UserPlus className="w-4.5 h-4.5 text-[#8B5CF6]" />
+              Send Invitation
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              Invite a new teammate. They&apos;ll receive an email with an activation link via Resend.
+            </p>
+          </div>
+          <ReloadButton onClick={handleReload} />
         </div>
 
         <div className="grid sm:grid-cols-2 gap-4 pt-1">
@@ -353,7 +372,7 @@ export function InvitationsSection({ brands }: { brands: Brand[] }) {
           <Button
             size="sm"
             onClick={handleSendInvite}
-            disabled={sending || loading}
+            disabled={sending || loading || !canSubmit}
             className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white text-xs font-semibold flex items-center gap-1.5 shrink-0 cursor-pointer h-9 px-5 rounded-lg disabled:opacity-50"
           >
             {sending ? (
@@ -373,19 +392,22 @@ export function InvitationsSection({ brands }: { brands: Brand[] }) {
 
       {/* Pending Invitations List */}
       <div className="glass-frost-card rounded-[20px] shadow-sm border border-neutral-200 dark:border-white/5 p-5.5 bg-neutral-50/20 dark:bg-white/1 space-y-4">
-        <div>
-          <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-            <Mail className="w-4.5 h-4.5 text-[#8B5CF6]" />
-            Pending Invitations
-            {pending.length > 0 && (
-              <span className="ml-1 text-[10px] bg-amber-500/10 text-amber-600 border border-amber-500/20 px-2 py-0.5 rounded-full font-bold">
-                {pending.length}
-              </span>
-            )}
-          </h3>
-          <p className="text-xs text-muted-foreground mt-1">
-            Awaiting account activation. Links expire after 7 days.
-          </p>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+              <Mail className="w-4.5 h-4.5 text-[#8B5CF6]" />
+              Pending Invitations
+              {pending.length > 0 && (
+                <span className="ml-1 text-[10px] bg-amber-500/10 text-amber-600 border border-amber-500/20 px-2 py-0.5 rounded-full font-bold">
+                  {pending.length}
+                </span>
+              )}
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              Awaiting account activation. Links expire after 7 days.
+            </p>
+          </div>
+          <ReloadButton onClick={handleReload} />
         </div>
 
         {loading ? (

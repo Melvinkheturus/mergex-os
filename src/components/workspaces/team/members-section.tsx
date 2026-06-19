@@ -3,6 +3,7 @@
 import { Users, ChevronLeft, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { ReloadButton } from "@/components/ui/reload-button";
 import { cn } from "@/lib/utils";
 import { Teammate, Brand } from "./types";
 
@@ -107,21 +108,7 @@ export function MembersSection({ teammates: initialTeammates, brands, currentUse
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      onClick={handleReload}
-                      className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-neutral-100 dark:hover:bg-white/5 transition-all cursor-pointer"
-                    >
-                      <RefreshCw className="w-3.5 h-3.5" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Force reload from server (bypasses cache)</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <ReloadButton onClick={handleReload} />
 
               <div className="flex items-center gap-1 bg-neutral-100 dark:bg-white/5 rounded-lg p-1">
                 {filterTabs.map(({ key, label }) => (

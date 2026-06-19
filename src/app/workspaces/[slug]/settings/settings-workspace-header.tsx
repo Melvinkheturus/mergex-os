@@ -1,8 +1,10 @@
 "use client";
 
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { User, Building2, Users, Settings2, Sliders, Bell, Menu, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { ReloadButton } from "@/components/ui/reload-button";
 
 interface HeaderInfo {
   title: string;
@@ -64,6 +66,12 @@ export function SettingsWorkspaceHeader({
 }: SettingsWorkspaceHeaderProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const handleReload = () => {
+    router.refresh();
+    toast.success("Settings Refreshed", { description: "Latest configurations loaded from the server." });
+  };
   
   let key = searchParams.get("tab") || "my-profile";
   if (pathname.includes("/notifications")) {
@@ -74,16 +82,19 @@ export function SettingsWorkspaceHeader({
   const Icon = info.icon;
 
   return (
-    <div className="px-6 py-5 border-b border-border/10 bg-transparent flex items-center gap-3.5 shrink-0 text-left">
-      <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#8B5CF6]/10 border border-[#8B5CF6]/20 shrink-0">
-        <Icon className="h-4 w-4 text-[#8B5CF6]" />
+    <div className="px-6 py-5 border-b border-border/10 bg-transparent flex items-center justify-between shrink-0 text-left">
+      <div className="flex items-center gap-3.5">
+        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#8B5CF6]/10 border border-[#8B5CF6]/20 shrink-0">
+          <Icon className="h-4 w-4 text-[#8B5CF6]" />
+        </div>
+        <div>
+          <h2 className="text-sm font-bold text-foreground tracking-tight leading-none">{info.title}</h2>
+          <p className="text-[11px] text-muted-foreground mt-1.5 leading-none">
+            {info.subtitle}
+          </p>
+        </div>
       </div>
-      <div>
-        <h2 className="text-sm font-bold text-foreground tracking-tight leading-none">{info.title}</h2>
-        <p className="text-[11px] text-muted-foreground mt-1.5 leading-none">
-          {info.subtitle}
-        </p>
-      </div>
+      <ReloadButton onClick={handleReload} />
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ReloadButton } from "@/components/ui/reload-button";
 import { Teammate, Brand } from "./types";
 import { fetchWithCache, clearApiCache } from "@/lib/api-cache";
 
@@ -162,8 +163,8 @@ export function BrandAccessSection({ teammates, brands }: BrandAccessSectionProp
   const [members, setMembers] = useState<Teammate[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchWithCache("/api/team/members")
+  const fetchData = (forceReload: boolean = false) => {
+    fetchWithCache("/api/team/members", 30000, forceReload)
       .then((data) => {
         if (Array.isArray(data)) setMembers(data as Teammate[]);
         else setMembers(teammates); // fallback to prop
@@ -173,7 +174,16 @@ export function BrandAccessSection({ teammates, brands }: BrandAccessSectionProp
         toast.error("Failed to load brand access data.");
       })
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchData();
   }, [teammates]);
+
+  const handleReload = () => {
+    fetchData(true);
+    toast.success("Data refreshed", { description: "Latest brand access data loaded from the server." });
+  };
 
   const handleBrandAccessSaved = (memberId: string, newBrandIds: string[]) => {
     setMembers((prev) =>
@@ -190,14 +200,17 @@ export function BrandAccessSection({ teammates, brands }: BrandAccessSectionProp
 
   return (
     <div className="glass-frost-card rounded-[20px] shadow-sm border border-neutral-200 dark:border-white/5 p-5.5 bg-neutral-50/20 dark:bg-white/1 space-y-4">
-      <div>
-        <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-          <Building2 className="w-4.5 h-4.5 text-[#8B5CF6]" />
-          Brand Access
-        </h3>
-        <p className="text-xs text-muted-foreground mt-1">
-          Manage which brand workspaces each team member can access.
-        </p>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+            <Building2 className="w-4.5 h-4.5 text-[#8B5CF6]" />
+            Brand Access
+          </h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            Manage which brand workspaces each team member can access.
+          </p>
+        </div>
+        <ReloadButton onClick={handleReload} />
       </div>
 
       {loading && members.length === 0 ? (
