@@ -182,6 +182,22 @@ export function useRoleActions() {
     });
   };
 
+  const selectAllModulePermissions = (mod: ModuleDef) => {
+    setCheckedPermissions((prev) => {
+      const updated = new Set(prev);
+      mod.permissions.forEach((p) => updated.add(p.id));
+      return updated;
+    });
+  };
+
+  const removeAllModulePermissions = (mod: ModuleDef) => {
+    setCheckedPermissions((prev) => {
+      const updated = new Set(prev);
+      mod.permissions.forEach((p) => updated.delete(p.id));
+      return updated;
+    });
+  };
+
   const toggleSubpage = (sub: SubpageDef) => {
     setCheckedPermissions((prev) => {
       const updated = new Set(prev);
@@ -293,6 +309,8 @@ export function useRoleActions() {
     handleCreateRole,
     handleDeleteRole,
     toggleModule,
+    selectAllModulePermissions,
+    removeAllModulePermissions,
     toggleSubpage,
     togglePermission,
     toggleExpandModule,

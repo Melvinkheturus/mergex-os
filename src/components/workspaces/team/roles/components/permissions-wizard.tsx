@@ -1,6 +1,7 @@
 import React from "react";
-import { ChevronLeft, ChevronRight, Check, Loader2, Info, ShieldCheck, Save, ChevronDown } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, Loader2, Info, ShieldCheck, Save, ChevronDown, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ModuleDef } from "../hooks/use-role-actions";
 import { DbRole } from "../../types";
 import { MODULE_DEFINITIONS, STEPS } from "./module-definitions";
@@ -20,6 +21,8 @@ interface PermissionsWizardProps {
   getModuleState: (mod: ModuleDef) => "checked" | "unchecked" | "indeterminate";
   hasUnsavedChanges: boolean;
   onSave: () => void;
+  selectAllModulePermissions: (mod: ModuleDef) => void;
+  removeAllModulePermissions: (mod: ModuleDef) => void;
 }
 
 export function PermissionsWizard({
@@ -36,6 +39,8 @@ export function PermissionsWizard({
   getModuleState,
   hasUnsavedChanges,
   onSave,
+  selectAllModulePermissions,
+  removeAllModulePermissions,
 }: PermissionsWizardProps) {
   return (
     <div className="md:col-span-8 flex flex-col gap-4">
@@ -154,16 +159,45 @@ export function PermissionsWizard({
                                 ({mod.permissions.filter((p) => checkedPermissions.has(p.id)).length} of {mod.permissions.length} active)
                               </span>
                             </div>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleModule(mod);
-                              }}
-                              className="text-[9px] font-bold text-muted-foreground hover:text-red-500 transition-colors cursor-pointer"
-                            >
-                              Disable Module
-                            </button>
+                            <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                type="button"
+                                onClick={() => selectAllModulePermissions(mod)}
+                                className="text-[9px] font-bold text-muted-foreground hover:text-[#8B5CF6] transition-colors cursor-pointer"
+                              >
+                                Select All
+                              </button>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <button
+                                    type="button"
+                                    className="text-[9px] font-bold text-muted-foreground hover:text-red-500 transition-colors cursor-pointer"
+                                  >
+                                    Remove
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-56 p-3 z-50">
+                                  <div className="space-y-2">
+                                    <h4 className="font-medium text-sm leading-none flex items-center gap-1.5 text-red-500">
+                                      <AlertTriangle className="w-4 h-4" />
+                                      Remove Module
+                                    </h4>
+                                    <p className="text-xs text-muted-foreground">
+                                      Are you sure you want to remove all permissions for this module?
+                                    </p>
+                                    <div className="flex justify-end mt-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => removeAllModulePermissions(mod)}
+                                        className="text-xs bg-red-500 text-white px-2.5 py-1.5 rounded-lg hover:bg-red-600 font-semibold cursor-pointer transition-colors"
+                                      >
+                                        Confirm
+                                      </button>
+                                    </div>
+                                  </div>
+                                </PopoverContent>
+                              </Popover>
+                            </div>
                           </div>
 
                           {/* Accordion Content */}
