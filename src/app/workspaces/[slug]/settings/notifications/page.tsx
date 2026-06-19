@@ -318,13 +318,14 @@ export default function NotificationSettingsPage() {
           <ReloadButton onClick={() => loadPrefs(true)} />
           <Button
             size="sm"
-          onClick={handleSave}
-          disabled={saving}
-          className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
-        >
-          <Save className="h-3.5 w-3.5" />
-          {saving ? "Saving…" : "Save Preferences"}
-        </Button>
+            onClick={handleSave}
+            disabled={saving}
+            className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
+          >
+            <Save className="h-3.5 w-3.5" />
+            {saving ? "Saving…" : "Save Preferences"}
+          </Button>
+        </div>
       </div>
     </div>
   );
