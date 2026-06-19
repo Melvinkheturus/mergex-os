@@ -13,7 +13,6 @@ import {
   Globe,
   Lock,
   Rocket,
-  Award,
 } from "lucide-react";
 import { useClerk, useUser } from "@clerk/nextjs";
 import { toast } from "sonner";
@@ -186,6 +185,21 @@ export function WorkspaceSelectorClient({ brands, user, userRole, teammates, def
 
   // ── UI state ──────────────────────────────────────────────────────────
   const [activeTab, setActiveTab]              = useState<ActiveTab>("workspaces");
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace("#", "") as ActiveTab;
+      if (hash && SIDEBAR_TABS.some((t) => t.id === hash)) {
+        setActiveTab(hash);
+      } else if (!hash) {
+        setActiveTab("workspaces");
+      }
+    };
+    handleHashChange();
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, []);
+
   const [workspacesView, setWorkspacesView]    = useState<"list" | "create">(
     defaultView === "create" ? "create" : "list"
   );
@@ -233,6 +247,15 @@ export function WorkspaceSelectorClient({ brands, user, userRole, teammates, def
   );
 
   // ── Handlers ──────────────────────────────────────────────────────────
+  const handleTabChange = (tabId: ActiveTab) => {
+    setActiveTab(tabId);
+    if (tabId === "workspaces") {
+      window.history.pushState(null, "", window.location.pathname + window.location.search);
+    } else {
+      window.history.pushState(null, "", `#${tabId}`);
+    }
+  };
+
   const handleSelectBrand = async (brand: Brand) => {
     // Show transition screen immediately
     setTransitionBrand(brand);
@@ -274,11 +297,6 @@ export function WorkspaceSelectorClient({ brands, user, userRole, teammates, def
     }
   };
 
-
-
-  const handleDeactivate = (name: string) => {
-    toast.success("Teammate account deactivated", { description: `${name} has been suspended from accessing MergeX OS.` });
-  };
 
   // ── Render ────────────────────────────────────────────────────────────
   return (
@@ -325,7 +343,10 @@ export function WorkspaceSelectorClient({ brands, user, userRole, teammates, def
                   return (
                     <button
                       key={tab.id}
-                      onClick={() => { setActiveTab(tab.id); setWorkspacesView("list"); }}
+                      onClick={() => {
+                        handleTabChange(tab.id);
+                        setWorkspacesView("list");
+                      }}
                       className={cn(
                         "relative group flex items-center gap-3 rounded-lg px-3.5 py-2 text-xs font-semibold transition-all duration-150 cursor-pointer text-left shrink-0",
                         isSelected
@@ -398,7 +419,7 @@ export function WorkspaceSelectorClient({ brands, user, userRole, teammates, def
                 mounted={mounted}
                 handleSelectBrand={handleSelectBrand}
                 onNewBrand={() => setWorkspacesView("create")}
-                onGoToSettings={() => setActiveTab("settings")}
+                onGoToSettings={() => handleTabChange("settings")}
               />
             )}
 
@@ -422,7 +443,7 @@ export function WorkspaceSelectorClient({ brands, user, userRole, teammates, def
                 defaultCurrency={defaultCurrency}
                 setDefaultCurrency={setDefaultCurrency}
                 onNewBrand={() => {
-                  setActiveTab("workspaces");
+                  handleTabChange("workspaces");
                   setWorkspacesView("create");
                 }}
               />
