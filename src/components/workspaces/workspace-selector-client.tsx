@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   LogOut,
@@ -77,92 +77,11 @@ const SIDEBAR_TABS = [
   { id: "settings"   as ActiveTab, label: "Organization Settings", icon: Building2,  adminOnly: true  },
 ];
 
-const CAROUSEL_STAGES = [
-  { label: "VERIFYING SESSION", icon: Lock },
-  { label: "LOADING PROTOCOLS", icon: CheckCircle2 },
-  { label: "CONNECTING ENGINE", icon: Command },
-  { label: "SYNCING PIPELINES", icon: Globe },
-  { label: "FETCHING CONFIG", icon: LayoutGrid },
-  { label: "TUNING PERFORMANCE", icon: Sparkles },
-  { label: "LAUNCHING WORKSPACE", icon: Rocket },
-];
 
-function LoadingTransitionScreen({ brand }: { brand: Brand }) {
-  const [activeIndex, setActiveIndex] = useState(0);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setActiveIndex((prev) => {
-        if (prev >= CAROUSEL_STAGES.length - 1) {
-          return prev;
-        }
-        return prev + 1;
-      });
-    }, 150);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  return (
-    <div className="fixed inset-0 bg-white dark:bg-[#09090c] z-9999 flex flex-col items-center justify-center overflow-hidden animate-fade-in">
-      <div className="text-center mb-8 flex flex-col items-center gap-2">
-        {brand.logoUrl ? (
-          <div className="w-12 h-12 relative overflow-hidden rounded-lg border border-neutral-200 dark:border-white/10 shadow-sm">
-            <img src={brand.logoUrl} alt={brand.name} className="w-full h-full object-cover" />
-          </div>
-        ) : (
-          <div className="w-12 h-12 rounded-lg bg-[#8B5CF6] text-white flex items-center justify-center font-bold text-sm">
-            {brand.name.slice(0, 2).toUpperCase()}
-          </div>
-        )}
-        <span className="text-[10px] font-bold tracking-widest text-neutral-400 dark:text-neutral-500 uppercase mt-2">
-          Initializing secure gateway
-        </span>
-      </div>
-
-      {/* Vertical scrolling viewport (height is 5 * 56px = 280px) */}
-      <div className="relative h-[280px] w-full max-w-[320px] overflow-hidden flex flex-col items-center">
-        {/* Soft top and bottom fade mask */}
-        <div className="absolute top-0 left-0 right-0 h-16 bg-linear-to-b from-white dark:from-[#09090c] to-transparent z-10 pointer-events-none" />
-        <div className="absolute bottom-0 left-0 right-0 h-16 bg-linear-to-t from-white dark:from-[#09090c] to-transparent z-10 pointer-events-none" />
-
-        {/* Scrolling Inner Container */}
-        <div 
-          className="flex flex-col gap-3 w-full transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
-          style={{ 
-            transform: `translateY(${-activeIndex * 56}px)`,
-            paddingTop: '118px',
-            paddingBottom: '118px'
-          }}
-        >
-          {CAROUSEL_STAGES.map((stage, idx) => {
-            const Icon = stage.icon;
-            const isActive = idx === activeIndex;
-            return (
-              <div
-                key={stage.label}
-                className={cn(
-                  "h-11 px-5 rounded-full flex items-center justify-center gap-3 border transition-all duration-300 font-sans tracking-wide text-xs font-bold w-[280px] mx-auto shrink-0 select-none",
-                  isActive
-                    ? "bg-linear-to-t from-[#8B5CF6]/15 via-white/40 to-white dark:from-purple-950/20 dark:via-transparent dark:to-zinc-900 border-[#8B5CF6]/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_1px_2px_rgba(139,92,246,0.15)] text-[#8B5CF6] dark:text-[#a78bfa] scale-100 opacity-100"
-                    : "bg-[#8B5CF6]/5 text-[#8B5CF6]/60 border-[#8B5CF6]/20 scale-95 opacity-40"
-                )}
-              >
-                <Icon className={cn("w-4 h-4 shrink-0", isActive ? "text-[#8B5CF6] dark:text-[#a78bfa] animate-pulse" : "text-[#8B5CF6]/70")} />
-                <span className="whitespace-nowrap">{stage.label}</span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export function WorkspaceSelectorClient({ brands, user, userRole, teammates, defaultView }: Props) {
   const canCreateBrand = userRole === "super_admin" || userRole === "admin";
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
   const { signOut } = useClerk();
   const { user: clerkUser } = useUser();
 
@@ -206,7 +125,6 @@ export function WorkspaceSelectorClient({ brands, user, userRole, teammates, def
   const [activeBrandId, setActiveBrandIdState] = useState<string | null>(user.activeBrandId);
   const [loadingBrandId, setLoadingBrandId]    = useState<string | null>(null);
   const [searchQuery, setSearchQuery]          = useState("");
-  const [transitionBrand, setTransitionBrand]  = useState<Brand | null>(null);
 
   // ── Brand list (synced from props) ────────────────────────────────────
   const [brandList, setBrandList] = useState<Brand[]>(brands);
@@ -256,8 +174,6 @@ export function WorkspaceSelectorClient({ brands, user, userRole, teammates, def
   };
 
   const handleSelectBrand = async (brand: Brand) => {
-    // Show transition screen immediately
-    setTransitionBrand(brand);
     setLoadingBrandId(brand.id);
     setActiveBrandIdState(brand.id);
 
@@ -272,9 +188,7 @@ export function WorkspaceSelectorClient({ brands, user, userRole, teammates, def
       console.error("[handleSelectBrand] Failed to persist activeBrandId:", e);
     }
 
-    startTransition(() => {
-      router.push(`/workspaces/${brand.slug}/dashboard`);
-    });
+    router.push(`/workspaces/${brand.slug}/dashboard`);
   };
 
   const handleArchiveBrand = async (id: string, name: string) => {
@@ -457,11 +371,6 @@ export function WorkspaceSelectorClient({ brands, user, userRole, teammates, def
 
       </main>
 
-      {transitionBrand && isPending && (
-        <LoadingTransitionScreen
-          brand={transitionBrand}
-        />
-      )}
     </div>
   );
 }
