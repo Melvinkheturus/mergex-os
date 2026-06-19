@@ -1,5 +1,5 @@
 import React from "react";
-import { Loader2, RefreshCw, Archive } from "lucide-react";
+import { Loader2, RefreshCw, Archive, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Teammate } from "../../types";
@@ -14,6 +14,7 @@ interface MemberCardProps {
   onSuspend: (t: Teammate) => void;
   onRestore: (t: Teammate) => void;
   onArchive: (t: Teammate) => void;
+  onDelete: (t: Teammate) => void;
   canManage?: boolean;
 }
 
@@ -30,6 +31,7 @@ export function MemberCard({
   onSuspend,
   onRestore,
   onArchive,
+  onDelete,
   canManage = false,
 }: MemberCardProps) {
   const name = teammate.firstName ? `${teammate.firstName} ${teammate.lastName ?? ""}`.trim() : teammate.email;
@@ -145,6 +147,36 @@ export function MemberCard({
                 Archive
               </button>
             )}
+          </>
+        )}
+
+        {teammate.status === "ARCHIVED" && isSuperAdmin && canManage && (
+          <>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onRestore(teammate);
+              }}
+              disabled={restoring === teammate.id}
+              className="h-7 px-3 text-[10px] font-bold text-emerald-600 hover:bg-emerald-500/8 rounded-lg transition-colors cursor-pointer flex items-center gap-1 disabled:opacity-50"
+            >
+              {restoring === teammate.id ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <RefreshCw className="w-3 h-3" />
+              )}
+              Restore
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(teammate);
+              }}
+              className="h-7 px-3 text-[10px] font-bold text-red-500 hover:text-red-600 hover:bg-red-500/8 rounded-lg transition-colors cursor-pointer flex items-center gap-1"
+            >
+              <Trash2 className="w-3 h-3" />
+              Delete
+            </button>
           </>
         )}
       </div>

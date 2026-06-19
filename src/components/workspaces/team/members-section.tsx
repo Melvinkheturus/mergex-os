@@ -1,6 +1,6 @@
 "use client";
 
-import { Users, ChevronLeft, RefreshCw } from "lucide-react";
+import { Users, ChevronLeft, RefreshCw, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ReloadButton } from "@/components/ui/reload-button";
@@ -10,6 +10,7 @@ import { Teammate, Brand } from "./types";
 // Hooks & Components
 import { useMemberActions } from "./members/hooks/use-member-actions";
 import { SuspendDialog } from "./members/components/suspend-dialog";
+import { DeleteMemberDialog } from "./members/components/delete-member-dialog";
 import { MemberCard } from "./members/components/member-card";
 import { MemberEditForm } from "./members/components/member-edit-form";
 import { AuditLogsList } from "./members/components/audit-logs-list";
@@ -37,6 +38,9 @@ export function MembersSection({ teammates: initialTeammates, brands, currentUse
     suspendCountsLoading,
     restoring,
     archiving,
+    deleteTarget,
+    setDeleteTarget,
+    deleting,
     editTarget,
     setEditTarget,
     saving,
@@ -68,10 +72,21 @@ export function MembersSection({ teammates: initialTeammates, brands, currentUse
     handleConfirmSuspend,
     handleRestore,
     handleArchive,
+    handleConfirmDelete,
     handleReload,
     counts,
     filteredMembers,
   } = useMemberActions(initialTeammates, currentUserRole);
+
+  // editTarget is a frozen snapshot taken on row click. Derive a live view from
+  // the members array so the status badge + action buttons reflect mutations
+  // (suspend/restore/archive) without leaving the edit screen.
+  const liveTarget = editTarget
+    ? members.find((m) => m.id === editTarget.id) ?? editTarget
+    : null;
+  const actionBusy = liveTarget
+    ? restoring === liveTarget.id || archiving === liveTarget.id
+    : false;
 
   const filterTabs: { key: "all" | "ACTIVE" | "SUSPENDED" | "ARCHIVED"; label: string }[] = [
     { key: "all", label: `All (${counts.all})` },
@@ -92,6 +107,13 @@ export function MembersSection({ teammates: initialTeammates, brands, currentUse
         suspendCounts={suspendCounts}
         suspending={suspending}
         onConfirm={handleConfirmSuspend}
+      />
+
+      <DeleteMemberDialog
+        deleteTarget={deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        deleting={deleting}
+        onConfirm={handleConfirmDelete}
       />
 
       {!editTarget ? (
@@ -144,6 +166,7 @@ export function MembersSection({ teammates: initialTeammates, brands, currentUse
                 onSuspend={handleClickSuspend}
                 onRestore={handleRestore}
                 onArchive={handleArchive}
+                onDelete={setDeleteTarget}
                 canManage={canManageTarget(t)}
               />
             ))}
@@ -163,13 +186,13 @@ export function MembersSection({ teammates: initialTeammates, brands, currentUse
             </button>
             <Badge variant="outline" className={cn(
               "text-[9px] uppercase tracking-wider font-semibold px-2 py-0.5",
-              editTarget.status === "ACTIVE"
+              liveTarget?.status === "ACTIVE"
                 ? "border-emerald-500/20 text-emerald-600 bg-emerald-500/5"
-                : editTarget.status === "SUSPENDED"
+                : liveTarget?.status === "SUSPENDED"
                 ? "border-amber-500/20 text-amber-600 bg-amber-500/5"
                 : "border-red-500/20 text-red-500 bg-red-500/5"
             )}>
-              {editTarget.status}
+              {liveTarget?.status}
             </Badge>
           </div>
 
@@ -218,7 +241,7 @@ export function MembersSection({ teammates: initialTeammates, brands, currentUse
                   </p>
                 </div>
 
-                {!canManageTarget(editTarget) ? (
+                {!liveTarget || !canManageTarget(liveTarget) ? (
                   <div className="p-3 border border-neutral-200 dark:border-white/5 bg-neutral-50/50 dark:bg-white/0.5 rounded-xl text-center">
                     <span className="text-[10px] font-bold text-muted-foreground flex items-center justify-center gap-1.5">
                       🔒 Actions Locked: {lockReasonMessage || "You do not have permission to manage this user."}
@@ -227,37 +250,63 @@ export function MembersSection({ teammates: initialTeammates, brands, currentUse
                 ) : (
                   <div className="grid grid-cols-1 gap-2">
                     {/* Suspend/Restore */}
-                    {editTarget.role.name !== "super_admin" && (
-                      editTarget.status === "ACTIVE" ? (
+                    {liveTarget.role.name !== "super_admin" && (
+                      liveTarget.status === "ACTIVE" ? (
                         <button
-                          onClick={() => handleClickSuspend(editTarget)}
-                          className="w-full h-8 px-3 rounded-lg text-left text-xs font-semibold text-amber-600 hover:text-amber-700 bg-amber-500/5 hover:bg-amber-500/10 border border-amber-500/10 hover:border-amber-500/20 transition-all cursor-pointer flex items-center gap-2"
+                          onClick={() => handleClickSuspend(liveTarget)}
+                          disabled={actionBusy}
+                          className="w-full h-8 px-3 rounded-lg text-left text-xs font-semibold text-amber-600 hover:text-amber-700 bg-amber-500/5 hover:bg-amber-500/10 border border-amber-500/10 hover:border-amber-500/20 transition-all cursor-pointer flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           Suspend Account
                         </button>
-                      ) : editTarget.status === "SUSPENDED" ? (
+                      ) : liveTarget.status === "SUSPENDED" ? (
                         <button
-                          onClick={() => {
-                            handleRestore(editTarget);
-                            setEditTarget(null);
-                          }}
-                          className="w-full h-8 px-3 rounded-lg text-left text-xs font-semibold text-emerald-600 hover:text-emerald-700 bg-emerald-500/5 hover:bg-emerald-500/10 border border-emerald-500/10 hover:border-emerald-500/20 transition-all cursor-pointer flex items-center gap-2"
+                          onClick={() => handleRestore(liveTarget)}
+                          disabled={actionBusy}
+                          className="w-full h-8 px-3 rounded-lg text-left text-xs font-semibold text-emerald-600 hover:text-emerald-700 bg-emerald-500/5 hover:bg-emerald-500/10 border border-emerald-500/10 hover:border-emerald-500/20 transition-all cursor-pointer flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          Restore Account
+                          {restoring === liveTarget.id && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                          {restoring === liveTarget.id ? "Restoring…" : "Restore Account"}
                         </button>
                       ) : null
                     )}
 
                     {/* Archive */}
-                    {isSuperAdmin && editTarget.role.name !== "super_admin" && editTarget.status === "SUSPENDED" && (
+                    {isSuperAdmin && liveTarget.role.name !== "super_admin" && liveTarget.status === "SUSPENDED" && (
+                      <button
+                        onClick={() => handleArchive(liveTarget)}
+                        disabled={actionBusy}
+                        className="w-full h-8 px-3 rounded-lg text-left text-xs font-semibold text-red-500 hover:text-red-600 bg-red-500/5 hover:bg-red-500/10 border border-red-500/10 hover:border-red-500/20 transition-all cursor-pointer flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {archiving === liveTarget.id && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                        {archiving === liveTarget.id ? "Archiving…" : "Archive Account"}
+                      </button>
+                    )}
+
+                    {/* Restore from archive — super_admin only */}
+                    {isSuperAdmin && liveTarget.role.name !== "super_admin" && liveTarget.status === "ARCHIVED" && (
+                      <button
+                        onClick={() => handleRestore(liveTarget)}
+                        disabled={actionBusy}
+                        className="w-full h-8 px-3 rounded-lg text-left text-xs font-semibold text-emerald-600 hover:text-emerald-700 bg-emerald-500/5 hover:bg-emerald-500/10 border border-emerald-500/10 hover:border-emerald-500/20 transition-all cursor-pointer flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {restoring === liveTarget.id && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                        {restoring === liveTarget.id ? "Restoring…" : "Restore Account"}
+                      </button>
+                    )}
+
+                    {/* Delete (permanent) — archived only */}
+                    {isSuperAdmin && liveTarget.role.name !== "super_admin" && liveTarget.status === "ARCHIVED" && (
                       <button
                         onClick={() => {
-                          handleArchive(editTarget);
+                          const t = liveTarget;
                           setEditTarget(null);
+                          setDeleteTarget(t);
                         }}
-                        className="w-full h-8 px-3 rounded-lg text-left text-xs font-semibold text-red-500 hover:text-red-600 bg-red-500/5 hover:bg-red-500/10 border border-red-500/10 hover:border-red-500/20 transition-all cursor-pointer flex items-center gap-2"
+                        disabled={actionBusy}
+                        className="w-full h-8 px-3 rounded-lg text-left text-xs font-semibold text-red-500 hover:text-red-600 bg-red-500/5 hover:bg-red-500/10 border border-red-500/10 hover:border-red-500/20 transition-all cursor-pointer flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Archive Account
+                        Delete Permanently
                       </button>
                     )}
                   </div>

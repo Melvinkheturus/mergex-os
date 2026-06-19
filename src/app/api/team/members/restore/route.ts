@@ -6,8 +6,9 @@ import { getRoleRank } from "@/lib/auth/permissions";
 
 /**
  * POST /api/team/members/restore
- * Restores a SUSPENDED user back to ACTIVE.
- * Only works on SUSPENDED users — ARCHIVED users require Super Admin action.
+ * Restores a SUSPENDED or ARCHIVED user back to ACTIVE.
+ * SUSPENDED → ACTIVE: users.manage permission or super_admin.
+ * ARCHIVED  → ACTIVE: super_admin only (archive is a super_admin action).
  * Body: { userId: string }
  */
 export async function POST(request: NextRequest) {
@@ -48,20 +49,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "User is already active" }, { status: 400 });
   }
 
-  if (target.status === "ARCHIVED") {
+  // Un-archiving is a Super Admin-only action (mirrors archive)
+  if (target.status === "ARCHIVED" && !isSuperAdmin) {
     return NextResponse.json(
-      { error: "Archived users cannot be restored from here. Contact Super Admin." },
+      { error: "Only Super Admins can restore archived users" },
       { status: 403 }
     );
   }
 
-  // Restore in DB
+  // Restore in DB — clear both suspension and archive fields
   await db.user.update({
     where: { id: targetId },
     data: {
       status: "ACTIVE",
       suspendedAt: null,
       suspendedBy: null,
+      archivedAt: null,
+      archivedBy: null,
       updatedAt: new Date(),
     },
   });

@@ -21,6 +21,10 @@ export function useMemberActions(initialTeammates: Teammate[], currentUserRole?:
   const [restoring, setRestoring] = useState<string | null>(null);
   const [archiving, setArchiving] = useState<string | null>(null);
 
+  // Delete states
+  const [deleteTarget, setDeleteTarget] = useState<Teammate | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
   // Edit Access View Target
   const [editTarget, setEditTarget] = useState<Teammate | null>(null);
   const [saving, setSaving] = useState(false);
@@ -282,7 +286,7 @@ export function useMemberActions(initialTeammates: Teammate[], currentUserRole?:
       }
       setMembers((prev) =>
         prev.map((m) =>
-          m.id === target.id ? { ...m, status: "ACTIVE" as UserStatus, suspendedAt: null } : m
+          m.id === target.id ? { ...m, status: "ACTIVE" as UserStatus, suspendedAt: null, archivedAt: null } : m
         )
       );
       toast.success("Account restored", {
@@ -322,6 +326,33 @@ export function useMemberActions(initialTeammates: Teammate[], currentUserRole?:
       toast.error("Network error — please try again.");
     } finally {
       setArchiving(null);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const res = await fetch("/api/team/members/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: deleteTarget.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? "Failed to delete account.");
+        return;
+      }
+      setMembers((prev) => prev.filter((m) => m.id !== deleteTarget.id));
+      toast.success("Account deleted", {
+        description: `${deleteTarget.email} has been permanently removed.`,
+      });
+      clearApiCache("/api/team/members?status=all");
+      setDeleteTarget(null);
+    } catch {
+      toast.error("Network error — please try again.");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -365,6 +396,9 @@ export function useMemberActions(initialTeammates: Teammate[], currentUserRole?:
     suspendCountsLoading,
     restoring,
     archiving,
+    deleteTarget,
+    setDeleteTarget,
+    deleting,
     editTarget,
     setEditTarget,
     saving,
@@ -396,6 +430,7 @@ export function useMemberActions(initialTeammates: Teammate[], currentUserRole?:
     handleConfirmSuspend,
     handleRestore,
     handleArchive,
+    handleConfirmDelete,
     handleReload,
     counts,
     filteredMembers,
