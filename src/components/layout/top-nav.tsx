@@ -19,6 +19,7 @@ import { NotificationDropdown } from "@/components/notifications/notification-dr
 import { useCommandCenter } from "@/components/command/command-provider";
 import { BrandSwitcher, type BrandOption } from "@/components/layout/brand-switcher";
 import { cn } from "@/lib/utils";
+import { fetchWithCache } from "@/lib/api-cache";
 
 function formatBreadcrumb(pathname: string): string {
   const segments = pathname.split("/").filter(Boolean);
@@ -82,8 +83,7 @@ export function TopNav() {
       ]
     };
 
-    fetch("/api/releases/latest")
-      .then((r) => (r.ok ? r.json() : null))
+    fetchWithCache("/api/releases/latest", 300000)
       .then((data) => {
         if (data?.release) {
           setLatestRelease(data.release);
@@ -120,8 +120,7 @@ export function TopNav() {
 
   // Load brands for switcher
   useEffect(() => {
-    fetch("/api/brands")
-      .then((r) => r.ok ? r.json() : [])
+    fetchWithCache("/api/brands", 300000)
       .then((data: unknown) => {
         if (Array.isArray(data)) setBrands(data as BrandOption[]);
       })
@@ -260,21 +259,18 @@ export function ProfileMenu() {
 
   const fetchProfile = async () => {
     try {
-      const res = await fetch("/api/profile");
-      if (res.ok) {
-        const data = await res.json();
-        if (data.ok && data.user) {
-          setDbProfile(data.user);
-          // Background sync Clerk avatarUrl to DB if it's a Clerk URL and has changed
-          const dbAvatar = data.user.avatarUrl;
-          const isClerkAvatar = !dbAvatar || dbAvatar.startsWith("https://img.clerk.com");
-          if (isClerkAvatar && user?.imageUrl && dbAvatar !== user.imageUrl) {
-            fetch("/api/profile", {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ avatarUrl: user.imageUrl }),
-            }).catch(console.error);
-          }
+      const data = await fetchWithCache("/api/profile", 300000);
+      if (data && data.user) {
+        setDbProfile(data.user);
+        // Background sync Clerk avatarUrl to DB if it's a Clerk URL and has changed
+        const dbAvatar = data.user.avatarUrl;
+        const isClerkAvatar = !dbAvatar || dbAvatar.startsWith("https://img.clerk.com");
+        if (isClerkAvatar && user?.imageUrl && dbAvatar !== user.imageUrl) {
+          fetch("/api/profile", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ avatarUrl: user.imageUrl }),
+          }).catch(console.error);
         }
       }
     } catch (err) {

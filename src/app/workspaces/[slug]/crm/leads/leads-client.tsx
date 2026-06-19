@@ -15,6 +15,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/r-alert-dialog";
+import { fetchWithCache, clearApiCache } from "@/lib/api-cache";
+import { ReloadButton } from "@/components/ui/reload-button";
 
 import { LeadsStats } from "./components/leads-stats";
 import { LeadFilters } from "./components/lead-filters";
@@ -59,20 +61,18 @@ export function LeadsPage() {
   const [showStats, setShowStats] = useState(true);
 
   // Fetch Options & Leads
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (forceReload = false) => {
     try {
       setLoading(true);
-      const optRes = await fetch(`/api/crm/options?brandSlug=${slug}`);
-      if (optRes.ok) {
-        const { stages: st, sources: src, owners: own } = await optRes.json();
-        setStages(st || []);
-        setSources(src || []);
-        setOwners(own || []);
+      const optData = await fetchWithCache(`/api/crm/options?brandSlug=${slug}`, 300000, forceReload);
+      if (optData) {
+        setStages(optData.stages || []);
+        setSources(optData.sources || []);
+        setOwners(optData.owners || []);
       }
 
-      const leadsRes = await fetch(`/api/crm/leads?brandSlug=${slug}`);
-      if (leadsRes.ok) {
-        const leadsData = await leadsRes.json();
+      const leadsData = await fetchWithCache(`/api/crm/leads?brandSlug=${slug}`, 60000, forceReload);
+      if (leadsData) {
         setLeads(leadsData || []);
       }
     } catch (error) {
@@ -107,6 +107,7 @@ export function LeadsPage() {
         const err = await res.json();
         throw new Error(err.error || "Failed to delete lead");
       }
+      clearApiCache(`/api/crm/leads?brandSlug=${slug}`);
       toast.success("Lead deleted successfully");
       setLeads((prev) => prev.filter((l) => l.id !== leadIdToDelete));
     } catch (err: unknown) {
@@ -186,6 +187,8 @@ export function LeadsPage() {
               Nurturing
             </button>
           </div>
+
+          <ReloadButton onClick={() => fetchData(true)} />
 
           <Button
             size="sm"

@@ -9,6 +9,8 @@ import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { LoaderIcon } from "../profile-section";
 import { SettingsPageProps } from "../../types";
+import { fetchWithCache, clearApiCache } from "@/lib/api-cache";
+import { ReloadButton } from "@/components/ui/reload-button";
 
 import { SlaRulesTab } from "./sla-rules-tab";
 import { EscalationRulesTab } from "./escalation-rules-tab";
@@ -74,18 +76,15 @@ export function CrmSettingsSection({ user }: { user: SettingsPageProps["user"] }
   const [saving, setSaving] = useState(false);
 
   // Load settings on mount (DB first, fallback to localStorage)
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await fetch(`/api/crm/settings?slug=${slug}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.settings) {
-            setSettings({ ...DEFAULT_CRM_SETTINGS, ...data.settings });
-            setInitialSettings({ ...DEFAULT_CRM_SETTINGS, ...data.settings });
-            return;
-          }
-        }
+  const loadSettings = async (forceReload = false) => {
+    setLoading(true);
+    try {
+      const data = await fetchWithCache(`/api/crm/settings?slug=${slug}`, 300000, forceReload);
+      if (data && data.settings) {
+        setSettings({ ...DEFAULT_CRM_SETTINGS, ...data.settings });
+        setInitialSettings({ ...DEFAULT_CRM_SETTINGS, ...data.settings });
+        return;
+      }
         
         // Fallback to localStorage if not set in DB yet
         if (typeof window !== "undefined") {
@@ -98,13 +97,13 @@ export function CrmSettingsSection({ user }: { user: SettingsPageProps["user"] }
             } catch {}
           }
         }
-      } catch (err) {
-        console.error(err);
       } finally {
         setLoading(false);
       }
     };
-    load();
+
+  useEffect(() => {
+    loadSettings();
   }, [slug]);
 
   const isDirty = JSON.stringify(settings) !== JSON.stringify(initialSettings);
@@ -121,6 +120,7 @@ export function CrmSettingsSection({ user }: { user: SettingsPageProps["user"] }
       
       setInitialSettings(settings);
       localStorage.setItem(`mergex_crm_settings_${slug}`, JSON.stringify(settings));
+      clearApiCache(`/api/crm/settings?slug=${slug}`);
       toast.success("CRM Settings saved successfully!");
       window.dispatchEvent(new CustomEvent("crm-settings-updated"));
     } catch (err) {
@@ -206,6 +206,7 @@ export function CrmSettingsSection({ user }: { user: SettingsPageProps["user"] }
               Unsaved Changes
             </Badge>
           )}
+          <ReloadButton onClick={() => loadSettings(true)} />
           <Button
             size="sm"
             onClick={handleSave}

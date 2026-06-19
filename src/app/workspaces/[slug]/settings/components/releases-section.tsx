@@ -13,6 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DateTimePicker } from "@/components/ui/datetime-picker";
 import { Settings2, Sparkles, Trash2, Edit3, Plus, ArrowLeft, Loader2, Check, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
+import { fetchWithCache, clearApiCache } from "@/lib/api-cache";
+import { ReloadButton } from "@/components/ui/reload-button";
 
 const OPERATIONAL_CATEGORIES: Record<string, string[]> = {
   "Sales OS": [
@@ -89,12 +91,11 @@ export function ReleasesSection() {
   const [submitting, setSubmitting] = useState(false);
 
   // Load releases
-  const fetchReleases = async () => {
+  const fetchReleases = async (forceReload = false) => {
     setLoading(true);
     try {
-      const res = await fetch("/api/releases?includeDrafts=true");
-      if (res.ok) {
-        const data = await res.json();
+      const data = await fetchWithCache("/api/releases?includeDrafts=true", 300000, forceReload);
+      if (data) {
         setReleases(data.releases || []);
       } else {
         toast.error("Failed to load releases");
@@ -152,6 +153,7 @@ export function ReleasesSection() {
         method: "DELETE",
       });
       if (res.ok) {
+        clearApiCache("/api/releases?includeDrafts=true");
         toast.success("Release deleted successfully");
         fetchReleases();
       } else {
@@ -228,6 +230,7 @@ export function ReleasesSection() {
       });
 
       if (res.ok) {
+        clearApiCache("/api/releases?includeDrafts=true");
         toast.success(editingId ? "Release updated" : "Release created");
         setView("list");
         fetchReleases();
@@ -257,13 +260,16 @@ export function ReleasesSection() {
                 Draft, publish, and configure operational updates or popup announcements.
               </CardDescription>
             </div>
-            <Button
-              onClick={handleCreateNew}
-              className="h-8 text-xs font-bold bg-[#8B5CF6] hover:bg-[#7c4ee4] text-white rounded-xl gap-1.5 cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              Create Release
-            </Button>
+            <div className="flex items-center gap-2">
+              <ReloadButton onClick={() => fetchReleases(true)} />
+              <Button
+                onClick={handleCreateNew}
+                className="h-8 text-xs font-bold bg-[#8B5CF6] hover:bg-[#7c4ee4] text-white rounded-xl gap-1.5 cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Create Release
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             {loading ? (

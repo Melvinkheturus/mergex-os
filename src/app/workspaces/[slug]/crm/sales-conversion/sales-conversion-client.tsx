@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { OpportunityKpiCards } from "./components/opportunity-kpi-cards";
 import { OpportunityTable } from "./components/opportunity-table";
 import { Opportunity, deriveFunnelStage } from "./components/types";
+import { fetchWithCache } from "@/lib/api-cache";
+import { ReloadButton } from "@/components/ui/reload-button";
 
 export function SalesConversionClient() {
   const params = useParams();
@@ -18,12 +20,11 @@ export function SalesConversionClient() {
   const [loading, setLoading] = useState(true);
   const [showStats, setShowStats] = useState(true);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (forceReload = false) => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/crm/opportunities?brandSlug=${slug}`);
-      if (!res.ok) throw new Error("Failed to fetch opportunities");
-      const data = await res.json();
+      const data = await fetchWithCache(`/api/crm/opportunities?brandSlug=${slug}`, 60000, forceReload);
+      if (!data) throw new Error("Failed to fetch opportunities");
 
       // Derive funnel stage for each opportunity
       const mapped: Opportunity[] = (data as Opportunity[]).map((opp) => ({
@@ -69,6 +70,7 @@ export function SalesConversionClient() {
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          <ReloadButton onClick={() => fetchData(true)} />
           <Button
             size="sm"
             variant="outline"

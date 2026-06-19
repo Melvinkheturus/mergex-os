@@ -7,6 +7,8 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { fetchWithCache, clearApiCache } from "@/lib/api-cache";
+import { ReloadButton } from "@/components/ui/reload-button";
 
 interface Prefs {
   inAppEnabled: boolean;
@@ -103,13 +105,22 @@ export default function NotificationSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  const loadPrefs = async (forceReload = false) => {
+    setLoading(true);
+    try {
+      const data = await fetchWithCache("/api/pulse/preferences", 300000, forceReload);
+      if (data && data.preferences) {
+        setPrefs({ ...DEFAULT_PREFS, ...data.preferences });
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    fetch("/api/pulse/preferences")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.preferences) setPrefs({ ...DEFAULT_PREFS, ...data.preferences });
-      })
-      .finally(() => setLoading(false));
+    loadPrefs();
   }, []);
 
   const update = (key: keyof Prefs) => (value: boolean | string) => {
@@ -124,6 +135,7 @@ export default function NotificationSettingsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(prefs),
       });
+      clearApiCache("/api/pulse/preferences");
       toast.success("Notification preferences saved");
     } catch {
       toast.error("Failed to save preferences");
@@ -302,8 +314,10 @@ export default function NotificationSettingsPage() {
             rules run independently of your preferences.
           </p>
         </div>
-        <Button
-          size="sm"
+        <div className="flex items-center gap-2">
+          <ReloadButton onClick={() => loadPrefs(true)} />
+          <Button
+            size="sm"
           onClick={handleSave}
           disabled={saving}
           className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"

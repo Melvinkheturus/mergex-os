@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ReloadButton } from "@/components/ui/reload-button";
 
 import { LeadCommandCenter } from "../components/lead-command-center";
 import { LeadInfoPanel } from "../components/lead-info-panel";
@@ -83,6 +84,7 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
     handleWinLossSubmit,
     handleConvertToClient,
     isNurturing,
+    loadLeadData,
     isReady,
     isFormDirty,
     nextStageLabel,
@@ -142,6 +144,7 @@ export function LeadDetailsClient({ leadId }: LeadDetailsClientProps) {
         </div>
 
         <div className="flex items-center gap-2">
+          <ReloadButton onClick={() => loadLeadData(true)} />
           {lead.winLossStatus ? (
             <Badge
               className={

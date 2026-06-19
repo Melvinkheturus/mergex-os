@@ -160,6 +160,7 @@ export function OpportunityDetailClient({ opportunityId }: { opportunityId: stri
     handleUpdateMeeting,
     handleAddProposal,
     handleUpdateProposalStatus,
+    loadData,
   } = useOpportunityDetail(opportunityId, slug);
 
   // Opportunity Health Calculation
@@ -311,6 +312,7 @@ export function OpportunityDetailClient({ opportunityId }: { opportunityId: stri
         onBack={() => router.push(`/workspaces/${slug}/crm/sales-conversion`)}
         onOpenLeadProfile={() => router.push(`/workspaces/${slug}/crm/leads/${detail.id}`)}
         onCloseDeal={handleCloseDeal}
+        onReload={() => loadData(true)}
       />
 
       {/* Company Header Banner */}

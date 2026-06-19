@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { OpportunityDetail } from "../hooks/use-opportunity-detail";
 import { formatCurrency } from "../../../components/types";
+import { ReloadButton } from "@/components/ui/reload-button";
 
 interface OpportunityHeaderProps {
   detail: OpportunityDetail;
@@ -14,6 +15,7 @@ interface OpportunityHeaderProps {
   onBack: () => void;
   onOpenLeadProfile: () => void;
   onCloseDeal: (status: "WON" | "LOST") => void;
+  onReload: () => void;
 }
 
 export function OpportunityHeader({
@@ -22,6 +24,7 @@ export function OpportunityHeader({
   onBack,
   onOpenLeadProfile,
   onCloseDeal,
+  onReload,
 }: OpportunityHeaderProps) {
   return (
     <div className="flex items-center justify-between">
@@ -36,6 +39,7 @@ export function OpportunityHeader({
       </Button>
 
       <div className="flex items-center gap-2">
+        <ReloadButton onClick={onReload} />
         {detail.winLossStatus ? (
           <Badge className={cn(
             "border px-2.5 py-1 text-xs font-bold",

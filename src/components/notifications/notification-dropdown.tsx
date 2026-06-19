@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import { toast } from "sonner";
+import { fetchWithCache, clearApiCache } from "@/lib/api-cache";
 
 export function NotificationDropdown() {
   const [open, setOpen] = useState(false);
@@ -26,9 +27,7 @@ export function NotificationDropdown() {
   const fetchNotifications = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/pulse/notifications?limit=8");
-      if (!res.ok) return;
-      const data = await res.json();
+      const data = await fetchWithCache("/api/pulse/notifications?limit=8", 60000);
       setNotifications(data.notifications ?? []);
       setUnreadCount(data.unreadCount ?? 0);
     } catch {
@@ -60,6 +59,7 @@ export function NotificationDropdown() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ isRead: true }),
     });
+    clearApiCache("/api/pulse/notifications?limit=8");
   };
 
   const handleMarkAllRead = async () => {
@@ -70,6 +70,7 @@ export function NotificationDropdown() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "markAllRead" }),
     });
+    clearApiCache("/api/pulse/notifications?limit=8");
     toast.success("All notifications marked as read");
   };
 

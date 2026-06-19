@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { getStatus } from "../../../components/types";
+import { fetchWithCache, clearApiCache } from "@/lib/api-cache";
 
 export interface MeetingRecord {
   id: string;
@@ -147,32 +148,30 @@ export function useOpportunityDetail(opportunityId: string, slug: string) {
   const triggerRefresh = () => setRefreshKey((prev) => prev + 1);
 
   // Load all workspace data
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (forceReload = false) => {
     try {
       setLoading(true);
-      const [leadRes, meetingsRes, proposalsRes, activitiesRes, optionsRes] = await Promise.all([
-        fetch(`/api/crm/leads/${opportunityId}`),
-        fetch(`/api/crm/leads/${opportunityId}/meetings`),
-        fetch(`/api/crm/leads/${opportunityId}/proposals`),
-        fetch(`/api/crm/leads/${opportunityId}/activities`),
-        fetch(`/api/crm/options?brandSlug=${slug}`),
+      const [leadData, meetingsData, proposalsData, activitiesData, optData] = await Promise.all([
+        fetchWithCache(`/api/crm/leads/${opportunityId}`, 60000, forceReload),
+        fetchWithCache(`/api/crm/leads/${opportunityId}/meetings`, 60000, forceReload),
+        fetchWithCache(`/api/crm/leads/${opportunityId}/proposals`, 60000, forceReload),
+        fetchWithCache(`/api/crm/leads/${opportunityId}/activities`, 60000, forceReload),
+        fetchWithCache(`/api/crm/options?brandSlug=${slug}`, 300000, forceReload),
       ]);
 
-      if (!leadRes.ok) throw new Error("Not found");
+      if (!leadData) throw new Error("Not found");
 
-      const leadData = await leadRes.json();
       setDetail({
         ...leadData,
         owner: leadData.User || null,
         stage: leadData.LeadStage || null,
       });
 
-      if (meetingsRes.ok) setMeetings(await meetingsRes.json());
-      if (proposalsRes.ok) setProposals(await proposalsRes.json());
-      if (activitiesRes.ok) setActivities(await activitiesRes.json());
+      if (meetingsData) setMeetings(meetingsData);
+      if (proposalsData) setProposals(proposalsData);
+      if (activitiesData) setActivities(activitiesData);
       
-      if (optionsRes.ok) {
-        const optData = await optionsRes.json();
+      if (optData) {
         setOwners(optData.owners || []);
         setStages(optData.stages || []);
       }
@@ -259,6 +258,7 @@ export function useOpportunityDetail(opportunityId: string, slug: string) {
       body: JSON.stringify(payload),
     });
     if (!res.ok) throw new Error("Failed to save");
+    clearApiCache(`/api/crm/leads/${opportunityId}`);
     const updated = await res.json();
     setDetail({
       ...updated,
@@ -446,6 +446,7 @@ export function useOpportunityDetail(opportunityId: string, slug: string) {
         body: JSON.stringify({ engagementManagerId: assignedEM }),
       });
       if (!res.ok) throw new Error("Failed to convert opportunity to client");
+      clearApiCache(`/api/crm/leads/${detail?.id}`);
       toast.success("Opportunity successfully converted to Client! 🎉");
       router.push(`/workspaces/${slug}/crm/sales-conversion`);
     } catch (err: any) {
@@ -522,6 +523,7 @@ export function useOpportunityDetail(opportunityId: string, slug: string) {
         }),
       });
       if (!res.ok) throw new Error("Failed to schedule meeting");
+      clearApiCache(`/api/crm/leads/${opportunityId}/meetings`);
       toast.success("Meeting scheduled successfully");
       setMeetingForm({ title: "", scheduledAt: "", duration: "60", mode: "GOOGLE_MEET", meetingUrl: "" });
       setShowScheduleForm(false);
@@ -557,6 +559,7 @@ export function useOpportunityDetail(opportunityId: string, slug: string) {
         }),
       });
       if (!res.ok) throw new Error("Failed to update meeting");
+      clearApiCache(`/api/crm/leads/${opportunityId}/meetings`);
       toast.success("Meeting updated successfully");
       setEditingMeetingId(null);
       loadData();
@@ -587,6 +590,7 @@ export function useOpportunityDetail(opportunityId: string, slug: string) {
         }),
       });
       if (!res.ok) throw new Error("Failed to create proposal");
+      clearApiCache(`/api/crm/leads/${opportunityId}/proposals`);
       toast.success("Proposal created successfully");
       setShowProposalForm(false);
       setProposalForm({ title: "", proposalNumber: "", value: "", status: "DRAFT", notes: "" });
@@ -607,6 +611,7 @@ export function useOpportunityDetail(opportunityId: string, slug: string) {
         body: JSON.stringify({ status }),
       });
       if (!res.ok) throw new Error();
+      clearApiCache(`/api/crm/leads/${opportunityId}/proposals`);
       toast.success(`Proposal status updated to ${status}`);
       loadData();
     } catch {
@@ -715,5 +720,6 @@ export function useOpportunityDetail(opportunityId: string, slug: string) {
     handleUpdateMeeting,
     handleAddProposal,
     handleUpdateProposalStatus,
+    loadData,
   };
 }

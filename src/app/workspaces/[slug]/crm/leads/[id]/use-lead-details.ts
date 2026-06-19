@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { fetchWithCache, clearApiCache } from "@/lib/api-cache";
 
 import {
   getStep1Complete,
@@ -99,24 +100,23 @@ export function useLeadDetails({ leadId, slug }: UseLeadDetailsProps) {
 
   // ─── Data Loader ─────────────────────────────────────────────────────────────
 
-  const loadLeadData = useCallback(async () => {
+  const loadLeadData = useCallback(async (forceReload = false) => {
     await Promise.resolve();
     try {
       setLoading(true);
-      const [optRes, leadRes] = await Promise.all([
-        fetch(`/api/crm/options?brandSlug=${slug}`),
-        fetch(`/api/crm/leads/${leadId}`),
+      const [optData, leadData] = await Promise.all([
+        fetchWithCache(`/api/crm/options?brandSlug=${slug}`, 300000, forceReload),
+        fetchWithCache(`/api/crm/leads/${leadId}`, 60000, forceReload),
       ]);
 
-      if (optRes.ok) {
-        const { stages: s, sources: sr, owners: o } = await optRes.json();
-        setStages(s || []);
-        setSources(sr || []);
-        setOwners(o || []);
+      if (optData) {
+        setStages(optData.stages || []);
+        setSources(optData.sources || []);
+        setOwners(optData.owners || []);
       }
 
-      if (!leadRes.ok) throw new Error("Failed to load lead details");
-      const data: Lead = await leadRes.json();
+      if (!leadData) throw new Error("Failed to load lead details");
+      const data: Lead = leadData;
       setLead(data);
 
       // Determine starting step using the same first-incomplete-stage logic
@@ -410,6 +410,7 @@ export function useLeadDetails({ leadId, slug }: UseLeadDetailsProps) {
       body: JSON.stringify(payload),
     });
     if (!res.ok) throw new Error("Failed to save");
+    clearApiCache(`/api/crm/leads/${leadId}`);
     const updated: Lead = await res.json();
     setLead(updated);
     window.dispatchEvent(new CustomEvent("crm-activity-logged"));
@@ -432,6 +433,7 @@ export function useLeadDetails({ leadId, slug }: UseLeadDetailsProps) {
             content: leadNotes.trim(),
           }),
         });
+        clearApiCache(`/api/crm/leads/${leadId}/activities`);
         intakeForm.setValue("leadNotes", "");
       }
       localStorage.removeItem(`intake-draft-${leadId}`);
@@ -613,6 +615,7 @@ export function useLeadDetails({ leadId, slug }: UseLeadDetailsProps) {
         body: JSON.stringify({ stageId }),
       });
       if (!res.ok) throw new Error("Failed to update stage");
+      clearApiCache(`/api/crm/leads/${leadId}`);
       toast.success("Stage updated");
       const updatedLead = await res.json();
       setLead(updatedLead);
@@ -650,6 +653,7 @@ export function useLeadDetails({ leadId, slug }: UseLeadDetailsProps) {
         body: JSON.stringify({ winLossStatus, winLossReason, winLossNotes }),
       });
       if (!res.ok) throw new Error("Failed to close lead");
+      clearApiCache(`/api/crm/leads/${leadId}`);
       toast.success(`Lead marked as ${winLossStatus}`);
       setLead(await res.json());
       setShowWinLossDialog(false);
@@ -676,6 +680,7 @@ export function useLeadDetails({ leadId, slug }: UseLeadDetailsProps) {
         const d = await res.json();
         throw new Error(d.error || "Failed to convert lead");
       }
+      clearApiCache(`/api/crm/leads/${leadId}`);
       toast.success("Lead converted to client! 🎉");
       router.push(`/workspaces/${slug}/crm/leads`);
     } catch (err: unknown) {
@@ -798,6 +803,7 @@ export function useLeadDetails({ leadId, slug }: UseLeadDetailsProps) {
     handleWinLossSubmit,
     handleConvertToClient,
     isNurturing,
+    loadLeadData,
     isReady,
     isFormDirty,
     nextStageLabel,
