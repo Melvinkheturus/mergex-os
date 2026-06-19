@@ -1,7 +1,8 @@
 "use client";
 
-import { Users, ChevronLeft } from "lucide-react";
+import { Users, ChevronLeft, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { Teammate, Brand } from "./types";
 
@@ -66,6 +67,7 @@ export function MembersSection({ teammates: initialTeammates, brands, currentUse
     handleConfirmSuspend,
     handleRestore,
     handleArchive,
+    handleReload,
     counts,
     filteredMembers,
   } = useMemberActions(initialTeammates, currentUserRole);
@@ -104,8 +106,25 @@ export function MembersSection({ teammates: initialTeammates, brands, currentUse
                 {members.length} total
               </p>
             </div>
-            <div className="flex items-center gap-1 bg-neutral-100 dark:bg-white/5 rounded-lg p-1">
-              {filterTabs.map(({ key, label }) => (
+            <div className="flex items-center gap-3">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={handleReload}
+                      className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-neutral-100 dark:hover:bg-white/5 transition-all cursor-pointer"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Force reload from server (bypasses cache)</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <div className="flex items-center gap-1 bg-neutral-100 dark:bg-white/5 rounded-lg p-1">
+                {filterTabs.map(({ key, label }) => (
                 <button
                    key={key}
                    onClick={() => setStatusFilter(key)}
@@ -119,6 +138,7 @@ export function MembersSection({ teammates: initialTeammates, brands, currentUse
                   {label}
                 </button>
               ))}
+              </div>
             </div>
           </div>
 

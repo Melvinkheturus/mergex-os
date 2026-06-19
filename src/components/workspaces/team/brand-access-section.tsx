@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Teammate, Brand } from "./types";
+import { fetchWithCache, clearApiCache } from "@/lib/api-cache";
 
 interface BrandAccessSectionProps {
   teammates: Teammate[];
@@ -72,6 +73,8 @@ export function BrandAccessDropdown({
         toast.error(data.error ?? "Failed to update brand access.");
         return;
       }
+      clearApiCache("/api/team/members");
+      clearApiCache("/api/team/members?status=all");
       onSaved(member.id, selected);
       toast.success("Brand access updated.");
       setOpen(false);
@@ -160,8 +163,7 @@ export function BrandAccessSection({ teammates, brands }: BrandAccessSectionProp
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/team/members")
-      .then((r) => r.json())
+    fetchWithCache("/api/team/members")
       .then((data) => {
         if (Array.isArray(data)) setMembers(data as Teammate[]);
         else setMembers(teammates); // fallback to prop

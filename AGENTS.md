@@ -71,3 +71,9 @@ This version has breaking changes - APIs, conventions, and file structure may al
 - Do not modify .gitignore.
 - Only modify files within the src directory.
 - Only create new files within the src directory.
+
+# API Caching in ract
+
+- For short-lived API responses that should not persist across full page reloads, use the application-level caching utility in `src/lib/api-cache.ts`.
+- Use `fetchWithCache("/api/path")` instead of standard `fetch` in client components when users frequently navigate between tabs/views to prevent server hammering.
+- Always clear the cache manually using `clearApiCache("/api/path")` immediately after a successful mutation (POST/PATCH/DELETE) so that subsequent fetches pull fresh data.

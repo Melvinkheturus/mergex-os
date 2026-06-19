@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Brand, DbRole, PendingInvite } from "./types";
+import { fetchWithCache, clearApiCache } from "@/lib/api-cache";
 
 interface InvitationsSectionProps {
   brands: Brand[];
@@ -62,8 +63,8 @@ export function InvitationsSection({ brands }: { brands: Brand[] }) {
 
     const fetchData = () => {
       Promise.all([
-        fetch("/api/team/roles").then((r) => r.json()),
-        fetch("/api/team/invite").then((r) => r.json()),
+        fetchWithCache("/api/team/roles"),
+        fetchWithCache("/api/team/invite"),
       ])
         .then(([roles, invites]) => {
           if (!mounted) return;
@@ -170,7 +171,8 @@ export function InvitationsSection({ brands }: { brands: Brand[] }) {
       if (dbRoles.length > 0) setRoleId(dbRoles[0].id);
 
       // Refresh pending list
-      const updated = await fetch("/api/team/invite").then((r) => r.json());
+      clearApiCache("/api/team/invite");
+      const updated = await fetchWithCache("/api/team/invite");
       setPending(Array.isArray(updated) ? updated : []);
     } catch {
       toast.error("Network error — please try again.");
@@ -188,6 +190,7 @@ export function InvitationsSection({ brands }: { brands: Brand[] }) {
         return;
       }
       setPending((prev) => prev.filter((p) => p.id !== id));
+      clearApiCache("/api/team/invite");
       toast.success("Invitation revoked", {
         description: `Pending invite for ${inviteEmail} has been cancelled.`,
       });
@@ -212,7 +215,8 @@ export function InvitationsSection({ brands }: { brands: Brand[] }) {
       toast.success("Invitation resent!", {
         description: `A new email has been dispatched to ${inviteEmail}.`,
       });
-      const updated = await fetch("/api/team/invite").then((r) => r.json());
+      clearApiCache("/api/team/invite");
+      const updated = await fetchWithCache("/api/team/invite");
       setPending(Array.isArray(updated) ? updated : []);
     } catch {
       toast.error("Network error — please try again.");

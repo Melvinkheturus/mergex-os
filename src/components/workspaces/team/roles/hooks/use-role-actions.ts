@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import { DbRole } from "../../types";
 import { PermissionKey } from "@/lib/auth/permissions";
+import { fetchWithCache, clearApiCache } from "@/lib/api-cache";
 
 export interface PermissionDef {
   id: PermissionKey;
@@ -48,8 +49,7 @@ export function useRoleActions() {
   const loadRoles = useCallback(async (selectId?: string) => {
     setLoading(true);
     try {
-      const res = await fetch("/api/team/roles");
-      const data = await res.json();
+      const data = await fetchWithCache("/api/team/roles");
       if (Array.isArray(data)) {
         setRoles(data);
         if (data.length > 0) {
@@ -123,6 +123,7 @@ export function useRoleActions() {
       });
       setNewRoleTitle("");
       setNewRoleDesc("");
+      clearApiCache("/api/team/roles");
       await loadRoles(data.id);
     } catch {
       toast.error("Network error — please try again.");
@@ -151,6 +152,7 @@ export function useRoleActions() {
         description: `"${role.label}" removed from organizational registry.`,
       });
       setEditTarget(null);
+      clearApiCache("/api/team/roles");
       await loadRoles();
     } catch {
       toast.error("Network error — please try again.");
@@ -253,6 +255,7 @@ export function useRoleActions() {
       });
 
       setEditTarget(null);
+      clearApiCache("/api/team/roles");
       await loadRoles(selectedRoleId);
     } catch {
       toast.error("Network error — please try again.");

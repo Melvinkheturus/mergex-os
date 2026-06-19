@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Teammate, DbRole, UserStatus, Brand } from "../../types";
 import { getRoleRank } from "@/lib/auth/permissions";
+import { fetchWithCache, clearApiCache } from "@/lib/api-cache";
 
 export function useMemberActions(initialTeammates: Teammate[], currentUserRole?: string, brands: Brand[] = []) {
   const [members, setMembers] = useState<Teammate[]>(initialTeammates);
@@ -71,12 +72,11 @@ export function useMemberActions(initialTeammates: Teammate[], currentUserRole?:
     }
   }
 
-  // Load members, roles, and profile
-  useEffect(() => {
+  const loadData = (forceReload: boolean = false) => {
     Promise.all([
-      fetch("/api/team/members?status=all").then((r) => r.json()),
-      fetch("/api/team/roles").then((r) => r.json()),
-      fetch("/api/profile").then((r) => (r.ok ? r.json() : null)),
+      fetchWithCache("/api/team/members?status=all", 30000, forceReload),
+      fetchWithCache("/api/team/roles", 30000, forceReload),
+      fetchWithCache("/api/profile", 30000, forceReload).catch(() => null),
     ])
       .then(([membersData, rolesData, profileData]) => {
         if (Array.isArray(membersData)) setMembers(membersData);
@@ -91,7 +91,17 @@ export function useMemberActions(initialTeammates: Teammate[], currentUserRole?:
         }
       })
       .catch(() => {});
+  };
+
+  // Load members, roles, and profile
+  useEffect(() => {
+    loadData();
   }, []);
+
+  const handleReload = () => {
+    loadData(true);
+    toast.success("Data refreshed", { description: "Latest team information loaded from the server." });
+  };
 
   // Fetch audit logs dynamically when selected user changes
   useEffect(() => {
@@ -198,6 +208,7 @@ export function useMemberActions(initialTeammates: Teammate[], currentUserRole?:
       toast.success("Access permissions updated", {
         description: `Changes for ${editTarget.email} have been saved.`,
       });
+      clearApiCache("/api/team/members?status=all");
       setEditTarget(null);
     } catch {
       toast.error("Network error — please try again.");
@@ -246,6 +257,7 @@ export function useMemberActions(initialTeammates: Teammate[], currentUserRole?:
       toast.success("Account suspended", {
         description: `${suspendTarget.email} has been locked. Records remain intact.`,
       });
+      clearApiCache("/api/team/members?status=all");
       setSuspendTarget(null);
       setSuspendCounts(null);
     } catch {
@@ -276,6 +288,7 @@ export function useMemberActions(initialTeammates: Teammate[], currentUserRole?:
       toast.success("Account restored", {
         description: `${target.email} can now log in again.`,
       });
+      clearApiCache("/api/team/members?status=all");
     } catch {
       toast.error("Network error — please try again.");
     } finally {
@@ -304,6 +317,7 @@ export function useMemberActions(initialTeammates: Teammate[], currentUserRole?:
       toast.success("Account archived", {
         description: `${target.email} has been permanently archived.`,
       });
+      clearApiCache("/api/team/members?status=all");
     } catch {
       toast.error("Network error — please try again.");
     } finally {
@@ -382,6 +396,7 @@ export function useMemberActions(initialTeammates: Teammate[], currentUserRole?:
     handleConfirmSuspend,
     handleRestore,
     handleArchive,
+    handleReload,
     counts,
     filteredMembers,
   };
