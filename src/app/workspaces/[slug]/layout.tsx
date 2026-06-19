@@ -39,10 +39,10 @@ export default async function WorkspaceSlugLayout({ children, params }: LayoutPr
 
   // ── 4. Sync active brand ID in database ───────────────────────────────────
   if (user.activeBrandId !== brand.id) {
-    await db.user.update({
+    db.user.update({
       where: { id: user.id },
       data: { activeBrandId: brand.id },
-    });
+    }).catch(console.error);
   }
 
   return <WorkspaceLayoutShell>{children}</WorkspaceLayoutShell>;
