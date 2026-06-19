@@ -22,86 +22,57 @@ export default async function DashboardPage({
 
   if (!brand) redirect("/sign-in");
 
-  const brands = await db.brand.findMany({
-    where: { status: "active" },
-    orderBy: { createdAt: "desc" },
-    select: { id: true, name: true, slug: true },
-  });
-
-  const teammates = await db.user.findMany({
-    where: { status: "ACTIVE" },
-    select: {
-      id: true,
-      email: true,
-      firstName: true,
-      lastName: true,
-      designation: true,
-      status: true,
-      Role: { select: { label: true } },
-    },
-    orderBy: { createdAt: "desc" },
-  });
-
-  const leads = await db.lead.findMany({
-    where: { brandId: brand.id },
-    include: {
-      LeadStage: {
-        select: {
-          id: true,
-          name: true,
-          label: true,
-          color: true,
+  const [brands, teammates, leads, meetings, proposals, clients] = await Promise.all([
+    db.brand.findMany({
+      where: { status: "active" },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, name: true, slug: true },
+    }),
+    db.user.findMany({
+      where: { status: "ACTIVE" },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        designation: true,
+        status: true,
+        Role: { select: { label: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    db.lead.findMany({
+      where: { brandId: brand.id },
+      include: {
+        LeadStage: {
+          select: { id: true, name: true, label: true, color: true },
+        },
+        LeadSource: {
+          select: { id: true, name: true },
+        },
+        User: {
+          select: { id: true, firstName: true, lastName: true, email: true, avatarUrl: true },
         },
       },
-      LeadSource: {
-        select: {
-          id: true,
-          name: true,
-        },
+      orderBy: { createdAt: "desc" },
+    }),
+    db.meeting.findMany({
+      where: { Lead: { brandId: brand.id } },
+      include: {
+        Lead: { select: { id: true, companyName: true, contactPerson: true } },
+        User: { select: { firstName: true, lastName: true, avatarUrl: true } },
       },
-      User: {
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          email: true,
-          avatarUrl: true,
-        },
-      },
-    },
-    orderBy: { createdAt: "desc" },
-  });
-
-  const meetings = await db.meeting.findMany({
-    where: { Lead: { brandId: brand.id } },
-    include: {
-      Lead: {
-        select: {
-          id: true,
-          companyName: true,
-          contactPerson: true,
-        },
-      },
-      User: {
-        select: {
-          firstName: true,
-          lastName: true,
-          avatarUrl: true,
-        },
-      },
-    },
-    orderBy: { scheduledAt: "desc" },
-  });
-
-  const proposals = await db.proposal.findMany({
-    where: { Lead: { brandId: brand.id } },
-    orderBy: { createdAt: "desc" },
-  });
-
-  const clients = await db.client.findMany({
-    where: { brandId: brand.id },
-    orderBy: { createdAt: "desc" },
-  });
+      orderBy: { scheduledAt: "desc" },
+    }),
+    db.proposal.findMany({
+      where: { Lead: { brandId: brand.id } },
+      orderBy: { createdAt: "desc" },
+    }),
+    db.client.findMany({
+      where: { brandId: brand.id },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
 
   const serializedLeads = leads.map((l) => ({
     id: l.id,
