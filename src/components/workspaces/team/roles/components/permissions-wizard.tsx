@@ -104,7 +104,7 @@ export function PermissionsWizard({
               </div>
 
               {/* Card 2: Accordion */}
-              <div className="glass-frost-card rounded-[20px] shadow-sm border border-neutral-200 dark:border-white/5 p-5.5 bg-neutral-50/20 dark:bg-white/1 flex-1 flex flex-col justify-between min-h-[300px] animate-fade-in">
+              <div className="glass-frost-card rounded-[20px] shadow-sm border border-neutral-200 dark:border-white/5 p-5.5 bg-neutral-50/20 dark:bg-white/1 flex flex-col justify-between h-[320px] animate-fade-in">
                 {activeFunctionalModules.length === 0 ? (
                   <div className="flex flex-col items-center justify-center p-8 text-center border border-dashed border-neutral-300 dark:border-white/10 rounded-2xl bg-neutral-50/10 dark:bg-white/0.5 space-y-3 mt-2 flex-1">
                     <Info className="w-6 h-6 text-neutral-400" />
@@ -123,7 +123,7 @@ export function PermissionsWizard({
                     </button>
                   </div>
                 ) : (
-                  <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1.5 no-scrollbar pt-1 flex-1">
+                  <div className="space-y-3 overflow-y-auto pr-1.5 no-scrollbar pt-1 flex-1">
                     {activeFunctionalModules.map((mod) => {
                       const isOpen = openAccordions[mod.id] ?? true;
                       return (
@@ -307,8 +307,8 @@ export function PermissionsWizard({
           );
         })()
       ) : (
-        <div className="glass-frost-card rounded-[20px] shadow-sm border border-neutral-200 dark:border-white/5 p-5.5 bg-neutral-50/20 dark:bg-white/1 flex-1 flex flex-col justify-between min-h-[400px]">
-          <div className="space-y-4">
+        <div className="glass-frost-card rounded-[20px] shadow-sm border border-neutral-200 dark:border-white/5 p-5.5 bg-neutral-50/20 dark:bg-white/1 flex flex-col justify-between h-[480px]">
+          <div className="space-y-4 flex-1 overflow-y-auto pr-2 no-scrollbar pb-2">
             {/* Step 1: Enterprise Scope */}
             {activeStep === 1 && (() => {
               const orgModule = MODULE_DEFINITIONS.find((m) => m.id === "Organization");
