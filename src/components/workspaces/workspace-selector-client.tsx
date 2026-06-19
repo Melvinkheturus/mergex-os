@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   LogOut,
@@ -87,23 +87,21 @@ const CAROUSEL_STAGES = [
   { label: "LAUNCHING WORKSPACE", icon: Rocket },
 ];
 
-function LoadingTransitionScreen({ brand, onComplete }: { brand: Brand; onComplete: () => void }) {
+function LoadingTransitionScreen({ brand }: { brand: Brand }) {
   const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
     const interval = setInterval(() => {
       setActiveIndex((prev) => {
         if (prev >= CAROUSEL_STAGES.length - 1) {
-          clearInterval(interval);
-          setTimeout(onComplete, 1200);
           return prev;
         }
         return prev + 1;
       });
-    }, 1200);
+    }, 150);
 
     return () => clearInterval(interval);
-  }, [onComplete]);
+  }, []);
 
   return (
     <div className="fixed inset-0 bg-white dark:bg-[#09090c] z-9999 flex flex-col items-center justify-center overflow-hidden animate-fade-in">
@@ -164,6 +162,7 @@ function LoadingTransitionScreen({ brand, onComplete }: { brand: Brand; onComple
 export function WorkspaceSelectorClient({ brands, user, userRole, teammates, defaultView }: Props) {
   const canCreateBrand = userRole === "super_admin" || userRole === "admin";
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const { signOut } = useClerk();
   const { user: clerkUser } = useUser();
 
@@ -264,14 +263,18 @@ export function WorkspaceSelectorClient({ brands, user, userRole, teammates, def
 
     // Persist active brand to DB in the background
     try {
-      await fetch("/api/user/active-brand", {
+      fetch("/api/user/active-brand", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ brandId: brand.id }),
-      });
+      }).catch(console.error);
     } catch (e) {
       console.error("[handleSelectBrand] Failed to persist activeBrandId:", e);
     }
+
+    startTransition(() => {
+      router.push(`/workspaces/${brand.slug}/dashboard`);
+    });
   };
 
   const handleArchiveBrand = async (id: string, name: string) => {
@@ -454,10 +457,9 @@ export function WorkspaceSelectorClient({ brands, user, userRole, teammates, def
 
       </main>
 
-      {transitionBrand && (
+      {transitionBrand && isPending && (
         <LoadingTransitionScreen
           brand={transitionBrand}
-          onComplete={() => router.push(`/workspaces/${transitionBrand.slug}/dashboard`)}
         />
       )}
     </div>
