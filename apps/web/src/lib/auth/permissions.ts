@@ -1,0 +1,177 @@
+/**
+ * MergeX OS - Permission Engine
+ *
+ * Convention: "module.resource.action"
+ * Examples: "crm.leads.view", "crm.meetings.create", "settings.manage"
+ *
+ * These strings are stored verbatim in the DB as Permission.module + Permission.action
+ * and assembled as `${module}.${action}` when loading.
+ */
+
+// ── Canonical permission strings ──────────────────────────────
+export const PERMISSIONS = {
+  // ── CRM — Leads ──────────────────────────────────────────────
+  "crm.leads.view":   { module: "crm.leads",   action: "view"   },
+  "crm.leads.create": { module: "crm.leads",   action: "create" },
+  "crm.leads.edit":   { module: "crm.leads",   action: "edit"   },
+  "crm.leads.delete": { module: "crm.leads",   action: "delete" },
+  "crm.leads.assign": { module: "crm.leads",   action: "assign" },
+  "crm.leads.export": { module: "crm.leads",   action: "export" },
+
+  // ── CRM — Opportunities ──────────────────────────────────────
+  "crm.opportunities.view":   { module: "crm.opportunities",   action: "view"   },
+  "crm.opportunities.create": { module: "crm.opportunities",   action: "create" },
+  "crm.opportunities.edit":   { module: "crm.opportunities",   action: "edit"   },
+  "crm.opportunities.delete": { module: "crm.opportunities",   action: "delete" },
+
+  // ── CRM — Meetings ────────────────────────────────────────────
+  "crm.meetings.view":     { module: "crm.meetings",   action: "view"     },
+  "crm.meetings.create":   { module: "crm.meetings",   action: "create"   },
+  "crm.meetings.complete": { module: "crm.meetings",   action: "complete" },
+
+  // ── CRM — Proposals ───────────────────────────────────────────
+  "crm.proposals.view":   { module: "crm.proposals", action: "view"   },
+  "crm.proposals.create": { module: "crm.proposals", action: "create" },
+  "crm.proposals.edit":   { module: "crm.proposals", action: "edit"   },
+
+  // ── Clients ───────────────────────────────────────────────────
+  "clients.view":   { module: "clients", action: "view"   },
+  "clients.create": { module: "clients", action: "create" },
+  "clients.edit":   { module: "clients", action: "edit"   },
+
+  // ── Documents ─────────────────────────────────────────────────
+  "documents.view":   { module: "documents", action: "view"   },
+  "documents.upload": { module: "documents", action: "upload" },
+
+  // ── Knowledge Base ────────────────────────────────────────────
+  "knowledge.view":    { module: "knowledge", action: "view"    },
+  "knowledge.create":  { module: "knowledge", action: "create"  },
+  "knowledge.edit":    { module: "knowledge", action: "edit"    },
+  "knowledge.publish": { module: "knowledge", action: "publish" },
+
+  // ── Users & Roles ─────────────────────────────────────────────
+  "users.view":   { module: "users", action: "view"   },
+  "users.invite": { module: "users", action: "invite" },
+  "users.manage": { module: "users", action: "manage" },
+  "roles.manage": { module: "roles", action: "manage" },
+
+  // ── Settings ──────────────────────────────────────────────────
+  "settings.view":   { module: "settings", action: "view"   },
+  "settings.manage": { module: "settings", action: "manage" },
+
+  // ── Projects & Finance ────────────────────────────────────────
+  "projects.view":   { module: "projects", action: "view"   },
+  "finance.view":    { module: "finance",  action: "view"   },
+
+  // ── Organization Layer ────────────────────────────────────────
+  "org.workspaces.view":   { module: "org.workspaces", action: "view"   },
+  "org.workspaces.manage": { module: "org.workspaces", action: "manage" },
+  "org.team.manage":       { module: "org.team",       action: "manage" },
+  "org.settings.manage":   { module: "org.settings",  action: "manage" },
+};
+
+export type PermissionKey = keyof typeof PERMISSIONS;
+export type PermissionString = PermissionKey;
+
+// ── Default role → permission mapping ────────────────────────
+// Used to seed the database initial roles
+export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
+  super_admin: Object.keys(PERMISSIONS) as PermissionKey[],
+
+  admin: [
+    "crm.leads.view", "crm.leads.create", "crm.leads.edit", "crm.leads.delete",
+    "crm.leads.assign", "crm.leads.export",
+    "crm.opportunities.view", "crm.opportunities.create", "crm.opportunities.edit", "crm.opportunities.delete",
+    "crm.meetings.view", "crm.meetings.create", "crm.meetings.complete",
+    "crm.proposals.view", "crm.proposals.create", "crm.proposals.edit",
+    "clients.view", "clients.create", "clients.edit",
+    "documents.view", "documents.upload",
+    "knowledge.view", "knowledge.create", "knowledge.edit", "knowledge.publish",
+    "users.view", "users.invite", "users.manage",
+    "settings.view", "settings.manage",
+    "projects.view", "finance.view",
+    "org.workspaces.view", "org.workspaces.manage",
+    "org.team.manage", "org.settings.manage",
+  ],
+
+  sales_manager: [
+    "crm.leads.view", "crm.leads.create", "crm.leads.edit",
+    "crm.leads.assign", "crm.leads.export",
+    "crm.opportunities.view", "crm.opportunities.create", "crm.opportunities.edit",
+    "crm.meetings.view", "crm.meetings.create", "crm.meetings.complete",
+    "crm.proposals.view", "crm.proposals.create", "crm.proposals.edit",
+    "clients.view", "clients.create", "clients.edit",
+    "documents.view", "documents.upload",
+    "knowledge.view", "knowledge.create", "knowledge.edit",
+    "users.view", "users.invite",
+    "settings.view",
+    "projects.view",
+    "org.workspaces.view",
+  ],
+
+  cx_executive: [
+    "crm.leads.view", "crm.leads.create", "crm.leads.edit", "crm.leads.assign",
+    "crm.opportunities.view", "crm.opportunities.create",
+    "crm.meetings.view", "crm.meetings.create", "crm.meetings.complete",
+    "crm.proposals.view", "crm.proposals.create",
+    "clients.view",
+    "documents.view",
+    "knowledge.view",
+    "users.view",
+    "projects.view",
+  ],
+
+  proposal_manager: [
+    "crm.leads.view",
+    "crm.opportunities.view",
+    "crm.proposals.view", "crm.proposals.create", "crm.proposals.edit",
+    "crm.meetings.view",
+    "clients.view",
+    "knowledge.view", "knowledge.create", "knowledge.edit",
+    "documents.view", "documents.upload",
+    "projects.view",
+  ],
+
+  analyst: [
+    "crm.leads.view", "crm.leads.export",
+    "crm.opportunities.view",
+    "crm.proposals.view",
+    "crm.meetings.view",
+    "clients.view",
+    "knowledge.view",
+    "documents.view",
+    "projects.view",
+  ],
+
+  viewer: [
+    "crm.leads.view",
+    "crm.opportunities.view",
+    "crm.proposals.view",
+    "crm.meetings.view",
+    "clients.view",
+    "knowledge.view",
+    "documents.view",
+    "projects.view",
+  ],
+};
+
+// ── Client-side permission check helper ──────────────────────
+// Pass the permission strings from the session/API
+export function can(
+  userPermissions: PermissionString[],
+  key: PermissionKey
+): boolean {
+  return userPermissions.includes(key);
+}
+
+// ── Role Hierarchy Rank Helper ───────────────────────────────
+export function getRoleRank(roleName?: string): number {
+  if (!roleName) return 20;
+  const name = roleName.toLowerCase();
+  if (name === "super_admin") return 100;
+  if (name === "admin") return 80;
+  if (name === "sales_manager" || name === "proposal_manager" || name === "manager") return 60;
+  if (name === "cx_executive" || name === "sales_rep" || name === "executive") return 40;
+  return 20; // default (viewer, analyst, or custom roles)
+}
+

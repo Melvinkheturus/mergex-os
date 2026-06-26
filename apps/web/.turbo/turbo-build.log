@@ -1,0 +1,115 @@
+$ prisma generate && next build
+Loaded Prisma config from prisma.config.ts.
+
+Prisma schema loaded from prisma\schema.prisma.
+
+✔ Generated Prisma Client (v7.8.0) to .\..\..\node_modules\.pnpm\@prisma+client@7.8.0_prisma_12a6afd4e8168cdd815b06207f03ccf9\node_modules\@prisma\client in 375ms
+
+Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+
+
+▲ Next.js 16.2.6 (Turbopack)
+- Experiments (use with caution):
+  · optimizePackageImports
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 7.8s
+  Running TypeScript ...
+  Finished TypeScript in 18.5s ...
+  Collecting page data using 21 workers ...
+  Generating static pages using 21 workers (0/47) ...
+  Generating static pages using 21 workers (11/47) 
+  Generating static pages using 21 workers (23/47) 
+  Generating static pages using 21 workers (35/47) 
+✓ Generating static pages using 21 workers (47/47) in 710ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+├ ○ /_not-found
+├ ƒ /api/auth/active-brand
+├ ƒ /api/auth/invite-lookup
+├ ƒ /api/auth/invite-validate
+├ ƒ /api/auth/recovery-code/generate
+├ ƒ /api/auth/recovery-code/verify
+├ ƒ /api/auth/webhook
+├ ƒ /api/brands
+├ ƒ /api/brands/[id]
+├ ƒ /api/crm/leads
+├ ƒ /api/crm/leads/[id]
+├ ƒ /api/crm/leads/[id]/activities
+├ ƒ /api/crm/leads/[id]/audit
+├ ƒ /api/crm/leads/[id]/business-review
+├ ƒ /api/crm/leads/[id]/convert
+├ ƒ /api/crm/leads/[id]/meetings
+├ ƒ /api/crm/leads/[id]/notes
+├ ƒ /api/crm/leads/[id]/proposals
+├ ƒ /api/crm/leads/[id]/tasks
+├ ƒ /api/crm/leads/[id]/tasks/[taskId]
+├ ƒ /api/crm/meetings
+├ ƒ /api/crm/meetings/[meetingId]
+├ ƒ /api/crm/opportunities
+├ ƒ /api/crm/options
+├ ƒ /api/crm/proposals
+├ ƒ /api/crm/proposals/[proposalId]
+├ ƒ /api/crm/settings
+├ ƒ /api/onboarding
+├ ƒ /api/profile
+├ ƒ /api/pulse/activity
+├ ƒ /api/pulse/emit
+├ ƒ /api/pulse/notifications
+├ ƒ /api/pulse/notifications/[id]
+├ ƒ /api/pulse/preferences
+├ ƒ /api/pulse/process
+├ ƒ /api/releases
+├ ƒ /api/releases/[id]
+├ ƒ /api/releases/latest
+├ ƒ /api/search
+├ ƒ /api/setup
+├ ƒ /api/setup/status
+├ ƒ /api/team/invite
+├ ƒ /api/team/invite/resend
+├ ƒ /api/team/members
+├ ƒ /api/team/members/archive
+├ ƒ /api/team/members/audit
+├ ƒ /api/team/members/delete
+├ ƒ /api/team/members/restore
+├ ƒ /api/team/roles
+├ ƒ /api/upload
+├ ƒ /api/user/active-brand
+├ ƒ /changelog
+├ ○ /forgot-password
+├ ƒ /invite/[token]
+├ ○ /robots.txt
+├ ○ /setup
+├ ƒ /sign-in/[[...sign-in]]
+├ ƒ /sign-up/[[...sign-up]]
+├ ○ /sitemap.xml
+├ ○ /sso-callback
+├ ○ /unauthorized
+├ ƒ /workspaces
+├ ƒ /workspaces/[slug]
+├ ƒ /workspaces/[slug]/clients
+├ ƒ /workspaces/[slug]/crm
+├ ƒ /workspaces/[slug]/crm/companies
+├ ƒ /workspaces/[slug]/crm/contacts
+├ ƒ /workspaces/[slug]/crm/deals
+├ ƒ /workspaces/[slug]/crm/leads
+├ ƒ /workspaces/[slug]/crm/leads/[id]
+├ ƒ /workspaces/[slug]/crm/leads/new
+├ ƒ /workspaces/[slug]/crm/sales-conversion
+├ ƒ /workspaces/[slug]/crm/sales-conversion/[id]
+├ ƒ /workspaces/[slug]/dashboard
+├ ƒ /workspaces/[slug]/documents
+├ ƒ /workspaces/[slug]/knowledge
+├ ƒ /workspaces/[slug]/settings
+├ ƒ /workspaces/[slug]/settings/notifications
+├ ƒ /workspaces/[slug]/team
+└ ƒ /workspaces/settings
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
