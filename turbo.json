@@ -9,6 +9,13 @@
       "dependsOn": ["^vercel-build"],
       "outputs": [".next/**", "!.next/cache/**"]
     },
+    "build:worker": {
+      "dependsOn": ["^build"],
+      "outputs": [".open-next/**", ".worker/**", ".next/**", "!.next/cache/**"]
+    },
+    "deploy:worker": {
+      "dependsOn": ["build:worker"]
+    },
     "dev": {
       "cache": false,
       "persistent": true
